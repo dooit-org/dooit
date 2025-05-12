@@ -3,7 +3,7 @@ name: Python application
 on:
   workflow_dispatch:
   release:
-    types: [published]
+    types: [published, prereleased, released]
 
 permissions:
   contents: write
@@ -16,10 +16,10 @@ jobs:
         os: [windows-latest, ubuntu-latest, macos-latest]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
@@ -61,7 +61,7 @@ jobs:
         run: cp ./dist/${{ env.BINARY_FILE_NAME }} ./dist/${{ env.FINAL_FILE_NAME }}
 
       - name: Upload a Build Artifact
-        uses: actions/upload-artifact@v3.1.0
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: ${{ env.FINAL_FILE_NAME }}
           path: ./dist/${{ env.BINARY_FILE_NAME }}
