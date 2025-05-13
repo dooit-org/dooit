@@ -54,7 +54,7 @@ class Urgency(SimpleInput[Todo, int]):
 
     def _typecast_value(self, value: str) -> Any:
         if not value or value == "0":
-            return None
+            return 0
 
         return int(value)
 
