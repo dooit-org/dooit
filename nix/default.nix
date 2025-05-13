@@ -11,21 +11,21 @@
 in
   python3.pkgs.buildPythonApplication rec {
     pname = "dooit";
-    version = "3.2.0";
+    version = "3.2.1";
     pyproject = true;
 
     src = fetchFromGitHub {
       owner = "dooit-org";
       repo = "dooit";
       rev = "refs/tags/v${version}";
-      hash = "sha256-tqSWDW3nj+nMt7t5vgSqWvtx7YA3y2GV29gI1MYFMhc=";
+      hash = "sha256-OKQZmK9wThyAPiiS5S4y5MB7X8Hv5igZAXGkVV2kJVs=";
     };
 
     build-system = with python3.pkgs; [poetry-core];
 
     pythonRelaxDeps = [
       "tzlocal"
-      "textual"
+      # "textual"
       "sqlalchemy"
     ];
 
