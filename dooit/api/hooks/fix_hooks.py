@@ -4,7 +4,7 @@ from ..todo import Todo
 
 
 @event.listens_for(Workspace, "before_insert")
-def fix_order_id_workspace(mapper, connection, target: Workspace):
+def fix_order_id_workspace(_, connection, target: Workspace):
     if target.is_root:
         return
 
@@ -16,16 +16,15 @@ def fix_order_id_workspace(mapper, connection, target: Workspace):
         connection.execute(
             text("""
             UPDATE workspace
-            SET order_index = order_index
+            SET order_index = order_index + 1
             WHERE order_index >= :current_index
-            AND id != :target_id
             """),
             {"current_index": target.order_index, "target_id": target.id},
         )
 
 
 @event.listens_for(Todo, "before_insert")
-def fix_order_id_todo(mapper, connection, target: Todo):
+def fix_order_id_todo(_, connection, target: Todo):
     if target.order_index is None or target.order_index == -1:
         target.order_index = len(target.siblings) - 1
 
@@ -33,9 +32,8 @@ def fix_order_id_todo(mapper, connection, target: Todo):
         connection.execute(
             text("""
             UPDATE todo
-            SET order_index = order_index
+            SET order_index = order_index + 1
             WHERE order_index >= :current_index
-            AND id != :target_id
             """),
             {"current_index": target.order_index, "target_id": target.id},
         )
