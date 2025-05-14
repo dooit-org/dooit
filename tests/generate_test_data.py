@@ -71,5 +71,8 @@ def generate(session, test=True):
 
 
 if __name__ == "__main__":  # pragma: no cover (not called in tests)
-    generate(test=False)
+    from dooit.api import manager
+    manager.connect()
+
+    generate(manager.session, test=False)
     print("Data generated.")
