@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dooit"
-version = "3.2.2"
+version = "3.2.3"
 description = "A TUI Todo Manager"
 authors = ["kraanzu <kraanzu@gmail.com>"]
 maintainers = ["kraanzu <kraanzu@gmail.com>"]
@@ -45,10 +45,7 @@ testpaths = ["tests"]
 asyncio_default_fixture_loop_scope = "function"
 
 [tool.ruff.lint]
-ignore=["E712"]
+ignore = ["E712"]
 
 [tool.coverage.report]
-omit = [
-    "nix/store/*",
-    "dooit/utils/default_config.py"
-]
+omit = ["nix/store/*", "dooit/utils/default_config.py"]
