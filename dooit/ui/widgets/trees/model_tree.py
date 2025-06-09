@@ -201,7 +201,7 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
 
     async def handle_keypress(self, key: str) -> bool:
         if self.is_editing:
-            if key == "escape":
+            if key in ["escape", "enter"]:
                 self.stop_edit()
             else:
                 self.current.handle_keypress(key)
