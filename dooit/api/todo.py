@@ -181,3 +181,40 @@ class Todo(DooitModel):
     def all(cls) -> List["Todo"]:
         query = select(Todo)
         return list(manager.session.execute(query).scalars().all())
+
+    @staticmethod
+    def clone_from_id(id: int, order_index: int) -> "Todo":
+        todo = Todo.from_id(str(id))
+        fields = ['description', 'due', 'effort', 'recurrence', 'urgency', 'pending']
+        attrs = {field: getattr(todo, field) for field in fields}
+        attrs.update({
+            'parent_workspace': todo.parent_workspace,
+            'parent_todo': todo.parent_todo,
+            'order_index': order_index
+        })
+        new_todo = Todo(**attrs)
+        new_todo.save()
+
+        # Clone all child todos recursively
+        for i, child_todo in enumerate(todo.todos):
+            attrs = {field: getattr(child_todo, field) for field in fields}
+            attrs['parent_todo'] = new_todo
+            child_clone = Todo(**attrs)
+            child_clone.save()
+
+            # Recursively clone any nested todos
+            for grandchild in child_todo.todos:
+                Todo._clone_todo_recursively(grandchild, child_clone)
+
+        return new_todo
+
+    @staticmethod
+    def _clone_todo_recursively(source_todo: "Todo", parent_clone: "Todo") -> None:
+        fields = ['description', 'due', 'effort', 'recurrence', 'urgency', 'pending', 'order_index']
+        attrs = {field: getattr(source_todo, field) for field in fields}
+        attrs['parent_todo'] = parent_clone
+        todo_clone = Todo(**attrs)
+        todo_clone.save()
+
+        for child in source_todo.todos:
+            Todo._clone_todo_recursively(child, todo_clone)

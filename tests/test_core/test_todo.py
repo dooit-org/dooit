@@ -238,3 +238,54 @@ def test_sort(session, create_workspace, field, sort_key, filter_func, compare_i
         assert [i.id for i in old] == [i.id for i in new]
     else:
         assert old == new
+
+    def test_clone_from_id(create_workspace, create_todo):
+        # Create source todo with nested structure
+        w = create_workspace("Test Workspace")
+        t = w.add_todo()
+        t.description = "Parent Todo"
+        t.due = datetime.now()
+        t.effort = 3
+        t.urgency = 2
+        t.save()
+
+        # Add child todos
+        child1 = t.add_todo()
+        child1.description = "Child Todo 1"
+        child1.save()
+
+        child2 = t.add_todo()
+        child2.description = "Child Todo 2"
+        child2.save()
+
+        # Add grandchild todo
+        grandchild = child1.add_todo()
+        grandchild.description = "Grandchild Todo"
+        grandchild.save()
+
+        # Clone the todo
+        cloned_todo = Todo.clone_from_id(t.id, 10)
+
+        # Check basic properties were copied
+        assert cloned_todo.id != t.id
+        assert cloned_todo.description == "Parent Todo"
+        assert cloned_todo.due == t.due
+        assert cloned_todo.effort == 3
+        assert cloned_todo.urgency == 2
+        assert cloned_todo.order_index == 10
+        assert cloned_todo.parent_workspace_id == w.id
+
+        # Check child todos were cloned
+        assert len(cloned_todo.todos) == 2
+
+        # Check grandchild todo was cloned
+        child_descriptions = [child.description for child in cloned_todo.todos]
+        assert "Child Todo 1" in child_descriptions
+        assert "Child Todo 2" in child_descriptions
+
+        # Find the cloned Child Todo 1
+        cloned_child1 = next(child for child in cloned_todo.todos if child.description == "Child Todo 1")
+
+        # Check grandchild was cloned properly
+        assert len(cloned_child1.todos) == 1
+        assert cloned_child1.todos[0].description == "Grandchild Todo"

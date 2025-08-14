@@ -84,6 +84,18 @@ class DooitAPI:
 
         self.focused.copy_description_to_clipboard()
 
+    def copy_model(self):
+        """Copy the current highlighted node to clipboard"""
+        self.focused.copy_model_to_clipboard()
+
+    def paste_model_above(self):
+        """Paste the copied node in the list (puts above the highlighted)"""
+        self.focused.paste_model_from_clipboard("above")
+
+    def paste_model_below(self):
+        """Paste the copied node in the list (puts below the highlighted)"""
+        self.focused.paste_model_from_clipboard("below")
+
     def switch_focus(self):
         """Switch focus between the workspace and the todo list"""
 

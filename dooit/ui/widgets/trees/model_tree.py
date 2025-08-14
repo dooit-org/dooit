@@ -50,6 +50,7 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         self.expaned = defaultdict(bool)
         self._renderers: RenderDictType = render_dict
         self._filter_refresh = False
+        self._model_clipboard = None
 
     @cache
     def get_column_width(self, attr: str) -> int:
@@ -319,6 +320,42 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         self._renderers.pop(model.uuid)
         self.expanded_nodes.pop(model.uuid)
         model.drop()
+
+    @require_highlighted_node
+    def copy_model_to_clipboard(self):
+        node_type = self.current_model.__class__.__name__
+        self.api.notify(f"{node_type} was copied to clipboard")
+        self._model_clipboard = self.current_model.id
+
+    def paste_model_from_clipboard(self, position: str = "below") -> Optional[ModelType]:
+
+        @refresh_tree
+        def add_node(self):
+            if not self._model_clipboard:
+                self.post_message(BarNotification("No model in clipboard", "error"))
+                return None
+
+            if position not in ["below", "above"]:
+                self.post_message(BarNotification("Invalid position, use 'below' or 'above'", "error"))
+                return None
+
+            if not self.highlighted:
+                order_index = len(self._options)
+            else:
+                order_index = self.current_model.order_index
+                if position == "below":
+                    order_index += 1
+
+            if isinstance(self.current_model, Todo):
+                new_model = Todo.clone_from_id(self._model_clipboard, order_index)
+            else:
+                new_model = Workspace.clone_from_id(self._model_clipboard, order_index)
+
+            return new_model
+
+        model = add_node(self)
+        self.highlight_id(model.uuid)
+        return model
 
     @require_highlighted_node
     def remove_node(self):

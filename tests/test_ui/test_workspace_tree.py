@@ -252,3 +252,69 @@ async def test_add_sibling_while_editing():
         assert wtree.highlighted == 0
 
         assert len(wtree._options) == 1
+
+
+async def test_yank_and_paste_workspace():
+    async with run_pilot() as pilot:
+        app = pilot.app
+        assert isinstance(app, Dooit)
+        wtree = app.workspace_tree
+
+        # Create first workspace
+        wtree.add_sibling()
+        await pilot.press(*list("workspace 1"))
+        await pilot.press("escape")
+
+        # Create child workspace to test nested cloning
+        wtree.add_child_node()
+        await pilot.press(*list("child workspace"))
+        await pilot.press("escape")
+
+        # Go back to parent
+        wtree.action_cursor_up()
+        await pilot.pause()
+
+        # Add a todo to the workspace
+        app.api.switch_focus()
+        await pilot.pause()
+
+        tree = app.screen.query_one(
+            "#todo_switcher", expect_type=ContentSwitcher
+        ).visible_content
+        assert isinstance(tree, TodosTree)
+
+        tree.add_sibling()
+        await pilot.press(*list("todo in workspace"))
+        await pilot.press("escape")
+        assert tree.option_count == 1
+
+        # Switch back to workspace tree
+        app.api.switch_focus()
+        await pilot.pause()
+
+        # Yank the workspace
+        await pilot.press("Y")
+        await pilot.pause()
+
+        # Paste it
+        await pilot.press("p")
+        await pilot.pause()
+
+        # Check that the workspace was cloned
+        assert wtree.option_count == 3
+
+        # Verify child workspace was cloned
+        wtree.toggle_expand()
+        await pilot.pause()
+        assert wtree.option_count == 4
+
+        # Check that todo was cloned by switching to todo tree
+        app.api.switch_focus()
+        await pilot.pause()
+
+        tree = app.screen.query_one(
+            "#todo_switcher", expect_type=ContentSwitcher
+        ).visible_content
+        assert isinstance(tree, TodosTree)
+
+        assert tree.option_count == 1

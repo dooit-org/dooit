@@ -151,3 +151,7 @@ class DooitModel(BaseModel, BaseModelMixin):
 
     def save(self) -> None:
         manager.save(self)
+
+    @staticmethod
+    def clone_from_id(id: int, order_index: int) -> "DooitModel":
+        raise NotImplementedError
