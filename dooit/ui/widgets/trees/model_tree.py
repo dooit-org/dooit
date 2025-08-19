@@ -327,8 +327,9 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         self.api.notify(f"{node_type} was copied to clipboard")
         self._model_clipboard = self.current_model.id
 
-    def paste_model_from_clipboard(self, position: str = "below") -> Optional[ModelType]:
-
+    def paste_model_from_clipboard(
+        self, position: str = "below"
+    ) -> Optional[ModelType]:
         @refresh_tree
         def add_node(self):
             if not self._model_clipboard:
@@ -336,7 +337,9 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
                 return None
 
             if position not in ["below", "above"]:
-                self.post_message(BarNotification("Invalid position, use 'below' or 'above'", "error"))
+                self.post_message(
+                    BarNotification("Invalid position, use 'below' or 'above'", "error")
+                )
                 return None
 
             if not self.highlighted:

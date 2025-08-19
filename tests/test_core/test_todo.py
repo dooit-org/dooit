@@ -284,7 +284,9 @@ def test_sort(session, create_workspace, field, sort_key, filter_func, compare_i
         assert "Child Todo 2" in child_descriptions
 
         # Find the cloned Child Todo 1
-        cloned_child1 = next(child for child in cloned_todo.todos if child.description == "Child Todo 1")
+        cloned_child1 = next(
+            child for child in cloned_todo.todos if child.description == "Child Todo 1"
+        )
 
         # Check grandchild was cloned properly
         assert len(cloned_child1.todos) == 1

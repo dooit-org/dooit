@@ -132,7 +132,11 @@ def test_clone_from_id(create_workspace, create_todo):
     assert "Child Workspace 2" in child_descriptions
 
     # Find the cloned Child Workspace 1
-    cloned_child_ws1 = next(child for child in cloned_workspace.workspaces if child.description == "Child Workspace 1")
+    cloned_child_ws1 = next(
+        child
+        for child in cloned_workspace.workspaces
+        if child.description == "Child Workspace 1"
+    )
 
     # Check nested workspace was cloned
     assert len(cloned_child_ws1.workspaces) == 1

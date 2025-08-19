@@ -125,10 +125,10 @@ class Workspace(DooitModel):
     @staticmethod
     def clone_from_id(id: int, order_index: int) -> "Workspace":
         workspace = Workspace.from_id(str(id))
-        fields = ['description']
+        fields = ["description"]
         attrs = {field: getattr(workspace, field) for field in fields}
-        attrs['parent_workspace_id'] = workspace.parent_workspace_id
-        attrs['order_index'] = order_index
+        attrs["parent_workspace_id"] = workspace.parent_workspace_id
+        attrs["order_index"] = order_index
 
         new_workspace = Workspace(**attrs)
         new_workspace.save()
@@ -139,9 +139,16 @@ class Workspace(DooitModel):
 
         # Clone all todos
         for todo in workspace.todos:
-            fields = ['description', 'due', 'effort', 'recurrence', 'urgency', 'pending']
+            fields = [
+                "description",
+                "due",
+                "effort",
+                "recurrence",
+                "urgency",
+                "pending",
+            ]
             attrs = {field: getattr(todo, field) for field in fields}
-            attrs['parent_workspace'] = new_workspace
+            attrs["parent_workspace"] = new_workspace
 
             todo_clone = Todo(**attrs)
             todo_clone.save()
@@ -153,10 +160,12 @@ class Workspace(DooitModel):
         return new_workspace
 
     @staticmethod
-    def _clone_workspace_recursively(source_workspace: "Workspace", parent_clone: "Workspace") -> None:
-        fields = ['description', 'order_index']
+    def _clone_workspace_recursively(
+        source_workspace: "Workspace", parent_clone: "Workspace"
+    ) -> None:
+        fields = ["description", "order_index"]
         attrs = {field: getattr(source_workspace, field) for field in fields}
-        attrs['parent_workspace'] = parent_clone
+        attrs["parent_workspace"] = parent_clone
 
         workspace_clone = Workspace(**attrs)
         workspace_clone.save()
@@ -167,9 +176,17 @@ class Workspace(DooitModel):
 
         # Clone todos
         for todo in source_workspace.todos:
-            fields = ['description', 'due', 'effort', 'recurrence', 'urgency', 'pending', 'order_index']
+            fields = [
+                "description",
+                "due",
+                "effort",
+                "recurrence",
+                "urgency",
+                "pending",
+                "order_index",
+            ]
             attrs = {field: getattr(todo, field) for field in fields}
-            attrs['parent_workspace'] = workspace_clone
+            attrs["parent_workspace"] = workspace_clone
 
             todo_clone = Todo(**attrs)
             todo_clone.save()
