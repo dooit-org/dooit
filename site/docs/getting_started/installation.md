@@ -8,6 +8,12 @@ Dooit can be installed via various package managers
 pip install dooit dooit-extras
 ```
 
+## UV
+
+```bash
+uv tool install --with dooit-extras dooit
+```
+
 ## Arch Linux
 
 ```bash
@@ -16,7 +22,8 @@ yay -S dooit dooit-extras
 
 ## NixOS
 
-:::details Flakes/Module ❄️ 
+:::details Flakes/Module ❄️
+
 ```nix{24,7-8,}
 # flake.nix
 
@@ -48,7 +55,7 @@ yay -S dooit dooit-extras
 }
 ```
 
-----
+---
 
 ```nix
 # dooit.nix
@@ -73,9 +80,11 @@ in {
   ];
 }
 ```
+
 :::
 
-:::details Flakes/Home Manager ❄️ 
+:::details Flakes/Home Manager ❄️
+
 ```nix{26,7-8,}
 # flake.nix
 
@@ -100,7 +109,7 @@ in {
       extraSpecialArgs = {
         inherit system inputs;
       };
- 
+
       modules = [
         ./home-manager/dooit.nix
       ];
@@ -109,7 +118,7 @@ in {
 }
 ```
 
-----
+---
 
 ```nix
 # home-manager/dooit.nix
@@ -134,6 +143,7 @@ in {
 }
 
 ```
+
 :::
 
 > Thanks to [`Hyprpanel`](https://hyprpanel.com/) from whom I stole the format for the flake
@@ -149,6 +159,7 @@ mamba install dooit dooit-extras
 ```
 
 Or using [Pixi](https://pixi.sh/latest/)s `global` feature for access independent of the directory:
+
 ```bash
 pixi global install dooit
 ```
