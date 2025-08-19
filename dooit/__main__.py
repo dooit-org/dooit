@@ -4,7 +4,7 @@ from pathlib import Path
 from platformdirs import user_data_dir, user_config_dir
 
 OLD_CONFIG = Path(user_data_dir("dooit")) / "todo.yaml"
-VERSION = "3.2.3"
+VERSION = "3.3.3"
 
 
 def run_dooit(config: Optional[str] = None, db_path: Optional[str] = None):
