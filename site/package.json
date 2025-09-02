@@ -1,7 +1,8 @@
 {
   "dependencies": {},
   "devDependencies": {
-    "vitepress": "^1.4.1"
+    "vitepress": "^1.4.1",
+    "vitepress-theme-tui": "^0.0.13"
   },
   "scripts": {
     "docs:dev": "vitepress dev docs",
