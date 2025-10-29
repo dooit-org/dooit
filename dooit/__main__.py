@@ -49,17 +49,6 @@ def main(ctx, version: bool, config: str, db: str) -> None:
         run_dooit(config=config, db_path=db)
 
 
-@main.command(help="Migrate data from v2 to v3.")
-def migrate() -> None:
-    from dooit.utils.cli_logger import logger
-
-    logger.info("Migrating from v2 ...")
-    from dooit.backport.migrate_from_v2 import Migrator2to3
-
-    migrator = Migrator2to3()
-    migrator.migrate()
-
-
 @main.command(help="Show config location.")
 def config_loc() -> None:
     """Print the location of the configuration file."""
