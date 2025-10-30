@@ -1,5 +1,5 @@
-from typing import Optional
 import click
+from click.core import Context
 from pathlib import Path
 from platformdirs import user_data_dir, user_config_dir
 
@@ -7,7 +7,7 @@ OLD_CONFIG = Path(user_data_dir("dooit")) / "todo.yaml"
 VERSION = "3.3.3"
 
 
-def run_dooit(config: Optional[str] = None, db_path: Optional[str] = None):
+def run_dooit(config: str | None = None, db_path: str | None = None):
     config_path = None if not config else Path(config)
 
     if config_path and not (config_path.exists() and config_path.is_file()):
@@ -32,7 +32,7 @@ def run_dooit(config: Optional[str] = None, db_path: Optional[str] = None):
 @click.option("-c", "--config", default=None, help="Path to config file")
 @click.option("--db", default=None, help="Path to database file")
 @click.pass_context
-def main(ctx, version: bool, config: str, db: str) -> None:
+def main(ctx: Context, version: bool, config: str, db: str) -> None:
     if version:
         return print(f"dooit - {VERSION}")
 
