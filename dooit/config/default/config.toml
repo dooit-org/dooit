@@ -1,0 +1,91 @@
+# Example of including external theme file
+# includes = ["themes/nord.toml"]
+
+[theme]
+name="nord"
+background1="#2E3440"  # Darkest
+background2="#3B4252"  # Lighter
+background3="#434C5E"  # Lightest
+foreground1="#D8DEE9"  # Darkest
+foreground2="#E5E9F0"  # Lighter
+foreground3="#ECEFF4"  # Lightest
+red="#BF616A"
+orange="#D08770"
+yellow="#EBCB8B"
+green="#A3BE8C"
+blue="#81a1c1"
+purple="#B48EAD"
+magenta="#B48EAD"
+cyan="#8fbcbb"
+
+primary="$cyan"
+secondary="$blue"
+
+[general]
+theme = "nord"
+
+[layout]
+todo = ["status", "description", "due", "urgency"]
+workspace = ["description"]
+
+[keys]
+switch_focus = "<tab>"
+move_down = "j"
+move_up = "k"
+edit_description = "i"
+edit_due = "d"
+edit_recurrence = "r"
+edit_effort = "e"
+add_sibling = "a"
+toggle_expand = "z"
+toggle_expand_parent = "Z"
+go_to_top = "gg"
+go_to_bottom = "G"
+add_child_node = "A"
+shift_down = "J"
+shift_up = "K"
+remove_node = "xx"
+copy_description_to_clipboard = "y"
+copy_model = "Y"
+paste_model_below = "p"
+paste_model_above = "P"
+toggle_complete = "c"
+increase_urgency = ["=", "+"]
+decrease_urgency = ["-", "_"]
+start_search = "/"
+start_sort = "<ctrl+s>"
+quit = "<ctrl+q>"
+show_help = "?"
+
+[bar]
+widgets_left = ["mode"]
+widgets_right = ["clock", "user"]
+
+[dashboard]
+widgets = ["qoute", "ascii"]
+
+[script.mode]
+format_normal = " NORMAL "
+format_insert = " INSERT "
+bg_normal = "$primary"
+bg_insert = "$secondary"
+color_normal = "$background1"
+color_insert = "$background1"
+
+[script.clock]
+script = "./scripts/clock.py"
+format = "%H:%M"
+
+[script.user]
+script = "./scripts/user.py"
+format = "{username}"
+
+[script.qoute]
+script = "./scripts/qoute.py"
+format = "{qoute}"
+css.color = "$secondary"
+
+[script.ascii]
+script = "./scripts/ascii.py"
+format = "{ascii_art}"
+css.color = "$primary"
