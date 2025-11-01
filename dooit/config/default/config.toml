@@ -61,11 +61,13 @@ show_help = "?"
 script = "./formatter/workspace_description.py"
 format = "{description}"
 format_with_child = "{description} ({child_count})"
+highlighted.css.bold = true
 
 [formatter.todo.description]
 script = "./formatter/todo_description.py"
 format = "{description}"
 format_with_child = "{description} ({child_count})"
+highlighted.css.bold = true
 
 [formatter.todo.status]
 script = "./formatter/todo_status.py"
@@ -81,6 +83,7 @@ script = "./formatter/todo_due.py"
 format = "{due_date}"
 format_string = "%Y-%m-%d"
 format_string_with_time = "%Y-%m-%d %H:%M"
+highlighted.css.bold = true
 
 [formatter.todo.urgency]
 script = "./formatter/todo_urgency.py"
@@ -92,11 +95,13 @@ c.format = "(!)3"
 c.css.color = "$yellow"
 d.format = "(!)4"
 d.css.color = "$green"
+highlighted.css.bold = true
 
 [formatter.todo.effort]
 script = "./formatter/todo_effort.py"
 format = "{effort}"
 css.color = "$orange"
+highlighted.css.bold = true
 
 [bar]
 widgets_left = ["mode"]
