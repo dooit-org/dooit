@@ -1,22 +1,23 @@
 import click
 from click.core import Context
 from pathlib import Path
-from platformdirs import user_data_dir, user_config_dir
 
-OLD_CONFIG = Path(user_data_dir("dooit")) / "todo.yaml"
 VERSION = "3.3.3"
 
 
-def run_dooit(config: str | None = None, db_path: str | None = None):
-    config_path = None if not config else Path(config)
-
-    if config_path and not (config_path.exists() and config_path.is_file()):
-        print(f"Config file {config} not found.")
-        return
-
+def run_dooit(config_path_str: str | None, db_path_str: str | None):
     from dooit.ui.tui import Dooit
+    from dooit.api._vars import DEFAULT_CONFIG_LOCATION, DATABASE_FILE
 
-    Dooit(config=config_path, db_path=db_path).run()
+    config_path = Path(config_path_str or DEFAULT_CONFIG_LOCATION)
+    db_path = Path(db_path_str or DATABASE_FILE)
+
+    if not (config_path.exists() and config_path.is_file()):
+        config_path.touch()
+    if not (db_path.exists() and db_path.is_file()):
+        db_path.touch()
+
+    Dooit(config_path=config_path, db_path=db_path).run()
 
 
 @click.group(
@@ -37,22 +38,15 @@ def main(ctx: Context, version: bool, config: str, db: str) -> None:
         return print(f"dooit - {VERSION}")
 
     if ctx.invoked_subcommand is None:
-        if OLD_CONFIG.exists():
-            from dooit.utils.cli_logger import logger
-
-            logger.warn(
-                "Found todos for v2.",
-                "Please migrate to v3 using [reverse] dooit migrate [/reverse] first.",
-            )
-            return
-
-        run_dooit(config=config, db_path=db)
+        run_dooit(config_path_str=config, db_path_str=db)
 
 
 @main.command(help="Show config location.")
 def config_loc() -> None:
     """Print the location of the configuration file."""
-    print(Path(user_config_dir("dooit")) / "config.py")
+    from dooit.api._vars import DEFAULT_CONFIG_LOCATION
+
+    print(DEFAULT_CONFIG_LOCATION)
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, final
 from dooit.ui.api.events import BarNotification, NotificationType
 from dooit.ui.api.plug import PluginManager
 from .events import DooitEvent, SwitchTab, QuitApp
@@ -20,13 +20,14 @@ if TYPE_CHECKING:  # pragma: no cover
     from ..tui import Dooit
 
 
+@final
 class DooitAPI:
     def __init__(
         self,
         app: "Dooit",
     ) -> None:
         self.app = app
-        self.plugin_manager = PluginManager(self, app.config)
+        self.plugin_manager = PluginManager(self, app.config_path)
         self.css = CssManager()
         self.keys = KeyManager(self.app.get_dooit_mode)
         self.layouts = LayoutManager(self.app)
@@ -34,8 +35,6 @@ class DooitAPI:
         self.bar = BarManager(self)
         self.vars = VarManager(self)
         self.dashboard = DashboardManager(self.app)
-
-        self.css.refresh_css()
 
     def no_op(self):
         """<NOP>"""

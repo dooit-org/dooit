@@ -1,10 +1,16 @@
 from pathlib import Path
-from typing import Optional
+from typing import final, override
 from textual import on
 from textual.app import App
 from textual.binding import Binding
-from dooit.ui.api.events import ModeChanged, DooitEvent, ModeType, Startup, QuitApp
-from dooit.ui.api.events.events import ShutDown
+from dooit.ui.api.events import (
+    ModeChanged,
+    DooitEvent,
+    ModeType,
+    Startup,
+    QuitApp,
+    ShutDown,
+)
 from dooit.ui.widgets import BarSwitcher
 from dooit.ui.widgets.bars import StatusBar
 from dooit.ui.widgets.trees import WorkspacesTree
@@ -13,6 +19,7 @@ from dooit.ui.widgets.trees.model_tree import ModelTree
 from dooit.utils import CssManager
 from .api import DooitAPI
 from ..api import manager
+from dooit.config import ConfigManager, ConfigService
 
 PRINTABLE = (
     "0123456789"
@@ -21,7 +28,8 @@ PRINTABLE = (
 )
 
 
-class Dooit(App):
+@final
+class Dooit(App[None]):
     CSS_PATH = CssManager().css_file
     ENABLE_COMMAND_PALETTE = False
 
@@ -29,35 +37,35 @@ class Dooit(App):
         "help": HelpScreen,
         "main": MainScreen,
     }
-
     BINDINGS = [
         Binding("ctrl+c", "quit", "Quit", show=False, priority=True),
     ]
 
-    def __init__(
-        self,
-        db_path: Optional[str] = None,
-        config: Optional[Path] = None,
-    ):
+    def __init__(self, db_path: Path, config_path: Path):
         super().__init__(watch_css=True)
-        self.dooit_mode: ModeType = "NORMAL"
-        self.config = config
-        manager.connect(db_path)
+        self.api: DooitAPI
+        self.config_service: ConfigService
 
-    async def base_setup(self):
-        self.api = DooitAPI(self)
-        self.api.plugin_manager.scan()
-        self.post_message(Startup())
-        self.post_message(ModeChanged("NORMAL"))
-        self.push_screen("main")
+        self.dooit_mode: ModeType = "NORMAL"
+        self.config_path = config_path
+        manager.connect_to_path(db_path)
 
     async def setup_poller(self):
         self.set_interval(1, self.poll_dooit_db)
 
     async def on_mount(self):
-        await self.base_setup()
+        self.api = DooitAPI(self)
+        self.config_service = ConfigService(self.api)
+        self.config_service.load_file(self.config_path)
+        self.config_service.apply_config()
+
+        self.post_message(Startup())
+        self.post_message(ModeChanged("NORMAL"))
+        self.push_screen("main")
+
         await self.setup_poller()
 
+    @override
     async def action_quit(self) -> None:
         self.post_message(ShutDown())
         return await super().action_quit()

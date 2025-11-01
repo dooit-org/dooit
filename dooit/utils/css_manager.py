@@ -1,16 +1,19 @@
 import sys
 from pathlib import Path
-from typing import Optional, Type, Union
 from platformdirs import user_cache_dir
-from dooit.api.theme import DooitThemeBase
 from uuid import uuid4
 
-dooit_cache_path = Path(user_cache_dir("dooit"))
 
-if getattr(sys, "frozen", False):
-    BASE_PATH = Path(sys._MEIPASS) / "dooit"  # pragma: no cover (binary pkg)
-else:
-    BASE_PATH = Path(__file__).parent.parent
+def get_base_path() -> Path:
+    """Get the base path for the application."""
+    if path := getattr(sys, "frozen", False) and getattr(sys, "_MEIPASS"):
+        return Path(path) / "dooit"  # pragma: no cover
+
+    return Path(__file__).parent.parent
+
+
+DOOIT_CACHE_PATH = Path(user_cache_dir("dooit"))
+BASE_PATH = get_base_path()
 
 
 def generate_random_id():
@@ -19,17 +22,15 @@ def generate_random_id():
 
 class CssManager:
     base_css: Path = BASE_PATH / "ui" / "styles.tcss"
-    themes = dict()
 
     def __init__(
         self,
-        theme: DooitThemeBase = DooitThemeBase(),
-        cache_path: Path = dooit_cache_path,
+        cache_path: Path = DOOIT_CACHE_PATH,
     ):
-        self.theme: DooitThemeBase = theme
-        self.cache_path = cache_path
+        self.cache_path: Path = cache_path
         self.stylesheets: Path = cache_path / "stylesheets"
         self.css_file: Path = cache_path / "dooit.tcss"
+        self.theme: dict[str, str] | None = None
 
         cache_path.mkdir(parents=True, exist_ok=True)
         if not self.css_file.exists():
@@ -43,14 +44,23 @@ class CssManager:
     def read_css(self) -> str:
         return self.css_file.read_text()
 
-    def refresh_css(self):
-        css = self.theme.to_css()
+    def set_theme(self, theme: dict[str, str]):
+        self.theme = theme
 
-        # setup base variables
+    def get_theme_css(self) -> str:
+        if not self.theme:
+            raise Exception("No theme set")
+
+        css = ""
+        for key, value in self.theme.items():
+            css += f"${key}: {value};\n"
+        return css
+
+    def refresh_css(self):
+        css = self.get_theme_css()
         with open(self.base_css, "r") as f:
             css = css + "\n" + f.read()
 
-        # inject extra stylesheets
         self.stylesheets.mkdir(parents=True, exist_ok=True)
         for sheet in self.stylesheets.iterdir():
             with open(sheet, "r") as f:
@@ -58,19 +68,7 @@ class CssManager:
 
         self.write(css)
 
-    def add_theme(self, theme: Type[DooitThemeBase]):
-        self.themes[theme._name] = theme()
-        self.refresh_css()
-
-    def set_theme(self, theme: Union[str, Type[DooitThemeBase]]):
-        if isinstance(theme, str):
-            self.theme = self.themes.get(theme, DooitThemeBase)
-        else:
-            self.theme = theme()
-
-        self.refresh_css()
-
-    def inject_css(self, css: str, _id: Optional[str] = None) -> str:
+    def inject_css(self, css: str, _id: str | None = None) -> str:
         uuid = _id or generate_random_id()
         css_file = self.stylesheets / f"{uuid}.tcss"
 

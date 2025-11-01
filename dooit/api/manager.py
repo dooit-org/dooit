@@ -1,8 +1,8 @@
 import os
-from typing import Optional
-from sqlalchemy import create_engine
+from pathlib import Path
+from sqlalchemy import create_engine, Engine
 from sqlalchemy.orm import Session
-from ._vars import DATABASE_FILE
+from dooit.api._vars import DATABASE_CONN_STRING
 
 
 class Manager:
@@ -10,7 +10,19 @@ class Manager:
     Class for managing sqlalchemy sessions
     """
 
-    def connect(self, path: Optional[str] = None):
+    def __init__(self) -> None:
+        self.engine: Engine
+        self.session: Session
+        self._db_last_modified: float | None = None
+
+    def connect_default(self):
+        self.connect(DATABASE_CONN_STRING)
+
+    def connect_to_path(self, path: Path):
+        connection_string = f"sqlite:///{path.expanduser().absolute()}"
+        self.connect(connection_string)
+
+    def connect(self, conn: str):
         """
         Connect to database using a file path
 
@@ -20,16 +32,13 @@ class Manager:
 
         from dooit.api import BaseModel
 
-        path = path or DATABASE_FILE
-        path = os.path.expanduser(path)
-        connection_string = f"sqlite:///{path}"
-        self.engine = create_engine(connection_string)
+        self.engine = create_engine(conn)
         self.session = Session(self.engine)
 
         BaseModel.metadata.create_all(bind=self.engine)
         self._db_last_modified = self._get_db_last_modified()
 
-    def _get_db_last_modified(self) -> Optional[float]:
+    def _get_db_last_modified(self) -> float | None:
         database = self.engine.url.database
         assert database is not None
 
@@ -46,11 +55,11 @@ class Manager:
             return True
         return False
 
-    def delete(self, obj):
+    def delete(self, obj: object):
         self.session.delete(obj)
         self.commit()
 
-    def save(self, obj):
+    def save(self, obj: object):
         self.session.add(obj)
         self.commit()
 
