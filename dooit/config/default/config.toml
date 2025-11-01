@@ -57,6 +57,47 @@ start_sort = "<ctrl+s>"
 quit = "<ctrl+q>"
 show_help = "?"
 
+[formatter.workspace.description]
+script = "./formatter/workspace_description.py"
+format = "{description}"
+format_with_child = "{description} ({child_count})"
+
+[formatter.todo.description]
+script = "./formatter/todo_description.py"
+format = "{description}"
+format_with_child = "{description} ({child_count})"
+
+[formatter.todo.status]
+script = "./formatter/todo_status.py"
+pending.format = "o"
+pending.css.color = "$yellow"
+completed.format = "x"
+completed.css.color = "$green"
+overdue.format = "o"
+overdue.css.color = "$red"
+
+[formatter.todo.due]
+script = "./formatter/todo_due.py"
+format = "{due_date}"
+format_string = "%Y-%m-%d"
+format_string_with_time = "%Y-%m-%d %H:%M"
+
+[formatter.todo.urgency]
+script = "./formatter/todo_urgency.py"
+a.format = "(!)1"
+a.css.color = "$red"
+b.format = "(!)2"
+b.css.color = "$orange"
+c.format = "(!)3"
+c.css.color = "$yellow"
+d.format = "(!)4"
+d.css.color = "$green"
+
+[formatter.todo.effort]
+script = "./formatter/todo_effort.py"
+format = "{effort}"
+css.color = "$orange"
+
 [bar]
 widgets_left = ["mode"]
 widgets_right = ["clock", "user"]
