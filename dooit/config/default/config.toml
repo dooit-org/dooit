@@ -112,7 +112,7 @@ normal.css.background = "$primary"
 insert.format = "INSERT"
 insert.css.color = "$background2"
 insert.css.background = "$secondary"
-css.padding = "1"
+css.padding = 1
 
 [script.clock]
 script = "./scripts/clock.py"
