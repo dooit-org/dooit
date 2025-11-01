@@ -19,7 +19,7 @@ from dooit.ui.widgets.trees.model_tree import ModelTree
 from dooit.utils import CssManager
 from .api import DooitAPI
 from ..api import manager
-from dooit.config import ConfigManager, ConfigService
+from dooit.config import ConfigService
 
 PRINTABLE = (
     "0123456789"
