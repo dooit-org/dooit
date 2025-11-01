@@ -106,12 +106,13 @@ widgets_right = ["clock", "user"]
 widgets = ["qoute", "ascii"]
 
 [script.mode]
-format_normal = " NORMAL "
-format_insert = " INSERT "
-bg_normal = "$primary"
-bg_insert = "$secondary"
-color_normal = "$background1"
-color_insert = "$background1"
+normal.format = "NORMAL"
+normal.css.color = "$background2"
+normal.css.background = "$primary"
+insert.format = "INSERT"
+insert.css.color = "$background2"
+insert.css.background = "$secondary"
+css.padding = "1"
 
 [script.clock]
 script = "./scripts/clock.py"
