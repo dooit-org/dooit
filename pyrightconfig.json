@@ -1,0 +1,6 @@
+{
+  "venvPath": ".",
+  "venv": ".venv",
+  "reportUnusedCallResult": false,
+  "reportAny": "none"
+}
