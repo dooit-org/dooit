@@ -1,5 +1,6 @@
 from pathlib import Path
-from dooit.config import ConfigManager, ConfigData
+
+from dooit.config import ConfigData, ConfigManager
 from dooit.ui.api.dooit_api import DooitAPI
 
 BASE_CONFIG = Path(__file__).parent / "default" / "config.toml"
@@ -13,14 +14,17 @@ class ConfigService:
     def __init__(self, api: DooitAPI) -> None:
         self.api: DooitAPI = api
         self.manager: ConfigManager = ConfigManager()
-        self.load_file(BASE_CONFIG)
+        self.load_config(BASE_CONFIG)
 
     @property
-    def config_data(self) -> ConfigData:
+    def config(self) -> ConfigData:
         return self.manager.get_config()
 
+    def load_config(self, path: Path):
+        self.manager.load_file(path)
+
     def _apply_theme(self) -> None:
-        theme = self.config_data.theme
+        theme = self.config.theme
         if theme:
             self.api.css.set_theme(theme)
 
@@ -46,6 +50,3 @@ class ConfigService:
         self._apply_dashboard()
         self._apply_keys()
         self._init_scripts()
-
-    def load_file(self, path: Path):
-        self.manager.load_file(path)

@@ -8,7 +8,6 @@ class Input:
     """
 
     _cursor: str = "|"
-    highlight_pattern = ""
     is_editing = False
 
     def __init__(self, value="") -> None:

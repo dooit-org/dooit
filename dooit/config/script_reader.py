@@ -17,6 +17,8 @@ class ScriptReader:
 
     def load_module(self):
         spec = importlib.util.spec_from_file_location("module", self.filepath)
+
+        assert spec is not None
         module = importlib.util.module_from_spec(spec)
 
         assert spec is not None

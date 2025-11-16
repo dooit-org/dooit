@@ -1,20 +1,24 @@
-from typing import TYPE_CHECKING, final
+from typing import TYPE_CHECKING, Callable, final
+
+from rich.text import Text
+
 from dooit.ui.api.events import BarNotification, NotificationType
 from dooit.ui.api.plug import PluginManager
-from .events import DooitEvent, SwitchTab, QuitApp
 from dooit.ui.widgets import ModelTree
 from dooit.ui.widgets.trees import TodosTree
+from dooit.ui.widgets.trees.model_tree import ModelType
 from dooit.utils import CssManager
 
 from .api_components import (
+    BarManager,
+    DashboardManager,
+    Formatter,
     KeyManager,
     KeyMatchType,
     LayoutManager,
-    Formatter,
-    BarManager,
     VarManager,
-    DashboardManager,
 )
+from .events import DooitEvent, QuitApp, SwitchTab
 
 if TYPE_CHECKING:  # pragma: no cover
     from ..tui import Dooit
@@ -31,10 +35,10 @@ class DooitAPI:
         self.css = CssManager()
         self.keys = KeyManager(self.app.get_dooit_mode)
         self.layouts = LayoutManager(self.app)
-        self.formatter = Formatter(self)
         self.bar = BarManager(self)
         self.vars = VarManager(self)
         self.dashboard = DashboardManager(self.app)
+        self.formatters: dict[str, dict[str, Callable[..., Text]]] = dict()
 
     def no_op(self):
         """<NOP>"""
@@ -71,7 +75,7 @@ class DooitAPI:
     # -----------------------------------------
 
     @property
-    def focused(self) -> ModelTree:
+    def focused(self) -> ModelTree[ModelType]:
         focused = self.app.focused
         if isinstance(focused, ModelTree):
             return focused
