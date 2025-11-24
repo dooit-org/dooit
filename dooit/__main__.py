@@ -1,10 +1,11 @@
-from typing import Optional
-import click
 from pathlib import Path
-from platformdirs import user_data_dir, user_config_dir
+from typing import Optional
+
+import click
+from platformdirs import user_config_dir, user_data_dir
 
 OLD_CONFIG = Path(user_data_dir("dooit")) / "todo.yaml"
-VERSION = "3.3.3"
+VERSION = "3.3.4"
 
 
 def run_dooit(config: Optional[str] = None, db_path: Optional[str] = None):

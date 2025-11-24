@@ -1,7 +1,7 @@
 [project]
 requires-python = ">=3.9"
 name = "dooit"
-version = "3.3.3"
+version = "3.3.4"
 description = "A TUI Todo Manager"
 authors = [
     {name = "kraanzu", email = "kraanzu@gmail.com"}
