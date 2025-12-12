@@ -127,6 +127,9 @@ class DooitModel(BaseModel, BaseModelMixin):
     def _add_sibling_node(self) -> Self:
         raise NotImplementedError  # pragma: no cover
 
+        def _add_sibling_parent(self) -> Self:
+        raise NotImplementedError  # pragma: no cover    
+
     def add_sibling(self):
         return self._add_sibling()
 
