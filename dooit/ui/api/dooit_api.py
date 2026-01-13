@@ -150,6 +150,7 @@ class DooitAPI:
         return self.edit("recurrence")
 
     def edit_effort(self):
+        """Start editing the effort of the todo"""
         return self.edit("effort")
 
     def add_sibling(self):
