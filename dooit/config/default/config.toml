@@ -1,0 +1,145 @@
+# Example of including external theme file
+# includes = ["themes/nord.toml"]
+
+[theme]
+name = "nord"
+background1 = "#2E3440" # Darkest
+background2 = "#3B4252" # Lighter
+background3 = "#434C5E" # Lightest
+foreground1 = "#D8DEE9" # Darkest
+foreground2 = "#E5E9F0" # Lighter
+foreground3 = "#ECEFF4" # Lightest
+red = "#BF616A"
+orange = "#D08770"
+yellow = "#EBCB8B"
+green = "#A3BE8C"
+blue = "#81a1c1"
+purple = "#B48EAD"
+magenta = "#B48EAD"
+cyan = "#8fbcbb"
+
+primary = "$cyan"
+secondary = "$blue"
+
+[general]
+theme = "nord"
+
+[layout]
+todo = ["status", "description", "due", "urgency"]
+workspace = ["description"]
+
+[keys]
+switch_focus = "<tab>"
+move_down = "j"
+move_up = "k"
+edit_description = "i"
+edit_due = "d"
+edit_recurrence = "r"
+edit_effort = "e"
+add_sibling = "a"
+toggle_expand = "z"
+toggle_expand_parent = "Z"
+go_to_top = "gg"
+go_to_bottom = "G"
+add_child_node = "A"
+shift_down = "J"
+shift_up = "K"
+remove_node = "xx"
+copy_description_to_clipboard = "y"
+copy_model = "Y"
+paste_model_below = "p"
+paste_model_above = "P"
+toggle_complete = "c"
+increase_urgency = ["=", "+"]
+decrease_urgency = ["-", "_"]
+start_search = "/"
+start_sort = "<ctrl+s>"
+quit = "<ctrl+q>"
+show_help = "?"
+
+[formatter.workspace.description]
+_script = "./formatters.py:workspace_description"
+format = "{description}"
+format_with_child = "{description} ({child_count})"
+highlighted.css.bold = true
+
+[formatter.todo.description]
+_script = "./formatters.py:todo_description"
+format = "{description}"
+format_with_child = "{description} ({child_count})"
+highlighted.css.bold = true
+
+[formatter.todo.status]
+_script = "./formatters.py:todo_status"
+pending.format = "o"
+pending.css.color = "$yellow"
+completed.format = "x"
+completed.css.color = "$green"
+overdue.format = "o"
+overdue.css.color = "$red"
+
+[formatter.todo.due]
+_script = "./formatters.py:todo_due"
+format = "{due_date}"
+format_string = "%Y-%m-%d"
+format_string_with_time = "%Y-%m-%d %H:%M"
+highlighted.css.bold = true
+
+[formatter.todo.urgency]
+_script = "./formatters.py:todo_urgency"
+a.format = "(!)1"
+a.css.color = "$red"
+b.format = "(!)2"
+b.css.color = "$orange"
+c.format = "(!)3"
+c.css.color = "$yellow"
+d.format = "(!)4"
+d.css.color = "$green"
+highlighted.css.bold = true
+
+[formatter.todo.effort]
+_script = "./formatters.py:todo_effort"
+format = "{effort}"
+css.color = "$orange"
+highlighted.css.bold = true
+
+[formatter.todo.recurrence]
+_script = "./formatters.py:todo_recurrence"
+format = "{recurrence}"
+css.color = "$cyan"
+highlighted.css.bold = true
+
+[bar]
+widgets_left = ["mode"]
+widgets_right = ["clock", "user"]
+
+[dashboard]
+widgets = ["qoute", "ascii"]
+
+[script.mode]
+normal.format = "NORMAL"
+normal.css.color = "$background2"
+normal.css.background = "$primary"
+insert.format = "INSERT"
+insert.css.color = "$background2"
+insert.css.background = "$secondary"
+css.padding = 1
+
+[script.clock]
+_script = "./scripts:clock"
+_refresh = "every 1s"
+format = "%H:%M"
+
+[script.user]
+script = "./scripts:user"
+format = "{username}"
+
+[script.qoute]
+_script = "./scripts:qoute"
+format = "{qoute}"
+css.color = "$secondary"
+
+[script.ascii]
+script = "./scripts:ascii"
+format = "{ascii_art}"
+css.color = "$primary"
