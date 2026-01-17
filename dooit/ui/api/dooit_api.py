@@ -26,7 +26,7 @@ class DooitAPI:
         app: "Dooit",
     ) -> None:
         self.app = app
-        self.plugin_manager = PluginManager(self, app.config)
+        self.plugin_manager = PluginManager(self)
         self.css = CssManager()
         self.keys = KeyManager(self.app.get_dooit_mode)
         self.layouts = LayoutManager(self.app)

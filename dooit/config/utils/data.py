@@ -1,7 +1,12 @@
-from typing import override, Union
-from string import Template
+from typing import Union, override
 
-ConfigValue = Union[bool, str, "ConfigData"]
+from pathlib import Path
+
+import tomllib
+
+from .script_reader import ScriptFunction
+
+ConfigValue = Union[bool, str, "ConfigData", ScriptFunction]
 
 
 class ConfigData(dict[str, ConfigValue]):
@@ -12,6 +17,16 @@ class ConfigData(dict[str, ConfigValue]):
 
     def __init__(self, **kwargs: object) -> None:
         super().__init__()
+
+    @classmethod
+    def from_path(cls, path: Path) -> "ConfigData":
+        if not path.exists():
+            return cls()
+
+        with open(path, "rb") as f:
+            data = tomllib.load(f)
+
+        return cls.from_dict(data)
 
     @classmethod
     def from_dict(cls, data: dict[str, ConfigValue]) -> "ConfigData":
@@ -27,12 +42,6 @@ class ConfigData(dict[str, ConfigValue]):
 
         return config_data
 
-    def __getattr__(self, key: str) -> ConfigValue:
-        try:
-            return self[key]
-        except KeyError as e:
-            raise AttributeError(f"'ConfigData' object has no attribute '{key}'") from e
-
     @override
     def __setattr__(self, key: str, value: ConfigValue) -> None:
         self[key] = value
@@ -43,18 +52,6 @@ class ConfigData(dict[str, ConfigValue]):
             del self[key]
         except KeyError as e:
             raise AttributeError(f"'ConfigData' object has no attribute '{key}'") from e
-
-    def resolve_vars(self, theme: dict[str, str]) -> None:
-        """
-        Recursively resolve string variables in the ConfigData using string.Template.
-        """
-
-        for key, value in self.items():
-            if isinstance(value, str):
-                template = Template(value)
-                self[key] = template.substitute(theme)
-            elif isinstance(value, dict):
-                value.resolve_vars(theme)
 
     def merge(self, other: "ConfigData") -> None:
         """
@@ -69,5 +66,3 @@ class ConfigData(dict[str, ConfigValue]):
                 existing.merge(value)
             else:
                 self[key] = value
-
-        self.resolve_vars(self.theme)

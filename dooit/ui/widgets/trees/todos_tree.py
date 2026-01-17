@@ -1,8 +1,11 @@
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Literal, Optional, Union
 from textual import on
 from textual.widgets.option_list import Option
 
 from dooit.api import Todo, Workspace
+
+TodoWidget = Literal["description", "due", "urgency", "recurrence", "status", "effort"]
+TodoLayout = list[TodoWidget]
 from dooit.ui.api.events import TodoRemoved
 from dooit.ui.api.events.events import TodoSelected
 from .model_tree import ModelTree

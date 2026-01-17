@@ -1,7 +1,8 @@
-class DooitThemeBase:
-    _name: str = "dooit-base"
+from dataclasses import dataclass
 
-    # background colors
+
+@dataclass
+class DooitThemeBase:
     background1: str = "#2E3440"  # Darkest
     background2: str = "#3B4252"  # Lighter
     background3: str = "#434C5E"  # Lightest

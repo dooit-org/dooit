@@ -65,8 +65,7 @@ class BaseRenderer(Generic[ModelType]):
             table.add_column("padding", width=2 * nest)
             row.append("")
 
-        for item in layout:
-            attr = item.value
+        for attr in layout:
             component = self._get_component(attr)
 
             if len(component.render()) > self._get_max_width(attr):

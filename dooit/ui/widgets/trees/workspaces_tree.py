@@ -1,8 +1,11 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Literal, Optional
 from textual import on
 from textual.widgets.option_list import Option
 
 from dooit.api import Workspace
+
+WorkspaceWidget = Literal["description"]
+WorkspaceLayout = list[WorkspaceWidget]
 from dooit.ui.api.events import (
     WorkspaceRemoved,
     WorkspaceSelected,

@@ -1,5 +1,4 @@
-from .data import ConfigData
-from .manager import ConfigManager
 from .service import ConfigService
+from .utils import ConfigData
 
-__all__ = ["ConfigManager", "ConfigService", "ConfigData"]
+__all__ = ["ConfigService", "ConfigData"]

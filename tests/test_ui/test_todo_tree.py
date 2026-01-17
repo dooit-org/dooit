@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 from pytest import raises
 from dooit.api.exceptions import NoNodeError
 from dooit.api import Todo
-from dooit.ui.api.widgets import TodoWidget
 from dooit.ui.widgets.renderers.base_renderer import BaseRenderer
 from tests.test_ui.ui_base import run_pilot, create_and_move_to_todo
 from dooit.ui.tui import Dooit
@@ -71,7 +70,7 @@ async def test_todo_tree_layout():
         table = tree.current.make_renderable()
         assert table.columns[0].header == "status"
 
-        app.api.layouts.todo_layout = [TodoWidget.description]
+        app.api.layouts.todo_layout = ["description"]
         table = tree.current.make_renderable()
         assert table.columns[0].header == "description"
 
@@ -203,9 +202,7 @@ async def test_effort_change():
         assert todo.effort == 0
         assert not tree.start_edit("effort")
 
-        app.api.layouts.todo_layout = [
-            TodoWidget.effort
-        ]  # make sure the column is there
+        app.api.layouts.todo_layout = ["effort"]  # make sure the column is there
         tree.start_edit("effort")
         await pilot.press("2")
         await pilot.press("escape")
@@ -230,9 +227,7 @@ async def test_recurrence_change():
 
         assert todo.recurrence is None
 
-        app.api.layouts.todo_layout = [
-            TodoWidget.recurrence
-        ]  # make sure the column is there
+        app.api.layouts.todo_layout = ["recurrence"]  # make sure the column is there
         tree.start_edit("recurrence")
         await pilot.press("1", "d")
         await pilot.press("escape")

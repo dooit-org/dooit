@@ -11,6 +11,7 @@ from dooit.ui.widgets.trees import WorkspacesTree
 from dooit.ui.screens import MainScreen, HelpScreen
 from dooit.ui.widgets.trees.model_tree import ModelTree
 from dooit.utils import CssManager
+from dooit.config import ConfigService
 from .api import DooitAPI
 from ..api import manager
 
@@ -41,15 +42,17 @@ class Dooit(App):
     ):
         super().__init__(watch_css=True)
         self.dooit_mode: ModeType = "NORMAL"
-        self.config = config
+        self.config_path = config
         manager.connect(db_path)
 
     async def base_setup(self):
         self.api = DooitAPI(self)
-        self.api.plugin_manager.scan()
+        self.config_service = ConfigService(self.api, self.config_path)
+        self.config_service.apply_config_pre_screen()
+        await self.push_screen("main")
+        self.config_service.apply_config_post_screen()
         self.post_message(Startup())
         self.post_message(ModeChanged("NORMAL"))
-        self.push_screen("main")
 
     async def setup_poller(self):
         self.set_interval(1, self.poll_dooit_db)

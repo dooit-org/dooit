@@ -8,27 +8,6 @@ class TestTheme(DooitThemeBase):
     _name = "test_theme"
 
 
-def test_css_manager():
-    cache_path = Path(TemporaryDirectory().name)
-    manager = CssManager(cache_path=cache_path)
-
-    assert manager.css_file.exists()
-    manager.refresh_css()
-
-    # via classname
-    manager.set_theme(TestTheme)
-    assert manager.theme.__class__ is TestTheme
-
-    # reset
-    manager.set_theme(DooitThemeBase)
-    assert manager.theme is not TestTheme
-
-    # via name
-    manager.add_theme(TestTheme)
-    manager.set_theme("test_theme")
-    assert manager.theme.__class__ is TestTheme
-
-
 # ----------------------------------------
 
 RANDOM_CSS = """

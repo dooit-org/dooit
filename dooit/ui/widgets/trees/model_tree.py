@@ -170,7 +170,7 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         self.post_message(StartSearch(self.set_filter))
 
     def start_edit(self, property: str) -> bool:
-        columns = [i.value for i in self.render_layout]
+        columns = list(self.render_layout)
         if property not in columns:
             self.post_message(
                 BarNotification(f"No such column: [b]{property}[/b]", "error")

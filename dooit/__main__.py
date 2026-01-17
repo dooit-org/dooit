@@ -64,7 +64,7 @@ def migrate() -> None:
 @main.command(help="Show config location.")
 def config_loc() -> None:
     """Print the location of the configuration file."""
-    print(Path(user_config_dir("dooit")) / "config.py")
+    print(Path(user_config_dir("dooit")) / "config.toml")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 from textual.app import App
-from dooit.ui.api.widgets import TodoLayout, WorkspaceLayout
 from dooit.ui.widgets.trees import TodosTree, WorkspacesTree
+from dooit.ui.widgets.trees.todos_tree import TodoLayout
+from dooit.ui.widgets.trees.workspaces_tree import WorkspaceLayout
 from ._base import ApiComponent
 
 

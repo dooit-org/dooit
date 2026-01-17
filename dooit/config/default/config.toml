@@ -1,8 +1,7 @@
 # Example of including external theme file
 # includes = ["themes/nord.toml"]
 
-[theme]
-name = "nord"
+[vars]
 background1 = "#2E3440" # Darkest
 background2 = "#3B4252" # Lighter
 background3 = "#434C5E" # Lightest
@@ -18,8 +17,24 @@ purple = "#B48EAD"
 magenta = "#B48EAD"
 cyan = "#8fbcbb"
 
-primary = "$cyan"
-secondary = "$blue"
+primary = "#8fbcbb"
+secondary = "#81a1c1"
+
+[theme.nord]
+background1 = "$background1"
+background2 = "$background2"
+background3 = "$background3"
+foreground1 = "$foreground1"
+foreground2 = "$foreground2"
+foreground3 = "$foreground3"
+red = "$red"
+orange = "$orange"
+yellow = "$yellow"
+green = "$green"
+blue = "$blue"
+purple = "$purple"
+magenta = "$magenta"
+cyan = "$cyan"
 
 [general]
 theme = "nord"
@@ -58,19 +73,19 @@ quit = "<ctrl+q>"
 show_help = "?"
 
 [formatter.workspace.description]
-_script = "./formatters.py:workspace_description"
+_script = "./formatters.py::workspace_description"
 format = "{description}"
 format_with_child = "{description} ({child_count})"
 highlighted.css.bold = true
 
 [formatter.todo.description]
-_script = "./formatters.py:todo_description"
+_script = "./formatters.py::todo_description"
 format = "{description}"
 format_with_child = "{description} ({child_count})"
 highlighted.css.bold = true
 
 [formatter.todo.status]
-_script = "./formatters.py:todo_status"
+_script = "./formatters.py::todo_status"
 pending.format = "o"
 pending.css.color = "$yellow"
 completed.format = "x"
@@ -79,14 +94,14 @@ overdue.format = "o"
 overdue.css.color = "$red"
 
 [formatter.todo.due]
-_script = "./formatters.py:todo_due"
+_script = "./formatters.py::todo_due"
 format = "{due_date}"
 format_string = "%Y-%m-%d"
 format_string_with_time = "%Y-%m-%d %H:%M"
 highlighted.css.bold = true
 
 [formatter.todo.urgency]
-_script = "./formatters.py:todo_urgency"
+_script = "./formatters.py::todo_urgency"
 a.format = "(!)1"
 a.css.color = "$red"
 b.format = "(!)2"
@@ -98,13 +113,13 @@ d.css.color = "$green"
 highlighted.css.bold = true
 
 [formatter.todo.effort]
-_script = "./formatters.py:todo_effort"
+_script = "./formatters.py::todo_effort"
 format = "{effort}"
 css.color = "$orange"
 highlighted.css.bold = true
 
 [formatter.todo.recurrence]
-_script = "./formatters.py:todo_recurrence"
+_script = "./formatters.py::todo_recurrence"
 format = "{recurrence}"
 css.color = "$cyan"
 highlighted.css.bold = true
@@ -126,20 +141,20 @@ insert.css.background = "$secondary"
 css.padding = 1
 
 [script.clock]
-_script = "./scripts:clock"
+_script = "./scripts::clock"
 _refresh = "every 1s"
 format = "%H:%M"
 
 [script.user]
-script = "./scripts:user"
+script = "./scripts::user"
 format = "{username}"
 
 [script.qoute]
-_script = "./scripts:qoute"
+_script = "./scripts::qoute"
 format = "{qoute}"
 css.color = "$secondary"
 
 [script.ascii]
-script = "./scripts:ascii"
+_script = "./scripts::ascii"
 format = "{ascii_art}"
 css.color = "$primary"

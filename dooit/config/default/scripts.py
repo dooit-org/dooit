@@ -1,38 +1,44 @@
-def mode():
-    pass
+from datetime import datetime
+
+from rich.text import Text
 
 
-def clock():
-    pass
+def mode(**kwargs):
+    return Text("")
 
 
-def user():
-    pass
+def clock(**kwargs):
+    fmt = kwargs.get("format", "%H:%M")
+    return Text(datetime.now().strftime(fmt))
 
 
-def qoute():
-    pass
+def user(**kwargs):
+    return Text("")
 
 
-def ascii():
-    pass
+def qoute(**kwargs):
+    return Text("")
 
 
-def current_workspace():
-    pass
+def ascii(**kwargs):
+    return Text("")
 
 
-def platform():
-    pass
+def current_workspace(**kwargs):
+    return Text("")
 
 
-def spacer():
-    pass
+def platform(**kwargs):
+    return Text("")
 
 
-def text():
-    pass
+def spacer(**kwargs):
+    return Text("")
 
 
-def ticker():
-    pass
+def text(**kwargs):
+    return Text("")
+
+
+def ticker(**kwargs):
+    return Text("")

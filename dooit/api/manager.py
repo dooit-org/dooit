@@ -1,7 +1,11 @@
-import os
+from os import PathLike
+from os.path import getmtime
+from pathlib import Path
 from typing import Optional
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
+
 from ._vars import DATABASE_FILE
 
 
@@ -10,7 +14,7 @@ class Manager:
     Class for managing sqlalchemy sessions
     """
 
-    def connect(self, path: Optional[str] = None):
+    def connect(self, path: Optional[PathLike] = None):
         """
         Connect to database using a file path
 
@@ -20,8 +24,7 @@ class Manager:
 
         from dooit.api import BaseModel
 
-        path = path or DATABASE_FILE
-        path = os.path.expanduser(path)
+        path = Path(path or DATABASE_FILE).expanduser()
         connection_string = f"sqlite:///{path}"
         self.engine = create_engine(connection_string)
         self.session = Session(self.engine)
@@ -34,7 +37,7 @@ class Manager:
         assert database is not None
 
         try:
-            return os.path.getmtime(database)
+            return getmtime(database)
         except OSError:
             return None
 
