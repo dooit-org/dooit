@@ -49,11 +49,8 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
     def _create_child_node(self) -> Todo:
         return self.current_model.add_todo()
 
-    def _remove_node(self) -> None:
-        assert isinstance(self.current_model, Todo)
-        self.post_message(TodoRemoved(self.current_model))
-
-        return super()._remove_node()
+    def _after_node_removed(self, model:Todo) -> None:
+        self.screen.post_message(TodoRemoved(model))
 
     def toggle_complete(self):
         assert isinstance(self.current_model, Todo)
@@ -79,3 +76,4 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
 
         event.stop()
         self.post_message(TodoSelected(Todo.from_id(event.option_id)))
+    

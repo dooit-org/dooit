@@ -311,6 +311,9 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
 
         self.highlight_id(node.uuid)
         self.start_edit("description")
+    
+    def _after_node_removed(self, model: ModelType) -> None:
+        pass
 
     @require_confirmation
     @refresh_tree
@@ -320,6 +323,7 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         self._renderers.pop(model.uuid)
         self.expanded_nodes.pop(model.uuid)
         model.drop()
+        self._after_node_removed(model)
 
     @require_highlighted_node
     def copy_model_to_clipboard(self):
