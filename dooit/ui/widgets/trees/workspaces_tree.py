@@ -50,9 +50,8 @@ class WorkspacesTree(ModelTree[Workspace, WorkspaceRenderDict]):
     def _add_first_item(self) -> Workspace:
         return self.model.add_workspace()
 
-    def _remove_node(self) -> None:
-        self.post_message(WorkspaceRemoved(self.current_model))
-        return super()._remove_node()
+    def _after_node_removed(self, model:Workspace) -> None:
+        self.screen.post_message(WorkspaceRemoved(model))
 
     @on(ModelTree.OptionHighlighted)
     def workspace_highlighted(self, event: ModelTree.OptionHighlighted):

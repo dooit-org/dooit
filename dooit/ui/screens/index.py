@@ -20,6 +20,7 @@ from dooit.ui.api.events import (
     TodoUrgencyChanged,
     WorkspaceDescriptionChanged,
     WorkspaceSelected,
+    WorkspaceRemoved,
     SwitchTab,
     SpawnHelp,
     BarNotification,
@@ -119,8 +120,23 @@ class MainScreen(BaseScreen):
         else:
             switcher.current = tree.id
 
-    # SQLAlchemy event listeners
+    @on(WorkspaceRemoved)
+    def workspace_removed(self, event: WorkspaceRemoved):
+        tree_id = f"TodosTree_{event.workspace.uuid}"
+        from textual.css.query import NoMatches
+        try:
+            switcher = self.query_one("#todo_switcher", expect_type=ContentSwitcher)
+            if switcher.current == tree_id:
+                switcher.current = "dooit-dashboard" 
+            widget = switcher.query_one(f"#{tree_id}")
+            widget.remove()
+        except NoMatches:
+            pass
+        except Exception as e:
+            self.app.log.error(f"Failed to remove workspace UI for {tree_id}: {e}")
+            raise  
 
+    # SQLAlchemy event listeners
     def _track_field(
         self, table: Type[DooitModel], field: str, event: Type[DooitEvent]
     ) -> None:
