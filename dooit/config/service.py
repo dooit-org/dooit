@@ -6,11 +6,7 @@ from platformdirs import user_config_dir
 
 from dooit.config.utils import ConfigData, ConfigResolver
 from dooit.config.utils.script_reader import ScriptFunction
-from dooit.config.utils.parsers import (
-    parse_refresh_interval,
-    parse_event,
-    parse_reload_targets,
-)
+from dooit.config.utils.script_parser import ScriptParser
 from dooit.ui.api.api_components.formatters._decorators import MUTLIPLE_FORMATTER_ATTR
 from dooit.ui.api.dooit_api import DooitAPI
 from dooit.ui.api.plug import DOOIT_EVENT_ATTR, DOOIT_TIMER_ATTR
@@ -160,7 +156,9 @@ class ConfigService:
                 continue
 
             user_params = self._filter_user_params(script_config)
-            reload_targets = parse_reload_targets(script_config.get("_reload"))
+            reload_targets = ScriptParser.parse_reload_targets(
+                script_config.get("_reload")
+            )
 
             wrapper = self._build_script_wrapper(
                 script_func,
@@ -250,7 +248,7 @@ class ConfigService:
             return False
 
         if refresh.startswith("every"):
-            interval = parse_refresh_interval(refresh)
+            interval = ScriptParser.parse_refresh_interval(refresh)
             if interval is None:
                 return False
             setattr(func, DOOIT_TIMER_ATTR, interval)
@@ -258,7 +256,7 @@ class ConfigService:
             return True
 
         if refresh.startswith("on"):
-            event_cls = parse_event(refresh)
+            event_cls = ScriptParser.parse_event(refresh)
             if event_cls is None:
                 return False
             setattr(func, DOOIT_EVENT_ATTR, [event_cls])
