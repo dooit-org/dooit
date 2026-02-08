@@ -1,5 +1,4 @@
 from ._model_formatter_base import ModelFormatterBase
-from dooit.ui.widgets.trees import TodosTree, WorkspacesTree
 
 
 class TodoFormatter(ModelFormatterBase):
@@ -11,15 +10,7 @@ class TodoFormatter(ModelFormatterBase):
         self.urgency = self.get_formatter_store()
         self.status = self.get_formatter_store()
 
-    def trigger(self) -> None:
-        for widget in self.api.app.screen.query(TodosTree):
-            widget.force_refresh()
-
 
 class WorkspaceFormatter(ModelFormatterBase):
     def setup_formatters(self):
         self.description = self.get_formatter_store()
-
-    def trigger(self) -> None:
-        for widget in self.api.app.screen.query(WorkspacesTree):
-            widget.force_refresh()

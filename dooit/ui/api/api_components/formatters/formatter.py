@@ -9,6 +9,6 @@ if TYPE_CHECKING:  # pragma: no cover
 
 class Formatter(ApiComponent):
     def __init__(self, api: "DooitAPI") -> None:
+        self.api = api
         self.todos = TodoFormatter(api)
         self.workspaces = WorkspaceFormatter(api)
-        self.app = api

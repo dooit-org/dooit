@@ -5,9 +5,7 @@ from typing import TYPE_CHECKING, Callable, Iterable, Iterator, Optional
 from platformdirs import user_config_dir
 
 from dooit.config.utils import ConfigData, ConfigResolver
-from dooit.config.utils.script_reader import ScriptFunction
-from dooit.config.utils.script_parser import ScriptParser
-from dooit.ui.api.api_components.formatters._decorators import MUTLIPLE_FORMATTER_ATTR
+from dooit.config.utils.script_parser import ScriptEntry, RefreshConfig, RefreshKind
 from dooit.ui.api.dooit_api import DooitAPI
 from dooit.ui.api.plug import DOOIT_EVENT_ATTR, DOOIT_TIMER_ATTR
 
@@ -20,7 +18,7 @@ USER_CONFIG = Path(user_config_dir("dooit")) / "config.toml"
 
 
 @dataclass
-class ScriptEntry:
+class _CachedScript:
     name: str
     func: Callable
     reload_targets: set[str] = field(default_factory=set)
@@ -37,12 +35,12 @@ class ConfigService:
 
         self._dashboard_widgets: list[str] = []
 
-    def build_config(self, config_path: Path | None = None) -> None:
+    def build_config(self, config_path: Path | None = None) -> ConfigData:
         config_paths = [BASE_CONFIG, config_path or USER_CONFIG]
         configs = []
         for path in config_paths:
             config = ConfigData.from_path(path)
-            config = ConfigResolver.resolve_script_funcs(path, config)
+            config = ConfigResolver.resolve(path, config)
             configs.append(config)
 
         base_config = ConfigData()
@@ -75,29 +73,12 @@ class ConfigService:
 
     def _apply_formatters(self) -> None:
         for model_type, field_name, field_config in self._iter_formatter_sections():
-            script_func = field_config.get("_script")
-            if not isinstance(script_func, ScriptFunction):
-                continue
-
+            entry = field_config.get("_script")
             formatter_store = self._get_formatter_store(model_type, field_name)
             if formatter_store is None:
                 continue
 
-            clear_mode = bool(field_config.get("_clear", True))
-            user_params = self._filter_user_params(field_config)
-            formatter_id = f"config_{model_type}_{field_name}"
-
-            if clear_mode:
-                formatter_store.formatters.clear()
-                wrapper = self._build_override_formatter(
-                    script_func, user_params, model_type
-                )
-            else:
-                wrapper = self._build_enhancer_formatter(
-                    script_func, user_params, model_type
-                )
-
-            formatter_store.add(wrapper, id=formatter_id)
+            formatter_store.set(entry.func)
 
     def _apply_bar(self) -> None:
         bar_config = self.config.get("bar", {})
@@ -147,36 +128,26 @@ class ConfigService:
             self.api.keys.set(key_binding, method)
 
     def _init_scripts(self) -> None:
-        self._scripts = {}
+        self._scripts: dict[str, _CachedScript] = {}
         scripts_config = self.config.get("script", {})
 
         for name, script_config in scripts_config.items():
-            script_func = script_config.get("_script")
-            if not isinstance(script_func, ScriptFunction):
+            entry = script_config.get("_script")
+            if not isinstance(entry, ScriptEntry):
                 continue
 
-            user_params = self._filter_user_params(script_config)
-            reload_targets = ScriptParser.parse_reload_targets(
-                script_config.get("_reload")
-            )
-
-            wrapper = self._build_script_wrapper(
-                script_func,
-                user_params,
-                reload_targets,
-            )
-            entry = ScriptEntry(
+            wrapper = self._build_script_wrapper(entry)
+            self._scripts[name] = _CachedScript(
                 name=name,
                 func=wrapper,
-                reload_targets=reload_targets,
+                reload_targets=entry.reload_targets,
             )
-            self._scripts[name] = entry
 
-            if self._register_refresh(script_config, wrapper):
-                continue
-
-            result = script_func.call(**user_params)
-            setattr(wrapper, "__dooit_value", result)
+            if entry.refresh:
+                self._register_refresh(entry.refresh, wrapper)
+            else:
+                result = entry.func.call(**entry.user_params)
+                setattr(wrapper, "__dooit_value", result)
 
     def _apply_layout(self) -> None:
         layout_config = self.config.get("layout", {})
@@ -196,85 +167,24 @@ class ConfigService:
             return None
         return getattr(formatter_group, field_name, None)
 
-    def _filter_user_params(self, config: dict) -> dict:
-        """Return only user params (non-underscore keys)."""
-        return {k: v for k, v in config.items() if not k.startswith("_")}
-
-    def _get_script_entry(self, name: str) -> Optional[ScriptEntry]:
+    def _get_script_entry(self, name: str) -> Optional[_CachedScript]:
         """Return cached script entry by name."""
         return self._scripts.get(name)
 
-    def _build_override_formatter(
-        self, script_func: ScriptFunction, params: dict, model_type: str
-    ) -> Callable:
-        """Build a formatter that clears existing formatters and returns new value."""
-
-        def wrapper(
-            _,
-            model,
-            _func=script_func,
-            _params=params,
-            _model_type=model_type,
-            **kwargs,
-        ):
-            return _func.call(**{_model_type: model}, **_params)
-
-        return wrapper
-
-    def _build_enhancer_formatter(
-        self, script_func: ScriptFunction, params: dict, model_type: str
-    ) -> Callable:
-        """Build a formatter that receives formatted text and returns enhanced text."""
-
-        def wrapper(
-            formatted_text,
-            model,
-            _func=script_func,
-            _params=params,
-            _model_type=model_type,
-            **kwargs,
-        ):
-            return _func.call(
-                formatted_text=formatted_text, **{_model_type: model}, **_params
-            )
-
-        setattr(wrapper, MUTLIPLE_FORMATTER_ATTR, True)
-        return wrapper
-
-    def _register_refresh(self, script_config: dict, func: Callable) -> bool:
-        """Register refresh hooks; returns True when a refresh was registered."""
-        refresh = script_config.get("_refresh")
-        if refresh is None:
-            return False
-
-        if refresh.startswith("every"):
-            interval = ScriptParser.parse_refresh_interval(refresh)
-            if interval is None:
-                return False
-            setattr(func, DOOIT_TIMER_ATTR, interval)
+    def _register_refresh(self, refresh: RefreshConfig, func: Callable) -> None:
+        """Register a timer or event refresh hook for a script wrapper."""
+        if refresh.kind is RefreshKind.INTERVAL:
+            setattr(func, DOOIT_TIMER_ATTR, refresh.value)
             self.api.plugin_manager.register(func)
-            return True
-
-        if refresh.startswith("on"):
-            event_cls = ScriptParser.parse_event(refresh)
-            if event_cls is None:
-                return False
-            setattr(func, DOOIT_EVENT_ATTR, [event_cls])
+        elif refresh.kind is RefreshKind.EVENT:
+            setattr(func, DOOIT_EVENT_ATTR, [refresh.value])
             self.api.plugin_manager.register(func)
-            return True
 
-        return False
-
-    def _build_script_wrapper(
-        self,
-        script_func: ScriptFunction,
-        user_params: dict,
-        reload_targets: set[str],
-    ) -> Callable:
+    def _build_script_wrapper(self, entry: ScriptEntry) -> Callable:
         def wrapper(api, event=None):
-            result = script_func.call(event=event, **user_params)
+            result = entry.func.call(event=event, **entry.user_params)
             setattr(wrapper, "__dooit_value", result)
-            self._rerender_targets(reload_targets)
+            self._rerender_targets(entry.reload_targets)
             return result
 
         return wrapper

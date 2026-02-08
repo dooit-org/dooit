@@ -1,6 +1,6 @@
 import sys
 from pathlib import Path
-from typing import Optional, Type, Union
+from typing import Optional, Type
 from uuid import uuid4
 
 from platformdirs import user_cache_dir

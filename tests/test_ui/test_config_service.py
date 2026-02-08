@@ -1,15 +1,18 @@
 from pathlib import Path
 
 from dooit.config.utils import ConfigData, ConfigResolver
-from dooit.config.utils.script_reader import ScriptReader, ScriptFunction
+from dooit.config.utils.script_reader import ScriptReader
 from dooit.config.utils.script_parser import ScriptReaderFactory
 from dooit.config.utils.script_parser import (
     ScriptParser,
     RefreshConfig,
     RefreshKind,
 )
+from dooit.config.utils.formatter_parser import (
+    FormatterParser,
+    FormatterEntry,
+)
 from dooit.config.service import ConfigService
-from dooit.ui.api.api_components.formatters._decorators import MUTLIPLE_FORMATTER_ATTR
 from dooit.ui.api.events import ModeChanged
 from dooit.ui.tui import Dooit
 from tests.test_ui.ui_base import run_pilot
@@ -154,14 +157,48 @@ def test_resolve_script_refresh_event(tmp_path: Path):
     assert entry.refresh.value is ModeChanged
 
 
-async def test_apply_formatters_clear_true(tmp_path: Path):
+def test_resolve_formatters_produces_formatter_entry(tmp_path: Path):
+    script_path = tmp_path / "scripts.py"
+    _write_script(script_path, "def fmt(todo): return 'ok'")
+
+    config_path = tmp_path / "config.toml"
+    config = ConfigData.from_dict(
+        {
+            "formatter": {
+                "todo": {
+                    "status": {
+                        "_script": "./scripts.py::fmt",
+                    }
+                }
+            }
+        }
+    )
+
+    resolved = ConfigResolver.resolve_script_funcs(config_path, config)
+    resolved = ConfigResolver.resolve_formatters(resolved)
+
+    entry = resolved["formatter"]["todo"]["status"]["_script"]
+    assert isinstance(entry, FormatterEntry)
+
+
+def test_resolve_formatters_skips_non_formatter_sections(tmp_path: Path):
+    config = ConfigData.from_dict(
+        {"general": {"theme": "default"}, "keys": {"action": "ctrl+a"}}
+    )
+
+    resolved = ConfigResolver.resolve_formatters(config)
+    assert resolved["general"]["theme"] == "default"
+    assert resolved["keys"]["action"] == "ctrl+a"
+
+
+async def test_apply_formatters_sets_func(tmp_path: Path):
     script_path = tmp_path / "formatters.py"
     _write_script(
         script_path,
         "\n".join(
             [
-                "def status_override(model, **kwargs):",
-                "    return 'override'",
+                "def status_fmt(model, **kwargs):",
+                "    return 'formatted'",
             ]
         ),
     )
@@ -171,8 +208,7 @@ async def test_apply_formatters_clear_true(tmp_path: Path):
         "\n".join(
             [
                 "[formatter.todo.status]",
-                '_script = "./formatters.py::status_override"',
-                "_clear = true",
+                '_script = "./formatters.py::status_fmt"',
             ]
         )
     )
@@ -183,48 +219,56 @@ async def test_apply_formatters_clear_true(tmp_path: Path):
         service = ConfigService(app.api, config_path)
 
         store = app.api.formatter.todos.status
-        store.add(lambda value, model: "existing", id="existing")
-
         service._apply_formatters()
 
-        assert "existing" not in store.formatters
-        assert "config_todo_status" in store.formatters
+        assert store.func is not None
 
 
-async def test_apply_formatters_clear_false(tmp_path: Path):
-    script_path = tmp_path / "formatters.py"
+async def test_formatter_parser_produces_entry(tmp_path: Path):
+    script_path = tmp_path / "fmt.py"
     _write_script(
         script_path,
-        "\n".join(
-            [
-                "def status_enhance(formatted_text, model, **kwargs):",
-                "    return formatted_text",
-            ]
-        ),
+        "def render(todo, **kwargs): return 'overridden'",
     )
 
-    config_path = tmp_path / "config.toml"
-    config_path.write_text(
-        "\n".join(
-            [
-                "[formatter.todo.status]",
-                '_script = "./formatters.py::status_enhance"',
-                "_clear = false",
-            ]
-        )
-    )
+    reader = ScriptReader(script_path)
+    script_func = reader.get_function("render")
 
-    async with run_pilot() as pilot:
-        app = pilot.app
-        assert isinstance(app, Dooit)
-        service = ConfigService(app.api, config_path)
+    field_config = {"_script": script_func}
+    entry = FormatterParser.parse(script_func, field_config, "todo")
 
-        store = app.api.formatter.todos.status
-        store.add(lambda value, model: "existing", id="existing")
+    assert isinstance(entry, FormatterEntry)
 
-        service._apply_formatters()
 
-        assert "existing" in store.formatters
-        config_formatter = store.formatters.get("config_todo_status")
-        assert config_formatter is not None
-        assert hasattr(config_formatter.func, MUTLIPLE_FORMATTER_ATTR)
+async def test_formatter_parser_calls_script(tmp_path: Path):
+    script_path = tmp_path / "fmt.py"
+    _write_script(script_path, "def render(todo, color='red'): return color")
+
+    reader = ScriptReader(script_path)
+    script_func = reader.get_function("render")
+
+    field_config = {"_script": script_func, "color": "blue"}
+    entry = FormatterParser.parse(script_func, field_config, "todo")
+
+    result = entry.func("mock_model")
+    assert result == "blue"
+
+
+async def test_formatter_parser_filters_internal_keys(tmp_path: Path):
+    script_path = tmp_path / "fmt.py"
+    _write_script(script_path, "def render(todo, **kwargs): return kwargs")
+
+    reader = ScriptReader(script_path)
+    script_func = reader.get_function("render")
+
+    field_config = {
+        "_script": script_func,
+        "_clear": True,
+        "_refresh": "every 5s",
+        "color": "green",
+        "size": 12,
+    }
+    entry = FormatterParser.parse(script_func, field_config, "todo")
+
+    result = entry.func("mock_model")
+    assert result == {"color": "green", "size": 12}

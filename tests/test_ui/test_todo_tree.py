@@ -7,7 +7,7 @@ from tests.test_ui.ui_base import run_pilot, create_and_move_to_todo
 from dooit.ui.tui import Dooit
 
 
-def custom_formatter(value, todo):
+def custom_formatter(todo):
     return "??"
 
 
@@ -41,7 +41,7 @@ async def test_todo_formatter():
         renderer = tree.current
         assert get_formatted(renderer, "description") == "nixos"
 
-        app.api.formatter.todos.description.add(custom_formatter)
+        app.api.formatter.todos.description.set(custom_formatter)
         assert get_formatted(renderer, "description") == "??"
 
 

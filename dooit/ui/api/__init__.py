@@ -1,6 +1,5 @@
 from .dooit_api import DooitAPI
 from .plug import PluginManager
-from .api_components.formatters import extra_formatter
 from .api_components import (
     KeyManager,
     KeyBindType,
@@ -17,5 +16,4 @@ __all__ = [
     "LayoutManager",
     "VarManager",
     "Formatter",
-    "extra_formatter",
 ]

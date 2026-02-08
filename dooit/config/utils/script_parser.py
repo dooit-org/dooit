@@ -2,11 +2,11 @@ import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import Callable, Optional
 
-if TYPE_CHECKING:  # pragma: no cover
-    from dooit.ui.api.events import DooitEvent
 
+from ...ui.api.events import DooitEvent
+from ...config.utils.data import ConfigData
 from .script_reader import ScriptReader
 
 
@@ -27,6 +27,7 @@ class ScriptEntry:
     func: Callable
     reload_targets: set[str] = field(default_factory=set)
     refresh: Optional["RefreshConfig"] = None
+    user_params: dict = field(default_factory=dict)
 
 
 class ScriptReaderFactory:
@@ -43,7 +44,7 @@ class ScriptReaderFactory:
 class ScriptParser:
     @classmethod
     def parse_script_entry(
-        cls, base_path: Path, script_ref: str, config_data: dict
+        cls, base_path: Path, script_ref: str, config: ConfigData
     ) -> ScriptEntry:
         if "::" not in script_ref:
             raise ValueError(f"Invalid script reference: {script_ref}")
@@ -62,20 +63,23 @@ class ScriptParser:
         func = reader.get_function(func_name.strip())
 
         reload_targets = set()
-        reload_targets_value = config_data.get("reload_targets")
+        reload_targets_value = config.get("reload_targets")
         if isinstance(reload_targets_value, (set, list, tuple)):
             reload_targets = set(reload_targets_value)
 
-        refresh_value = config_data.get("_refresh")
+        refresh_value = config.get("_refresh")
         refresh = None
         if isinstance(refresh_value, str):
             refresh = cls.parse_refresh(refresh_value)
+
+        user_params = {k: v for k, v in config.items() if not k.startswith("_")}
 
         return ScriptEntry(
             name=func_name.strip(),
             func=func,
             reload_targets=reload_targets,
             refresh=refresh,
+            user_params=user_params,
         )
 
     @classmethod
@@ -96,7 +100,6 @@ class ScriptParser:
 
     @classmethod
     def parse_refresh_interval(cls, refresh: str) -> Optional[float]:
-        """Parse 'every 5s|5m|5h' into seconds."""
         match = re.match(r"^every\s+(\d+)\s*([smh])$", refresh.strip())
         if not match:
             return None
@@ -108,7 +111,6 @@ class ScriptParser:
 
     @classmethod
     def parse_event(cls, refresh: str) -> Optional[type["DooitEvent"]]:
-        """Parse 'on EventName' into the event class."""
         name = refresh.replace("on", "", 1).strip()
         if not name:
             return None
@@ -119,7 +121,6 @@ class ScriptParser:
 
     @classmethod
     def parse_reload_targets(cls, reload_value: Optional[str]) -> set[str]:
-        """Parse comma-separated reload targets into a set."""
         if not reload_value:
             return set()
         return {item.strip() for item in reload_value.split(",") if item.strip()}

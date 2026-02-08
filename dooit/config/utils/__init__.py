@@ -8,6 +8,7 @@ from .script_parser import (
     RefreshConfig,
     RefreshKind,
 )
+from .formatter_parser import FormatterParser, FormatterEntry
 
 __all__ = [
     "ConfigData",
@@ -19,4 +20,6 @@ __all__ = [
     "ScriptReaderFactory",
     "RefreshConfig",
     "RefreshKind",
+    "FormatterParser",
+    "FormatterEntry",
 ]

@@ -2,10 +2,19 @@ from pathlib import Path
 from string import Template
 from .data import ConfigData
 
-from .script_parser import ScriptParser
+from .script_parser import ScriptParser, ScriptEntry
+from .formatter_parser import FormatterParser
 
 
 class ConfigResolver:
+    @classmethod
+    def resolve(cls, path: Path | str, config: ConfigData) -> ConfigData:
+        """Run the full resolution pipeline: vars -> scripts -> formatters."""
+        config = cls.resolve_vars(config)
+        config = cls.resolve_script_funcs(path, config)
+        config = cls.resolve_formatters(config)
+        return config
+
     @classmethod
     def resolve_vars(cls, config: ConfigData) -> ConfigData:
         config_vars = config.get("vars", {})
@@ -19,6 +28,8 @@ class ConfigResolver:
                     new_config[key] = template.substitute(config_vars)
                 elif isinstance(value, dict):
                     new_config[key] = resolve(value)
+                else:
+                    new_config[key] = value
             return new_config
 
         return resolve(config)
@@ -43,3 +54,45 @@ class ConfigResolver:
             else:
                 new_config[key] = value
         return new_config
+
+    @classmethod
+    def resolve_formatters(cls, config_data: ConfigData) -> ConfigData:
+        """
+        Resolve formatter sections: replace ScriptEntry with FormatterEntry
+        for each field under [formatter.<model_type>.<field_name>].
+        """
+        formatter_config = config_data.get("formatter")
+        if not isinstance(formatter_config, dict):
+            return config_data
+
+        new_formatter = ConfigData()
+        for model_type, fields in formatter_config.items():
+            if not isinstance(fields, dict):
+                new_formatter[model_type] = fields
+                continue
+
+            new_fields = ConfigData()
+            for field_name, field_config in fields.items():
+                if not isinstance(field_config, dict):
+                    new_fields[field_name] = field_config
+                    continue
+
+                script_entry = field_config.get("_script")
+                if isinstance(script_entry, ScriptEntry):
+                    new_field = ConfigData()
+                    for k, v in field_config.items():
+                        new_field[k] = v
+                    new_field["_script"] = FormatterParser.parse(
+                        script_entry.func, field_config, model_type
+                    )
+                    new_fields[field_name] = new_field
+                else:
+                    new_fields[field_name] = field_config
+
+            new_formatter[model_type] = new_fields
+
+        new_config_data = ConfigData()
+        for k, v in config_data.items():
+            new_config_data[k] = v
+        new_config_data["formatter"] = new_formatter
+        return new_config_data
