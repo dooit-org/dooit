@@ -1,7 +1,6 @@
 from functools import partial
 from collections import defaultdict
 from typing import TYPE_CHECKING, Callable, List, Type
-from textual.css.query import NoMatches
 
 from dooit.ui.api.events import DooitEvent
 
@@ -19,15 +18,9 @@ class PluginManager:
         self.api = api
         self.app = api.app
 
-    def _update_dooit_value(self, obj, *params):
-        res = obj(self.api, *params)
-        setattr(obj, "__dooit_value", res)
-
-        try:
-            if bar := getattr(self.app, "bar", None):
-                bar.refresh()
-        except NoMatches:
-            pass
+    def _dispatch(self, obj: Callable, *params) -> None:
+        """Call the registered handler. The handler owns caching and rerendering."""
+        obj(self.api, *params)
 
     def on_event(self, event: DooitEvent):
         matched_events = [
@@ -36,7 +29,7 @@ class PluginManager:
 
         for e in matched_events:
             for obj in self.events[e]:
-                self._update_dooit_value(obj, event)
+                self._dispatch(obj, event)
 
     def _register_events(self, events: List[Type[DooitEvent]], obj: Callable):
         for event in events:
@@ -44,7 +37,7 @@ class PluginManager:
 
     def _register_timer(self, obj: Callable):
         if interval := getattr(obj, DOOIT_TIMER_ATTR, None):
-            func = partial(self._update_dooit_value, obj)
+            func = partial(self._dispatch, obj)
             func()
             self.api.app.set_interval(interval, func)
 

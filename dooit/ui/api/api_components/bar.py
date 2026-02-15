@@ -12,7 +12,11 @@ class BarManager(ApiComponent):
         self.api = api
 
     def set(self, widgets: List[StatusBarWidget]):
-        for widget in widgets:
-            self.api.plugin_manager.register(widget.func)
-
         self.api.app.bar.set_widgets(widgets)
+
+    def ui_refresh(self) -> None:
+        """Re-render the status bar (widgets read __dooit_value on render)."""
+        try:
+            self.api.app.bar.refresh()
+        except Exception:
+            pass

@@ -9,10 +9,41 @@ from .formatter_parser import FormatterParser
 class ConfigResolver:
     @classmethod
     def resolve(cls, path: Path | str, config: ConfigData) -> ConfigData:
-        """Run the full resolution pipeline: vars -> scripts -> formatters."""
+        """Run the full resolution pipeline: vars -> reload_targets -> scripts -> formatters."""
         config = cls.resolve_vars(config)
+        config = cls.resolve_reload_targets(config)
         config = cls.resolve_script_funcs(path, config)
         config = cls.resolve_formatters(config)
+        return config
+
+    @classmethod
+    def resolve_reload_targets(cls, config: ConfigData) -> ConfigData:
+        """Inject reload_targets for scripts referenced by bar and dashboard."""
+        scripts = config.get("script", {})
+        if not isinstance(scripts, dict):
+            return config
+
+        target_map = {
+            "bar": (
+                list(config.get("bar", {}).get("widgets_left", []))
+                + list(config.get("bar", {}).get("widgets_right", []))
+            ),
+            "dashboard": list(config.get("dashboard", {}).get("widgets", [])),
+        }
+
+        for target_name, script_names in target_map.items():
+            for name in script_names:
+                if name not in scripts or not isinstance(scripts[name], dict):
+                    continue
+                existing = scripts[name].get("reload_targets", [])
+                if isinstance(existing, (list, tuple, set)):
+                    existing = list(existing)
+                else:
+                    existing = []
+                if target_name not in existing:
+                    existing.append(target_name)
+                scripts[name]["reload_targets"] = existing
+
         return config
 
     @classmethod

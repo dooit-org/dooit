@@ -1,13 +1,11 @@
-from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Iterable, Iterator, Optional
+from typing import TYPE_CHECKING, Iterator, Optional
 
 from platformdirs import user_config_dir
 
 from dooit.config.utils import ConfigData, ConfigResolver
-from dooit.config.utils.script_parser import ScriptEntry, RefreshConfig, RefreshKind
+from dooit.config.refresh_service import RefreshService
 from dooit.ui.api.dooit_api import DooitAPI
-from dooit.ui.api.plug import DOOIT_EVENT_ATTR, DOOIT_TIMER_ATTR
 
 if TYPE_CHECKING:  # pragma: no cover
     from dooit.ui.api.api_components.formatters.formatter_store import FormatterStore
@@ -17,23 +15,17 @@ BASE_CONFIG = Path(__file__).parent / "default" / "config.toml"
 USER_CONFIG = Path(user_config_dir("dooit")) / "config.toml"
 
 
-@dataclass
-class _CachedScript:
-    name: str
-    func: Callable
-    reload_targets: set[str] = field(default_factory=set)
-
-
 class ConfigService:
     """
-    Service class for applying configuration from ConfigManager
+    Service class for applying configuration from ConfigManager.
     """
 
     def __init__(self, api: DooitAPI, config_path: Path | None = None) -> None:
         self.api: DooitAPI = api
         self.config = self.build_config(config_path)
 
-        self._dashboard_widgets: list[str] = []
+        scripts_config = self.config.get("script", {})
+        self.refresh_service = RefreshService(api, scripts_config)
 
     def build_config(self, config_path: Path | None = None) -> ConfigData:
         config_paths = [BASE_CONFIG, config_path or USER_CONFIG]
@@ -52,7 +44,6 @@ class ConfigService:
     def apply_config_pre_screen(self) -> None:
         """Apply config that doesn't require the screen to be mounted."""
         self._apply_theme()
-        self._init_scripts()
         self._apply_formatters()
         self._apply_layout()
         self._apply_keys()
@@ -93,29 +84,29 @@ class ConfigService:
                 bar_widgets.append(StatusBarWidget(lambda: "", width=0))
                 continue
 
-            script_entry = self._get_script_entry(widget_name)
-            if not script_entry:
+            script = self.refresh_service.get_script(widget_name)
+            if not script:
                 continue
 
-            script_entry.reload_targets.add("bar")
-            bar_widgets.append(StatusBarWidget(script_entry.func))
+            bar_widgets.append(StatusBarWidget(script.func))
 
         self.api.bar.set(bar_widgets)
+        self.refresh_service.register_target("bar", self.api.bar)
 
     def _apply_dashboard(self) -> None:
         dashboard_config = self.config.get("dashboard", {})
         widget_names = dashboard_config.get("widgets", [])
 
-        self._dashboard_widgets = []
+        funcs = []
         for widget_name in widget_names:
-            script_entry = self._get_script_entry(widget_name)
-            if not script_entry:
+            script = self.refresh_service.get_script(widget_name)
+            if not script:
                 continue
+            funcs.append(script.func)
 
-            script_entry.reload_targets.add("dashboard")
-            self._dashboard_widgets.append(widget_name)
-
-        self._render_dashboard()
+        self.api.dashboard.set_widget_funcs(funcs)
+        self.api.dashboard.ui_refresh()
+        self.refresh_service.register_target("dashboard", self.api.dashboard)
 
     def _apply_keys(self) -> None:
         keys_config = self.config.get("keys", {})
@@ -126,28 +117,6 @@ class ConfigService:
                 continue
 
             self.api.keys.set(key_binding, method)
-
-    def _init_scripts(self) -> None:
-        self._scripts: dict[str, _CachedScript] = {}
-        scripts_config = self.config.get("script", {})
-
-        for name, script_config in scripts_config.items():
-            entry = script_config.get("_script")
-            if not isinstance(entry, ScriptEntry):
-                continue
-
-            wrapper = self._build_script_wrapper(entry)
-            self._scripts[name] = _CachedScript(
-                name=name,
-                func=wrapper,
-                reload_targets=entry.reload_targets,
-            )
-
-            if entry.refresh:
-                self._register_refresh(entry.refresh, wrapper)
-            else:
-                result = entry.func.call(**entry.user_params)
-                setattr(wrapper, "__dooit_value", result)
 
     def _apply_layout(self) -> None:
         layout_config = self.config.get("layout", {})
@@ -166,72 +135,6 @@ class ConfigService:
         if formatter_group is None:
             return None
         return getattr(formatter_group, field_name, None)
-
-    def _get_script_entry(self, name: str) -> Optional[_CachedScript]:
-        """Return cached script entry by name."""
-        return self._scripts.get(name)
-
-    def _register_refresh(self, refresh: RefreshConfig, func: Callable) -> None:
-        """Register a timer or event refresh hook for a script wrapper."""
-        if refresh.kind is RefreshKind.INTERVAL:
-            setattr(func, DOOIT_TIMER_ATTR, refresh.value)
-            self.api.plugin_manager.register(func)
-        elif refresh.kind is RefreshKind.EVENT:
-            setattr(func, DOOIT_EVENT_ATTR, [refresh.value])
-            self.api.plugin_manager.register(func)
-
-    def _build_script_wrapper(self, entry: ScriptEntry) -> Callable:
-        def wrapper(api, event=None):
-            result = entry.func.call(event=event, **entry.user_params)
-            setattr(wrapper, "__dooit_value", result)
-            self._rerender_targets(entry.reload_targets)
-            return result
-
-        return wrapper
-
-    def _rerender_targets(self, targets: Iterable[str]) -> None:
-        """Rerender only the requested UI targets."""
-        if "bar" in targets:
-            try:
-                self.api.app.bar.refresh()
-            except Exception:
-                pass
-
-        if "dashboard" in targets:
-            self._render_dashboard()
-
-        if "todos" in targets:
-            self._refresh_todos()
-
-        if "workspaces" in targets:
-            self._refresh_workspaces()
-
-    def _render_dashboard(self) -> None:
-        """Render dashboard items using cached script values."""
-        items = []
-        for widget_name in self._dashboard_widgets:
-            script_entry = self._scripts.get(widget_name)
-            if not script_entry:
-                continue
-
-            value = getattr(script_entry.func, "__dooit_value", "")
-            items.append(value)
-
-        self.api.dashboard.set(items)
-
-    def _refresh_todos(self) -> None:
-        """Force refresh all todo trees."""
-        from dooit.ui.widgets.trees import TodosTree
-
-        for widget in self.api.app.screen.query(TodosTree):
-            widget.force_refresh()
-
-    def _refresh_workspaces(self) -> None:
-        """Force refresh all workspace trees."""
-        from dooit.ui.widgets.trees import WorkspacesTree
-
-        for widget in self.api.app.screen.query(WorkspacesTree):
-            widget.force_refresh()
 
     def _iter_formatter_sections(
         self,
