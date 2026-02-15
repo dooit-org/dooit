@@ -1,24 +1,35 @@
+import logging
+from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Iterator, Optional
 
 from platformdirs import user_config_dir
 
+from dooit.config.errors import ConfigError, ConfigValidationError
 from dooit.config.utils import ConfigData, ConfigResolver
 from dooit.config.refresh_service import RefreshService
 from dooit.ui.api.dooit_api import DooitAPI
+from dooit.ui.widgets.bars import StatusBarWidget
 
 if TYPE_CHECKING:  # pragma: no cover
     from dooit.ui.api.api_components.formatters.formatter_store import FormatterStore
 
+logger = logging.getLogger(__name__)
 
 BASE_CONFIG = Path(__file__).parent / "default" / "config.toml"
 USER_CONFIG = Path(user_config_dir("dooit")) / "config.toml"
 
+def _noop_func() -> str:
+    return ""
+
+_MODEL_TYPE_ATTR: dict[str, str] = {
+    "todo": "todos",
+    "workspace": "workspaces",
+}
+
 
 class ConfigService:
-    """
-    Service class for applying configuration from ConfigManager.
-    """
+    """Service class for applying configuration from ConfigManager."""
 
     def __init__(self, api: DooitAPI, config_path: Path | None = None) -> None:
         self.api: DooitAPI = api
@@ -27,7 +38,9 @@ class ConfigService:
         scripts_config = self.config.get("script", {})
         self.refresh_service = RefreshService(api, scripts_config)
 
-    def build_config(self, config_path: Path | None = None) -> ConfigData:
+    @staticmethod
+    def build_config(config_path: Path | None = None) -> ConfigData:
+        """Build merged config from base defaults and user overrides."""
         config_paths = [BASE_CONFIG, config_path or USER_CONFIG]
         configs = []
         for path in config_paths:
@@ -58,55 +71,73 @@ class ConfigService:
         self.apply_config_post_screen()
 
     def _apply_theme(self) -> None:
-        theme_name = self.config["general"]["theme"]
-        theme = self.config["theme"][theme_name]
-        self.api.css.set_theme(theme)
+        general = self.config.get("general")
+        if not isinstance(general, dict):
+            raise ConfigError("Missing [general] section in config")
+
+        theme_name = general.get("theme")
+        if theme_name is None:
+            raise ConfigError("Missing 'theme' key in [general] section")
+
+        themes = self.config.get("theme", {})
+        if theme_name not in themes:
+            available = ", ".join(themes.keys()) if themes else "(none)"
+            raise ConfigError(
+                f"Theme '{theme_name}' not found. Available themes: {available}"
+            )
+
+        self.api.css.set_theme(themes[theme_name])
 
     def _apply_formatters(self) -> None:
         for model_type, field_name, field_config in self._iter_formatter_sections():
             entry = field_config.get("_script")
             formatter_store = self._get_formatter_store(model_type, field_name)
             if formatter_store is None:
+                logger.warning(
+                    "Unknown formatter target '%s.%s' — skipping",
+                    model_type,
+                    field_name,
+                )
                 continue
 
             formatter_store.set(entry.func)
 
+    def _resolve_scripts(self, widget_names: list[str]) -> list[Callable]:
+        """Resolve widget names to script callables."""
+        return [self.refresh_service.get_script(name).func for name in widget_names]
+
     def _apply_bar(self) -> None:
         bar_config = self.config.get("bar", {})
-        widgets_left = bar_config.get("widgets_left", [])
-        widgets_right = bar_config.get("widgets_right", [])
+        widgets_left = list(bar_config.get("widgets_left", []))
+        widgets_right = list(bar_config.get("widgets_right", []))
 
-        from dooit.ui.widgets.bars import StatusBarWidget
+        left_funcs = self._resolve_scripts(widgets_left)
+        right_funcs = self._resolve_scripts(widgets_right)
 
-        bar_widgets = []
-        for widget_name in list(widgets_left) + ["_spacer"] + list(widgets_right):
-            if widget_name == "_spacer":
-                bar_widgets.append(StatusBarWidget(lambda: "", width=0))
-                continue
-
-            script = self.refresh_service.get_script(widget_name)
-            if not script:
-                continue
-
-            bar_widgets.append(StatusBarWidget(script.func))
+        bar_widgets = (
+            [StatusBarWidget(f) for f in left_funcs]
+            + [StatusBarWidget(_noop_func, width=0)]
+            + [StatusBarWidget(f) for f in right_funcs]
+        )
 
         self.api.bar.set(bar_widgets)
         self.refresh_service.register_target("bar", self.api.bar)
 
+        for name in widgets_left + widgets_right:
+            self.refresh_service.add_reload_target(name, "bar")
+
     def _apply_dashboard(self) -> None:
         dashboard_config = self.config.get("dashboard", {})
-        widget_names = dashboard_config.get("widgets", [])
+        widget_names = list(dashboard_config.get("widgets", []))
 
-        funcs = []
-        for widget_name in widget_names:
-            script = self.refresh_service.get_script(widget_name)
-            if not script:
-                continue
-            funcs.append(script.func)
+        funcs = self._resolve_scripts(widget_names)
 
         self.api.dashboard.set_widget_funcs(funcs)
         self.api.dashboard.ui_refresh()
         self.refresh_service.register_target("dashboard", self.api.dashboard)
+
+        for name in widget_names:
+            self.refresh_service.add_reload_target(name, "dashboard")
 
     def _apply_keys(self) -> None:
         keys_config = self.config.get("keys", {})
@@ -114,6 +145,10 @@ class ConfigService:
         for action, key_binding in keys_config.items():
             method = getattr(self.api, action, None)
             if method is None:
+                logger.warning(
+                    "Key binding references unknown action '%s' — skipping",
+                    action,
+                )
                 continue
 
             self.api.keys.set(key_binding, method)
@@ -131,9 +166,14 @@ class ConfigService:
         self, model_type: str, field_name: str
     ) -> Optional["FormatterStore"]:
         """Return formatter store for a model/field, or None if missing."""
-        formatter_group = getattr(self.api.formatter, f"{model_type}s", None)
+        attr_name = _MODEL_TYPE_ATTR.get(model_type)
+        if attr_name is None:
+            return None
+
+        formatter_group = getattr(self.api.formatter, attr_name, None)
         if formatter_group is None:
             return None
+
         return getattr(formatter_group, field_name, None)
 
     def _iter_formatter_sections(
@@ -142,9 +182,23 @@ class ConfigService:
         """Yield (model_type, field_name, field_config) for formatter sections."""
         formatter_config = self.config.get("formatter", {})
 
-        assert isinstance(formatter_config, dict)
+        if not isinstance(formatter_config, dict):
+            raise ConfigValidationError(
+                f"[formatter] must be a table, got {type(formatter_config).__name__}"
+            )
+
         for model_type, fields in formatter_config.items():
-            assert isinstance(fields, dict)
+            if not isinstance(fields, dict):
+                raise ConfigValidationError(
+                    f"[formatter.{model_type}] must be a table, "
+                    f"got {type(fields).__name__}"
+                )
+
             for field_name, field_config in fields.items():
-                assert isinstance(field_config, dict)
+                if not isinstance(field_config, dict):
+                    raise ConfigValidationError(
+                        f"[formatter.{model_type}.{field_name}] must be a table, "
+                        f"got {type(field_config).__name__}"
+                    )
+
                 yield model_type, field_name, field_config

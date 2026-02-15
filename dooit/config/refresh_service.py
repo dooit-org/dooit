@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Callable, Iterable, Optional, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Callable, Iterable, Protocol, runtime_checkable
 
+from dooit.config.errors import ConfigError
 from dooit.config.utils.script_parser import ScriptEntry, RefreshConfig, RefreshKind
 from dooit.ui.api.plug import DOOIT_EVENT_ATTR, DOOIT_TIMER_ATTR
 
@@ -33,8 +34,13 @@ class RefreshService:
 
         for name, script_config in scripts_config.items():
             entry: ScriptEntry | None = script_config.get("_script")
-            if entry is not None:
-                self._register_script(name, entry)
+            if entry is None:
+                raise ConfigError(
+                    f"[script.{name}] is missing a '_script' key. "
+                    f"Every script section must reference a Python function "
+                    f"via '_script = \"./path::function\"'."
+                )
+            self._register_script(name, entry)
 
     # --- Target registry ---
 
@@ -50,9 +56,29 @@ class RefreshService:
 
     # --- Script lifecycle (internal) ---
 
-    def get_script(self, name: str) -> Optional[_CachedScript]:
-        """Return a cached script by name, or None if not found."""
-        return self._scripts.get(name)
+    def get_script(self, name: str) -> _CachedScript:
+        """Return a cached script by name.
+
+        Raises:
+            ConfigError: If the script name is not registered.
+        """
+        script = self._scripts.get(name)
+        if script is None:
+            available = ", ".join(sorted(self._scripts)) or "(none)"
+            raise ConfigError(
+                f"Script '{name}' not found. "
+                f"Make sure it is defined under [script.{name}] in your config. "
+                f"Available scripts: {available}"
+            )
+        return script
+
+    def has_script(self, name: str) -> bool:
+        """Check whether a script with the given name is registered."""
+        return name in self._scripts
+
+    def add_reload_target(self, script_name: str, target_name: str) -> None:
+        """Mark a script so it refreshes the given target when it updates."""
+        self._scripts[script_name].reload_targets.add(target_name)
 
     def _register_script(self, name: str, entry: ScriptEntry) -> None:
         """Build wrapper, cache result, register refresh if needed."""

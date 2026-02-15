@@ -132,6 +132,8 @@ widgets_right = ["clock", "user"]
 widgets = ["qoute", "ascii"]
 
 [script.mode]
+_script = "./scripts::mode"
+_refresh = "on ModeChanged"
 normal.format = "NORMAL"
 normal.css.color = "$background2"
 normal.css.background = "$primary"
@@ -146,7 +148,7 @@ _refresh = "every 1s"
 format = "%H:%M"
 
 [script.user]
-script = "./scripts::user"
+_script = "./scripts::user"
 format = "{username}"
 
 [script.qoute]
