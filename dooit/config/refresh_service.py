@@ -33,14 +33,7 @@ class RefreshService:
         self._targets: dict[str, Refreshable] = {}
 
         for name, script_config in scripts_config.items():
-            entry: ScriptEntry | None = script_config.get("_script")
-            if entry is None:
-                raise ConfigError(
-                    f"[script.{name}] is missing a '_script' key. "
-                    f"Every script section must reference a Python function "
-                    f"via '_script = \"./path::function\"'."
-                )
-            self._register_script(name, entry)
+            self._register_script(name, script_config["_script"])
 
     # --- Target registry ---
 

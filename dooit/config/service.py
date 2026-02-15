@@ -5,9 +5,9 @@ from typing import TYPE_CHECKING, Iterator, Optional
 
 from platformdirs import user_config_dir
 
-from dooit.config.errors import ConfigError, ConfigValidationError
 from dooit.config.utils import ConfigData, ConfigResolver
 from dooit.config.refresh_service import RefreshService
+from dooit.config.validator import ConfigValidator
 from dooit.ui.api.dooit_api import DooitAPI
 from dooit.ui.widgets.bars import StatusBarWidget
 
@@ -34,6 +34,7 @@ class ConfigService:
     def __init__(self, api: DooitAPI, config_path: Path | None = None) -> None:
         self.api: DooitAPI = api
         self.config = self.build_config(config_path)
+        ConfigValidator(self.config).validate()
 
         scripts_config = self.config.get("script", {})
         self.refresh_service = RefreshService(api, scripts_config)
@@ -71,21 +72,8 @@ class ConfigService:
         self.apply_config_post_screen()
 
     def _apply_theme(self) -> None:
-        general = self.config.get("general")
-        if not isinstance(general, dict):
-            raise ConfigError("Missing [general] section in config")
-
-        theme_name = general.get("theme")
-        if theme_name is None:
-            raise ConfigError("Missing 'theme' key in [general] section")
-
-        themes = self.config.get("theme", {})
-        if theme_name not in themes:
-            available = ", ".join(themes.keys()) if themes else "(none)"
-            raise ConfigError(
-                f"Theme '{theme_name}' not found. Available themes: {available}"
-            )
-
+        theme_name = self.config["general"]["theme"]
+        themes = self.config["theme"]
         self.api.css.set_theme(themes[theme_name])
 
     def _apply_formatters(self) -> None:
@@ -182,23 +170,6 @@ class ConfigService:
         """Yield (model_type, field_name, field_config) for formatter sections."""
         formatter_config = self.config.get("formatter", {})
 
-        if not isinstance(formatter_config, dict):
-            raise ConfigValidationError(
-                f"[formatter] must be a table, got {type(formatter_config).__name__}"
-            )
-
         for model_type, fields in formatter_config.items():
-            if not isinstance(fields, dict):
-                raise ConfigValidationError(
-                    f"[formatter.{model_type}] must be a table, "
-                    f"got {type(fields).__name__}"
-                )
-
             for field_name, field_config in fields.items():
-                if not isinstance(field_config, dict):
-                    raise ConfigValidationError(
-                        f"[formatter.{model_type}.{field_name}] must be a table, "
-                        f"got {type(field_config).__name__}"
-                    )
-
                 yield model_type, field_name, field_config
