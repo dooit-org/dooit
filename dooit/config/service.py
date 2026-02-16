@@ -1,4 +1,3 @@
-import logging
 from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Iterator, Optional
@@ -14,13 +13,13 @@ from dooit.ui.widgets.bars import StatusBarWidget
 if TYPE_CHECKING:  # pragma: no cover
     from dooit.ui.api.api_components.formatters.formatter_store import FormatterStore
 
-logger = logging.getLogger(__name__)
-
 BASE_CONFIG = Path(__file__).parent / "default" / "config.toml"
 USER_CONFIG = Path(user_config_dir("dooit")) / "config.toml"
 
+
 def _noop_func() -> str:
     return ""
+
 
 _MODEL_TYPE_ATTR: dict[str, str] = {
     "todo": "todos",
@@ -33,14 +32,21 @@ class ConfigService:
 
     def __init__(self, api: DooitAPI, config_path: Path | None = None) -> None:
         self.api: DooitAPI = api
-        self.config = self.build_config(config_path)
-        ConfigValidator(self.config).validate()
+        self.config = self._build_and_validate(api, config_path)
 
         scripts_config = self.config.get("script", {})
         self.refresh_service = RefreshService(api, scripts_config)
 
     @staticmethod
-    def build_config(config_path: Path | None = None) -> ConfigData:
+    def _build_and_validate(api: DooitAPI, config_path: Path | None) -> ConfigData:
+        """Build merged config and validate it before returning."""
+        config = ConfigService._build_config(config_path)
+        valid_actions = ConfigService._public_methods(type(api))
+        ConfigValidator(config, valid_actions=valid_actions).validate()
+        return config
+
+    @staticmethod
+    def _build_config(config_path: Path | None = None) -> ConfigData:
         """Build merged config from base defaults and user overrides."""
         config_paths = [BASE_CONFIG, config_path or USER_CONFIG]
         configs = []
@@ -54,6 +60,15 @@ class ConfigService:
             base_config.merge(config)
 
         return base_config
+
+    @staticmethod
+    def _public_methods(cls: type) -> set[str]:
+        """Return names of public callable attributes (excluding properties)."""
+        return {
+            name
+            for name in dir(cls)
+            if not name.startswith("_") and callable(getattr(cls, name, None))
+        }
 
     def apply_config_pre_screen(self) -> None:
         """Apply config that doesn't require the screen to be mounted."""
@@ -80,14 +95,6 @@ class ConfigService:
         for model_type, field_name, field_config in self._iter_formatter_sections():
             entry = field_config.get("_script")
             formatter_store = self._get_formatter_store(model_type, field_name)
-            if formatter_store is None:
-                logger.warning(
-                    "Unknown formatter target '%s.%s' — skipping",
-                    model_type,
-                    field_name,
-                )
-                continue
-
             formatter_store.set(entry.func)
 
     def _resolve_scripts(self, widget_names: list[str]) -> list[Callable]:
@@ -131,14 +138,7 @@ class ConfigService:
         keys_config = self.config.get("keys", {})
 
         for action, key_binding in keys_config.items():
-            method = getattr(self.api, action, None)
-            if method is None:
-                logger.warning(
-                    "Key binding references unknown action '%s' — skipping",
-                    action,
-                )
-                continue
-
+            method = getattr(self.api, action)
             self.api.keys.set(key_binding, method)
 
     def _apply_layout(self) -> None:

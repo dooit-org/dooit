@@ -5,8 +5,11 @@ from dooit.config.utils import ConfigData
 class ConfigValidator:
     """Validates merged config before application. Fail-fast on first error."""
 
-    def __init__(self, config: ConfigData) -> None:
+    def __init__(
+        self, config: ConfigData, *, valid_actions: set[str] | None = None
+    ) -> None:
         self.config = config
+        self.valid_actions = valid_actions or set()
 
     def validate(self) -> None:
         """Run all structural and cross-reference checks."""
@@ -16,6 +19,7 @@ class ConfigValidator:
         self._validate_scripts()
         self._validate_bar_widgets()
         self._validate_dashboard_widgets()
+        self._validate_keys()
 
     def _validate_general(self) -> None:
         general = self.config.get("general")
@@ -94,6 +98,25 @@ class ConfigValidator:
 
         for name in widget_names:
             self._require_script(name, "dashboard")
+
+    def _validate_keys(self) -> None:
+        keys_config = self.config.get("keys", {})
+
+        if not isinstance(keys_config, dict):
+            raise ConfigValidationError(
+                f"[keys] must be a table, got {type(keys_config).__name__}"
+            )
+
+        if not self.valid_actions:
+            return
+
+        for action in keys_config:
+            if action not in self.valid_actions:
+                available = ", ".join(sorted(self.valid_actions)) or "(none)"
+                raise ConfigError(
+                    f"[keys] references unknown action '{action}'. "
+                    f"Available actions: {available}"
+                )
 
     def _require_script(self, name: str, section: str) -> None:
         """Assert that a script name is defined under [script.*]."""
