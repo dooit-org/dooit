@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Iterator, Optional
+from typing import TYPE_CHECKING, Iterator
 
 from platformdirs import user_config_dir
 
@@ -42,7 +42,12 @@ class ConfigService:
         """Build merged config and validate it before returning."""
         config = ConfigService._build_config(config_path)
         valid_actions = ConfigService._public_methods(type(api))
-        ConfigValidator(config, valid_actions=valid_actions).validate()
+        valid_formatters = ConfigService._valid_formatters(api)
+        ConfigValidator(
+            config,
+            valid_actions=valid_actions,
+            valid_formatters=valid_formatters,
+        ).validate()
         return config
 
     @staticmethod
@@ -69,6 +74,21 @@ class ConfigService:
             for name in dir(cls)
             if not name.startswith("_") and callable(getattr(cls, name, None))
         }
+
+    @staticmethod
+    def _valid_formatters(api: DooitAPI) -> dict[str, set[str]]:
+        """Return mapping of model type to its valid formatter field names."""
+        from dooit.ui.api.api_components.formatters import FormatterStore
+
+        result: dict[str, set[str]] = {}
+        for model_type, attr_name in _MODEL_TYPE_ATTR.items():
+            formatter_group = getattr(api.formatter, attr_name)
+            result[model_type] = {
+                name
+                for name, value in vars(formatter_group).items()
+                if isinstance(value, FormatterStore)
+            }
+        return result
 
     def apply_config_pre_screen(self) -> None:
         """Apply config that doesn't require the screen to be mounted."""
@@ -152,17 +172,11 @@ class ConfigService:
 
     def _get_formatter_store(
         self, model_type: str, field_name: str
-    ) -> Optional["FormatterStore"]:
-        """Return formatter store for a model/field, or None if missing."""
-        attr_name = _MODEL_TYPE_ATTR.get(model_type)
-        if attr_name is None:
-            return None
-
-        formatter_group = getattr(self.api.formatter, attr_name, None)
-        if formatter_group is None:
-            return None
-
-        return getattr(formatter_group, field_name, None)
+    ) -> "FormatterStore":
+        """Return formatter store for a model/field."""
+        attr_name = _MODEL_TYPE_ATTR[model_type]
+        formatter_group = getattr(self.api.formatter, attr_name)
+        return getattr(formatter_group, field_name)
 
     def _iter_formatter_sections(
         self,

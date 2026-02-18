@@ -6,10 +6,15 @@ class ConfigValidator:
     """Validates merged config before application. Fail-fast on first error."""
 
     def __init__(
-        self, config: ConfigData, *, valid_actions: set[str] | None = None
+        self,
+        config: ConfigData,
+        *,
+        valid_actions: set[str] | None = None,
+        valid_formatters: dict[str, set[str]] | None = None,
     ) -> None:
         self.config = config
         self.valid_actions = valid_actions or set()
+        self.valid_formatters = valid_formatters or {}
 
     def validate(self) -> None:
         """Run all structural and cross-reference checks."""
@@ -55,11 +60,26 @@ class ConfigValidator:
                     f"got {type(fields).__name__}"
                 )
 
+            if self.valid_formatters and model_type not in self.valid_formatters:
+                available = ", ".join(sorted(self.valid_formatters)) or "(none)"
+                raise ConfigError(
+                    f"[formatter] references unknown model type '{model_type}'. "
+                    f"Available types: {available}"
+                )
+
+            valid_fields = self.valid_formatters.get(model_type, set())
             for field_name, field_config in fields.items():
                 if not isinstance(field_config, dict):
                     raise ConfigValidationError(
                         f"[formatter.{model_type}.{field_name}] must be a table, "
                         f"got {type(field_config).__name__}"
+                    )
+
+                if valid_fields and field_name not in valid_fields:
+                    available = ", ".join(sorted(valid_fields)) or "(none)"
+                    raise ConfigError(
+                        f"[formatter.{model_type}] references unknown field "
+                        f"'{field_name}'. Available fields: {available}"
                     )
 
     def _validate_scripts(self) -> None:
