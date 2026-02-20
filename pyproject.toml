@@ -16,6 +16,7 @@ repository = "https://github.com/dooit-org/dooit"
 exclude = ["imgs"]
 dependencies = [
     "click>=8.1.8",
+    "msgspec>=0.20.0",
     "platformdirs>=4.4.0",
     "pyperclip>=1.10.0",
     "python-dateutil>=2.9.0.post0",

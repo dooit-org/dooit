@@ -1,6 +1,3 @@
-# Example of including external theme file
-# includes = ["themes/nord.toml"]
-
 [vars]
 background1 = "#2E3440" # Darkest
 background2 = "#3B4252" # Lighter

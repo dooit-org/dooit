@@ -4,9 +4,9 @@ from typing import TYPE_CHECKING, Iterator
 
 from platformdirs import user_config_dir
 
-from dooit.config.utils import ConfigData, ConfigResolver
+from dooit.config.model import AppConfig
 from dooit.config.refresh_service import RefreshService
-from dooit.config.validator import ConfigValidator
+from dooit.config.utils import ConfigData, ConfigResolver
 from dooit.ui.api.dooit_api import DooitAPI
 from dooit.ui.widgets.bars import StatusBarWidget
 
@@ -43,7 +43,7 @@ class ConfigService:
         config = ConfigService._build_config(config_path)
         valid_actions = ConfigService._public_methods(type(api))
         valid_formatters = ConfigService._valid_formatters(api)
-        ConfigValidator(
+        AppConfig(
             config,
             valid_actions=valid_actions,
             valid_formatters=valid_formatters,
