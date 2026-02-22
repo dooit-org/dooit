@@ -1,7 +1,10 @@
 from typing import TYPE_CHECKING, Generic, List, TypeVar, Union
+
 from rich.console import RenderableType
 from rich.table import Table
+
 from dooit.api import Todo, Workspace
+
 from ..inputs.simple_input import SimpleInput
 
 ModelType = TypeVar("ModelType", bound=Union[Todo, Workspace])
@@ -46,9 +49,7 @@ class BaseRenderer(Generic[ModelType]):
     def _get_attr_width(self, attr: str) -> int:
         component = self._get_component(attr)
         formatter = self.tree.formatter
-        rendered: str = getattr(formatter, attr).format_value(
-            component.model_value, component.model
-        )
+        rendered: str = getattr(formatter, attr).format_value(component.model)
 
         return max(len(component.value) + 1, len(rendered))
 
@@ -75,9 +76,7 @@ class BaseRenderer(Generic[ModelType]):
                 rendered = component.render()
             else:
                 formatter = self.tree.formatter
-                rendered = getattr(formatter, attr).format_value(
-                    component.model_value, component.model
-                )
+                rendered = getattr(formatter, attr).format_value(component.model)
 
             if attr == "description":
                 table.add_column(attr, ratio=1)

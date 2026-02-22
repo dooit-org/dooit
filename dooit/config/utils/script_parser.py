@@ -2,12 +2,16 @@ import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Callable, Optional
-
+from typing import Any, Callable, Iterable, Optional
 
 from ...ui.api.events import DooitEvent
-from ...config.utils.data import ConfigData
 from .script_reader import ScriptReader
+
+
+class ScriptKeyword(str, Enum):
+    SCRIPT = "_script"
+    REFRESH = "_refresh"
+    RELOAD_TARGETS = "reload_targets"
 
 
 class RefreshKind(str, Enum):
@@ -18,7 +22,7 @@ class RefreshKind(str, Enum):
 @dataclass(frozen=True)
 class RefreshConfig:
     kind: RefreshKind
-    value: int | type["DooitEvent"]
+    value: int | type[DooitEvent]
 
 
 @dataclass
@@ -27,7 +31,10 @@ class ScriptEntry:
     func: Callable
     reload_targets: set[str] = field(default_factory=set)
     refresh: Optional["RefreshConfig"] = None
-    user_params: dict = field(default_factory=dict)
+    context: dict = field(default_factory=dict)
+
+    def call(self, **params):
+        return self.func(**params, context=self.context)
 
 
 class ScriptReaderFactory:
@@ -43,16 +50,16 @@ class ScriptReaderFactory:
 
 class ScriptParser:
     @classmethod
-    def parse_script_entry(
-        cls, base_path: Path, script_ref: str, config: ConfigData
-    ) -> ScriptEntry:
+    def parse_script_entry(cls, script_entry: dict[str, Any]) -> ScriptEntry:
+        if ScriptKeyword.SCRIPT not in script_entry:
+            raise ValueError("Missing '_script' key in script entry")
+
+        script_ref = script_entry[ScriptKeyword.SCRIPT]
         if "::" not in script_ref:
             raise ValueError(f"Invalid script reference: {script_ref}")
 
         script_path_str, func_name = script_ref.split("::", 1)
         script_path = Path(script_path_str)
-        if not script_path.is_absolute():
-            script_path = (base_path.parent / script_path).resolve()
 
         if script_path.suffix == "":
             candidate = script_path.with_suffix(".py")
@@ -62,47 +69,45 @@ class ScriptParser:
         reader = ScriptReaderFactory.get_reader(script_path)
         func = reader.get_function(func_name.strip())
 
-        reload_targets = set()
-        reload_targets_value = config.get("reload_targets")
-        if isinstance(reload_targets_value, (set, list, tuple)):
-            reload_targets = set(reload_targets_value)
+        reload_targets_value = script_entry.get(ScriptKeyword.RELOAD_TARGETS, [])
+        assert isinstance(reload_targets_value, Iterable), (
+            "reload_targets must be an iterable of strings"
+        )
 
-        refresh_value = config.get("_refresh")
-        refresh = None
-        if isinstance(refresh_value, str):
-            refresh = cls.parse_refresh(refresh_value)
+        reload_targets = set(reload_targets_value)
 
-        user_params = {k: v for k, v in config.items() if not k.startswith("_")}
+        refresh_value = script_entry.get(ScriptKeyword.REFRESH)
+        refresh = cls.parse_refresh(refresh_value) if refresh_value else None
+        context = {k: v for k, v in script_entry.items() if not k.startswith("_")}
 
         return ScriptEntry(
             name=func_name.strip(),
             func=func,
             reload_targets=reload_targets,
             refresh=refresh,
-            user_params=user_params,
+            context=context,
         )
 
     @classmethod
-    def parse_refresh(cls, refresh: str) -> Optional[RefreshConfig]:
+    def parse_refresh(cls, refresh: str) -> RefreshConfig:
         if refresh.startswith("every"):
             interval = cls.parse_refresh_interval(refresh)
-            if interval is None:
-                return None
             return RefreshConfig(kind=RefreshKind.INTERVAL, value=interval)
 
         if refresh.startswith("on"):
             event_cls = cls.parse_event(refresh)
-            if event_cls is None:
-                return None
             return RefreshConfig(kind=RefreshKind.EVENT, value=event_cls)
 
-        return None
+        raise ValueError(f"Invalid refresh config: '{refresh}'. ")
 
     @classmethod
-    def parse_refresh_interval(cls, refresh: str) -> Optional[float]:
+    def parse_refresh_interval(cls, refresh: str) -> int:
         match = re.match(r"^every\s+(\d+)\s*([smh])$", refresh.strip())
         if not match:
-            return None
+            raise ValueError(
+                f"Invalid refresh interval format: '{refresh}'. "
+                f"Expected format: 'every <amount><unit>', e.g. 'every 5m' or 'every 30s'."
+            )
 
         amount = int(match.group(1))
         unit = match.group(2)
@@ -110,14 +115,16 @@ class ScriptParser:
         return amount * multipliers[unit]
 
     @classmethod
-    def parse_event(cls, refresh: str) -> Optional[type["DooitEvent"]]:
+    def parse_event(cls, refresh: str) -> type["DooitEvent"]:
         name = refresh.replace("on", "", 1).strip()
-        if not name:
-            return None
+        assert bool(name), "Event name cannot be empty in refresh config"
 
         from dooit.ui.api import events as events_module
 
-        return getattr(events_module, name, None)
+        event = getattr(events_module, name, None)
+        assert event is not None, f"Event '{name}' not found for refresh config"
+
+        return event
 
     @classmethod
     def parse_reload_targets(cls, reload_value: Optional[str]) -> set[str]:

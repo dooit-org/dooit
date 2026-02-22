@@ -3,6 +3,7 @@ from enum import Enum
 import msgspec
 
 from dooit.api import DooitModel
+from dooit.config.utils.script_parser import ScriptParser
 
 S = dict(kw_only=True, frozen=True)
 
@@ -119,9 +120,10 @@ class DashboardConfig(BaseConfigType):
 class FieldFormatter:
     def __init__(self, config: dict):
         self.config = config
+        self.func = ScriptParser.parse_script_entry(config)
 
     def __call__(self, model: DooitModel) -> str:
-        return str(model)
+        return self.func.func(model)
 
 
 class TodoFormatter(BaseConfigType):
