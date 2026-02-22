@@ -1,19 +1,22 @@
 from pathlib import Path
 from typing import Optional
+
 from textual import on
 from textual.app import App
 from textual.binding import Binding
-from dooit.ui.api.events import ModeChanged, DooitEvent, ModeType, Startup, QuitApp
+
+from dooit.config import ConfigService
+from dooit.ui.api.events import DooitEvent, ModeChanged, ModeType, QuitApp, Startup
 from dooit.ui.api.events.events import ShutDown
+from dooit.ui.screens import HelpScreen, MainScreen
 from dooit.ui.widgets import BarSwitcher
 from dooit.ui.widgets.bars import StatusBar
 from dooit.ui.widgets.trees import WorkspacesTree
-from dooit.ui.screens import MainScreen, HelpScreen
 from dooit.ui.widgets.trees.model_tree import ModelTree
 from dooit.utils import CssManager
-from dooit.config import ConfigService
-from .api import DooitAPI
+
 from ..api import manager
+from .api import DooitAPI
 
 PRINTABLE = (
     "0123456789"
@@ -48,9 +51,10 @@ class Dooit(App):
     async def base_setup(self):
         self.api = DooitAPI(self)
         self.config_service = ConfigService(self.api, self.config_path)
-        self.config_service.apply_config_pre_screen()
+
         await self.push_screen("main")
-        self.config_service.apply_config_post_screen()
+        self.config_service.apply_config()
+
         self.post_message(Startup())
         self.post_message(ModeChanged("NORMAL"))
 
