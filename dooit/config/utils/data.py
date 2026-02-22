@@ -1,12 +1,19 @@
-from typing import Union, override
-
 from pathlib import Path
+from typing import Union, override
 
 import tomllib
 
-from .script_reader import ScriptFunction
+ConfigValue = Union[bool, str, "ConfigData"]
 
-ConfigValue = Union[bool, str, "ConfigData", ScriptFunction]
+
+def resolve_script_full_path(parent: Path, script: str):
+    path, func_name = script.split("::")
+    path = Path(path)
+
+    if not path.is_absolute():
+        path = parent / path
+
+    return f"{path.resolve()}::{func_name}"
 
 
 class ConfigData(dict[str, ConfigValue]):
@@ -38,6 +45,9 @@ class ConfigData(dict[str, ConfigValue]):
             if isinstance(value, dict):
                 config_data[key] = cls.from_dict(value)
             else:
+                if key == "_script":
+                    parent = Path(__file__).parent
+                    value = resolve_script_full_path(parent, value)  # type: ignore
                 config_data[key] = value  # type: ignore
 
         return config_data
