@@ -1,9 +1,7 @@
 from pathlib import Path
-from typing import Union, override
 
 import tomllib
-
-ConfigValue = Union[bool, str, "ConfigData"]
+from typing_extensions import Any, Self
 
 
 def resolve_script_full_path(parent: Path, script: str):
@@ -16,17 +14,17 @@ def resolve_script_full_path(parent: Path, script: str):
     return f"{path.resolve()}::{func_name}"
 
 
-class ConfigData(dict[str, ConfigValue]):
+class NestedDict(dict[str, Any]):
     """
     A dictionary subclass that allows attribute (dot) access to keys
-    and can recursively merge other dictionaries or ConfigData.
+    and can recursively merge other dictionaries
     """
 
     def __init__(self, **kwargs: object) -> None:
         super().__init__()
 
     @classmethod
-    def from_path(cls, path: Path) -> "ConfigData":
+    def from_path(cls, path: Path) -> "NestedDict":
         if not path.exists():
             return cls()
 
@@ -36,7 +34,7 @@ class ConfigData(dict[str, ConfigValue]):
         return cls.from_dict(data)
 
     @classmethod
-    def from_dict(cls, data: dict[str, ConfigValue]) -> "ConfigData":
+    def from_dict(cls, data: dict[str, Any]) -> "NestedDict":
         """
         Create a ConfigData instance from a regular dictionary.
         """
@@ -52,18 +50,7 @@ class ConfigData(dict[str, ConfigValue]):
 
         return config_data
 
-    @override
-    def __setattr__(self, key: str, value: ConfigValue) -> None:
-        self[key] = value
-
-    @override
-    def __delattr__(self, key: str) -> None:
-        try:
-            del self[key]
-        except KeyError as e:
-            raise AttributeError(f"'ConfigData' object has no attribute '{key}'") from e
-
-    def merge(self, other: "ConfigData") -> None:
+    def merge(self, other: Self) -> None:
         """
         Recursively merge another ConfigData into this one.
         For nested dictionaries, merge them recursively instead of replacing.
@@ -72,7 +59,7 @@ class ConfigData(dict[str, ConfigValue]):
         for key, value in other.items():
             existing = self.get(key)
 
-            if isinstance(existing, ConfigData) and isinstance(value, ConfigData):
+            if isinstance(existing, NestedDict) and isinstance(value, NestedDict):
                 existing.merge(value)
             else:
                 self[key] = value

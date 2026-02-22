@@ -1,18 +1,18 @@
 from pathlib import Path
 
-from dooit.config.utils import ConfigData, ConfigResolver
-from dooit.config.utils.script_reader import ScriptReader
-from dooit.config.utils.script_parser import ScriptReaderFactory
+from dooit.config.service import ConfigService
+from dooit.config.utils import NestedDict, ConfigResolver
+from dooit.config.utils.formatter_parser import (
+    FormatterEntry,
+    FormatterParser,
+)
 from dooit.config.utils.script_parser import (
-    ScriptParser,
     RefreshConfig,
     RefreshKind,
+    ScriptParser,
+    ScriptReaderFactory,
 )
-from dooit.config.utils.formatter_parser import (
-    FormatterParser,
-    FormatterEntry,
-)
-from dooit.config.service import ConfigService
+from dooit.config.utils.script_reader import ScriptReader
 from dooit.ui.api.events import ModeChanged
 from dooit.ui.tui import Dooit
 from tests.test_ui.ui_base import run_pilot
@@ -112,7 +112,7 @@ def test_resolve_script_refresh_interval(tmp_path: Path):
     _write_script(script_path, "def foo(): return 'ok'")
 
     config_path = tmp_path / "config.toml"
-    config = ConfigData.from_dict(
+    config = NestedDict.from_dict(
         {
             "formatter": {
                 "todo": {
@@ -125,7 +125,7 @@ def test_resolve_script_refresh_interval(tmp_path: Path):
         }
     )
 
-    resolved = ConfigResolver.resolve_script_funcs(config_path, config)
+    resolved = ConfigResolver.resolve_script_paths(config_path, config)
     entry = resolved["formatter"]["todo"]["status"]["_script"]
     assert isinstance(entry.refresh, RefreshConfig)
     assert entry.refresh.kind is RefreshKind.INTERVAL
@@ -137,7 +137,7 @@ def test_resolve_script_refresh_event(tmp_path: Path):
     _write_script(script_path, "def foo(): return 'ok'")
 
     config_path = tmp_path / "config.toml"
-    config = ConfigData.from_dict(
+    config = NestedDict.from_dict(
         {
             "formatter": {
                 "todo": {
@@ -150,7 +150,7 @@ def test_resolve_script_refresh_event(tmp_path: Path):
         }
     )
 
-    resolved = ConfigResolver.resolve_script_funcs(config_path, config)
+    resolved = ConfigResolver.resolve_script_paths(config_path, config)
     entry = resolved["formatter"]["todo"]["status"]["_script"]
     assert isinstance(entry.refresh, RefreshConfig)
     assert entry.refresh.kind is RefreshKind.EVENT
@@ -162,7 +162,7 @@ def test_resolve_formatters_produces_formatter_entry(tmp_path: Path):
     _write_script(script_path, "def fmt(todo): return 'ok'")
 
     config_path = tmp_path / "config.toml"
-    config = ConfigData.from_dict(
+    config = NestedDict.from_dict(
         {
             "formatter": {
                 "todo": {
@@ -174,7 +174,7 @@ def test_resolve_formatters_produces_formatter_entry(tmp_path: Path):
         }
     )
 
-    resolved = ConfigResolver.resolve_script_funcs(config_path, config)
+    resolved = ConfigResolver.resolve_script_paths(config_path, config)
     resolved = ConfigResolver.resolve_formatters(resolved)
 
     entry = resolved["formatter"]["todo"]["status"]["_script"]
@@ -182,7 +182,7 @@ def test_resolve_formatters_produces_formatter_entry(tmp_path: Path):
 
 
 def test_resolve_formatters_skips_non_formatter_sections(tmp_path: Path):
-    config = ConfigData.from_dict(
+    config = NestedDict.from_dict(
         {"general": {"theme": "default"}, "keys": {"action": "ctrl+a"}}
     )
 
