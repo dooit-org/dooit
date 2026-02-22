@@ -1,4 +1,4 @@
-[vars]
+[theme.nord]
 background1 = "#2E3440" # Darkest
 background2 = "#3B4252" # Lighter
 background3 = "#434C5E" # Lightest
@@ -16,22 +16,6 @@ cyan = "#8fbcbb"
 
 primary = "#8fbcbb"
 secondary = "#81a1c1"
-
-[theme.nord]
-background1 = "$background1"
-background2 = "$background2"
-background3 = "$background3"
-foreground1 = "$foreground1"
-foreground2 = "$foreground2"
-foreground3 = "$foreground3"
-red = "$red"
-orange = "$orange"
-yellow = "$yellow"
-green = "$green"
-blue = "$blue"
-purple = "$purple"
-magenta = "$magenta"
-cyan = "$cyan"
 
 [general]
 theme = "nord"
