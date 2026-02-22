@@ -31,20 +31,19 @@ class NestedDict(dict[str, Any]):
         with open(path, "rb") as f:
             data = tomllib.load(f)
 
-        return cls.from_dict(data)
+        return cls.from_dict(data, path.parent)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "NestedDict":
+    def from_dict(cls, data: dict[str, Any], parent: Path) -> "NestedDict":
         """
         Create a ConfigData instance from a regular dictionary.
         """
         config_data = cls()
         for key, value in data.items():
             if isinstance(value, dict):
-                config_data[key] = cls.from_dict(value)
+                config_data[key] = cls.from_dict(value, parent)
             else:
                 if key == "_script":
-                    parent = Path(__file__).parent
                     value = resolve_script_full_path(parent, value)  # type: ignore
                 config_data[key] = value  # type: ignore
 
