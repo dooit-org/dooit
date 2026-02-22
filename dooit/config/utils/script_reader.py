@@ -1,7 +1,6 @@
 import importlib.util
-import inspect
 from pathlib import Path
-from typing import Callable, final
+from typing import Any, Callable, final
 
 from rich.text import Text
 
@@ -10,16 +9,8 @@ class ScriptFunction:
     def __init__(self, function: Callable[..., Text | None]):
         self.function = function
 
-    @property
-    def vars(self) -> dict[str, inspect.Parameter]:
-        signature = inspect.signature(self.function)
-        return dict(signature.parameters)
-
-    def call(self, event=None, **kwargs):
-        user_params = {k: v for k, v in kwargs.items() if not k.startswith("_")}
-        if event is not None and "event" in self.vars:
-            return self.function(event, **user_params)
-        return self.function(**user_params)
+    def call(self, base_params: dict[str, Any], context: dict[str, Any]):
+        return self.function(**base_params, context=context)
 
 
 @final
@@ -40,10 +31,9 @@ class ScriptReader:
         spec.loader.exec_module(module)
         return module
 
-    def get_function(self, func_name: str = "main") -> ScriptFunction:
+    def get_function(self, func_name: str = "main") -> Callable:
         func = getattr(self.module, func_name, None)
-        if func:
-            assert isinstance(func, Callable)
-            return ScriptFunction(func)
+        if isinstance(func, Callable):
+            return func
 
         raise AttributeError(f"No function named '{func_name}' found")
