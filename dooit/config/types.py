@@ -7,8 +7,13 @@ from dooit.api import DooitModel
 S = dict(kw_only=True, frozen=True)
 
 
+class BaseConfigType(msgspec.Struct, forbid_unknown_fields=True, **S):
+    def as_dict(self) -> dict:
+        return msgspec.structs.asdict(self)
+
+
 # --- theme ---
-class ThemeColors(msgspec.Struct, **S):
+class ThemeColors(BaseConfigType):
     """
     Theme colors for dooit (all hex codes)
     """
@@ -28,12 +33,12 @@ class ThemeColors(msgspec.Struct, **S):
     magenta: str
     cyan: str
 
-    def as_dict(self) -> dict:
-        return msgspec.structs.asdict(self)
+    primary: str
+    secondary: str
 
 
 # --- general ---
-class GeneralConfig(msgspec.Struct, **S):
+class GeneralConfig(BaseConfigType):
     """
     All the stuff that goes into general section
     """
@@ -63,13 +68,13 @@ class WorkspaceField(str, Enum):
     DESCRIPTION = "description"
 
 
-class LayoutConfig(msgspec.Struct, **S):
+class LayoutConfig(BaseConfigType):
     todo: list[TodoField]
     workspace: list[WorkspaceField]
 
 
 # --- layout ---
-class KeysConfig(msgspec.Struct, forbid_unknown_fields=True, **S):
+class KeysConfig(BaseConfigType):
     switch_focus: str
     move_down: str
     move_up: str
@@ -100,13 +105,13 @@ class KeysConfig(msgspec.Struct, forbid_unknown_fields=True, **S):
 
 
 # --- bar ---
-class BarConfig(msgspec.Struct, **S):
+class BarConfig(BaseConfigType):
     widgets_left: list[str]
     widgets_right: list[str]
 
 
 # --- dashboard ---
-class DashboardConfig(msgspec.Struct, **S):
+class DashboardConfig(BaseConfigType):
     widgets: list[str]
 
 
@@ -116,10 +121,10 @@ class FieldFormatter:
         self.config = config
 
     def __call__(self, model: DooitModel) -> str:
-        raise NotImplementedError
+        return str(model)
 
 
-class TodoFormatter(msgspec.Struct, **S):
+class TodoFormatter(BaseConfigType):
     description: FieldFormatter
     due: FieldFormatter
     urgency: FieldFormatter
@@ -128,11 +133,11 @@ class TodoFormatter(msgspec.Struct, **S):
     effort: FieldFormatter
 
 
-class WorkspaceFormater(msgspec.Struct, **S):
+class WorkspaceFormater(BaseConfigType):
     description: FieldFormatter
 
 
-class FormatterConfig(msgspec.Struct, kw_only=True):
+class FormatterConfig(BaseConfigType):
     todo: TodoFormatter
     workspace: WorkspaceFormater
 
