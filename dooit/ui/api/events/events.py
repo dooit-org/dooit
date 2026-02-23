@@ -1,9 +1,10 @@
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta
 from typing import Callable, Literal, Optional
+
 from textual.message import Message
 
+from dooit.api import Todo, Workspace
 from dooit.api.model import DooitModel
-from dooit.api import Workspace, Todo
 
 ModeType = Literal["NORMAL", "INSERT", "DATE", "SEARCH", "SORT", "CONFIRM"]
 EmptyWidgetType = Literal["todo", "workspace", "no_search_results"]
@@ -18,6 +19,16 @@ class DooitEvent(Message, bubble=True):
     """
     Base class for all events
     """
+
+
+class TimerEvent(DooitEvent):
+    """
+    Emitted at regular intervals based on config
+    """
+
+    def __init__(self, second: int) -> None:
+        super().__init__()
+        self.second = second
 
 
 # Base events
