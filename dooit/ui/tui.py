@@ -109,6 +109,7 @@ class Dooit(App):
 
     @on(DooitEvent)
     def global_message(self, event: DooitEvent):
+        self.config_service.refresh_service.trigger_event(event)
         if isinstance(self.screen, MainScreen):
             self.api.trigger_event(event)
             self.bar.refresh()
