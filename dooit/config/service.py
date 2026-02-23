@@ -6,7 +6,6 @@ from platformdirs import user_config_dir
 from dooit.config.config import AppConfig
 from dooit.config.refresh_service import RefreshService
 from dooit.config.utils import NestedDict
-from dooit.ui.widgets.bars import StatusBarWidget
 
 if TYPE_CHECKING:  # pragma: no cover
     from dooit.ui.api.dooit_api import DooitAPI
@@ -19,21 +18,18 @@ def _noop_func() -> str:
     return ""
 
 
-_MODEL_TYPE_ATTR: dict[str, str] = {
-    "todo": "todos",
-    "workspace": "workspaces",
-}
-
-
 class ConfigService:
     """Service class for applying configuration from ConfigManager."""
 
     def __init__(self, api: "DooitAPI", config_path: Path | None = None) -> None:
         self.api: DooitAPI = api
         self.config = self._build_config(config_path)
+        self.refresh_service = self._setup_refresh_service()
 
+    def _setup_refresh_service(self) -> RefreshService:
         scripts_config = self.config.get_scripts()
-        self.refresh_service = RefreshService(api, scripts_config)
+        reload_targets = {"bar": self.api.bar, "dashboard": self.api.dashboard}
+        return RefreshService(self.api, scripts_config, reload_targets)
 
     @staticmethod
     def _build_config(config_path: Path | None = None) -> AppConfig:
@@ -60,10 +56,6 @@ class ConfigService:
         theme = self.config.get_active_theme()
         self.api.css.set_theme(theme.as_dict())
 
-    # def _resolve_scripts(self, widget_names: list[str]) -> list[Callable]:
-    #     """Resolve widget names to script callables."""
-    #     return [self.refresh_service.get_script(name).func for name in widget_names]
-
     def _apply_formatters(self) -> None:
         self.api.formatter.todos.description.set(self.config.formatter.todo.description)
         self.api.formatter.todos.due.set(self.config.formatter.todo.due)
@@ -77,25 +69,16 @@ class ConfigService:
         )
 
     def _apply_bar(self) -> None:
-        return
-        bar_config = self.config.get("bar", {})
-        widgets_left = list(bar_config.get("widgets_left", []))
-        widgets_right = list(bar_config.get("widgets_right", []))
+        bar_config = self.config.bar
+        scripts = self.config.get_scripts()
+        left = [scripts[name] for name in bar_config.widgets_left]
+        right = [scripts[name] for name in bar_config.widgets_right]
 
-        left_funcs = self._resolve_scripts(widgets_left)
-        right_funcs = self._resolve_scripts(widgets_right)
+        self.api.bar.set(left, right)
+        self.api.bar.ui_refresh()
 
-        bar_widgets = (
-            [StatusBarWidget(f) for f in left_funcs]
-            + [StatusBarWidget(_noop_func, width=0)]
-            + [StatusBarWidget(f) for f in right_funcs]
-        )
-
-        self.api.bar.set(bar_widgets)
-        self.refresh_service.register_target("bar", self.api.bar)
-
-        for name in widgets_left + widgets_right:
-            self.refresh_service.add_reload_target(name, "bar")
+        # for name in widgets_left + widgets_right:
+        #     self.refresh_service.add_reload_target(name, "bar")
 
     def _apply_dashboard(self) -> None:
         return

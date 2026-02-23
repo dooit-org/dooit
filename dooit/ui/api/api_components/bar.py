@@ -1,8 +1,9 @@
-from typing import TYPE_CHECKING, List
-from dooit.ui.widgets.bars import StatusBarWidget
+from typing import TYPE_CHECKING
+
 from ._base import ApiComponent
 
 if TYPE_CHECKING:  # pragma: no cover
+    from dooit.config.types import ScriptField
     from dooit.ui.tui import DooitAPI
 
 
@@ -11,8 +12,8 @@ class BarManager(ApiComponent):
         super().__init__()
         self.api = api
 
-    def set(self, widgets: List[StatusBarWidget]):
-        self.api.app.bar.set_widgets(widgets)
+    def set(self, left: list["ScriptField"], right: list["ScriptField"]):
+        self.api.app.bar.set_scripts(left, right)
 
     def ui_refresh(self) -> None:
         """Re-render the status bar (widgets read __dooit_value on render)."""

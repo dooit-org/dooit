@@ -1,37 +1,41 @@
-from typing import List
+from typing import TYPE_CHECKING
+
 from rich.console import RenderableType
 from rich.table import Table
 
+if TYPE_CHECKING:
+    from dooit.config.types import ScriptField
+
 from .._base import BarBase
-from .bar_widget import StatusBarWidget
 
 
 class StatusBar(BarBase):
-    bar_widgets = []
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.widgets_left = []
+        self.widgets_right = []
 
-    def set_widgets(self, widgets: List[StatusBarWidget]) -> None:
-        self.bar_widgets = widgets
+    def set_scripts(
+        self, widgets_left: list["ScriptField"], widgets_right: list["ScriptField"]
+    ) -> None:
+        self.widgets_left = widgets_left
+        self.widgets_right = widgets_right
+        self.ui_refresh()
+
+    def ui_refresh(self) -> None:
         self.refresh()
 
     def render(self) -> RenderableType:
-        expand = any(widget.width == 0 for widget in self.bar_widgets)
-        table = Table.grid(expand=expand, padding=0)
+        table = Table.grid(expand=True, padding=0)
         row = []
 
-        for widget in self.bar_widgets:
-            value = widget.render()
-            row.append(value)
-
-            if widget.width is None:
-                if len(value):
-                    table.add_column(width=len(value))
-                else:
-                    row.pop()  # pragma: no cover
-
-            elif width := widget.width:
-                table.add_column(width=width)
-            else:
-                table.add_column(ratio=1)
+        for widget in self.widgets_left:
+            table.add_column(widget.entry.name)
+            row.append(widget._cached)
+        table.add_column("spacer", ratio=1)
+        for widget in self.widgets_right:
+            table.add_column(widget.entry.name)
+            row.append(widget._cached)
 
         table.add_row(*row)
         return table
