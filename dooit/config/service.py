@@ -77,22 +77,18 @@ class ConfigService:
         self.api.bar.set(left, right)
         self.api.bar.ui_refresh()
 
-        # for name in widgets_left + widgets_right:
-        #     self.refresh_service.add_reload_target(name, "bar")
-
     def _apply_dashboard(self) -> None:
-        return
-        dashboard_config = self.config.get("dashboard", {})
-        widget_names = list(dashboard_config.get("widgets", []))
+        dashboard_config = self.config.dashboard
+        scripts = self.config.get_scripts()
+        widgets = [scripts[name] for name in dashboard_config.widgets]
+        self.api.dashboard.set(widgets)
 
-        funcs = self._resolve_scripts(widget_names)
+        # self.api.dashboard.set_widget_funcs(funcs)
+        # self.api.dashboard.ui_refresh()
+        # self.refresh_service.register_target("dashboard", self.api.dashboard)
 
-        self.api.dashboard.set_widget_funcs(funcs)
-        self.api.dashboard.ui_refresh()
-        self.refresh_service.register_target("dashboard", self.api.dashboard)
-
-        for name in widget_names:
-            self.refresh_service.add_reload_target(name, "dashboard")
+        # for name in widget_names:
+        #     self.refresh_service.add_reload_target(name, "dashboard")
 
     def _apply_keys(self) -> None:
         keys_config = self.config.keys.as_dict()

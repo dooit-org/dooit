@@ -1,11 +1,14 @@
 from collections.abc import Callable
-from typing import List
+from typing import TYPE_CHECKING
 
-from rich.text import TextType
 from textual.app import App
 
 from dooit.ui.widgets.dashboard import Dashboard
+
 from ._base import ApiComponent
+
+if TYPE_CHECKING:
+    from dooit.config.types import ScriptField
 
 
 class DashboardManager(ApiComponent):
@@ -26,5 +29,5 @@ class DashboardManager(ApiComponent):
             items.append(value)
         self.set(items)
 
-    def set(self, items: List[TextType]):
+    def set(self, items: list["ScriptField"]):
         self.app.screen.query_one(Dashboard).items = items
