@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Any
 
 import msgspec
 
@@ -145,9 +146,10 @@ class FormatterConfig(BaseConfigType):
 
 
 # --- scripts ---
-class ScriptEntry:
-    def __init__(self, config: dict):
-        self.config = config
+class ScriptField:
+    def __init__(self, context: dict):
+        self.entry = ScriptParser.parse_script_entry(context)
+        self._cached = "N/A"
 
-    def __call__(self, model: DooitModel) -> str:
-        raise NotImplementedError
+    def __call__(self, params: dict[str, Any]):
+        self._cached = self.entry.func(**params, context=self.entry.context)

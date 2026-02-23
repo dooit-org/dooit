@@ -8,7 +8,7 @@ from dooit.config.types import (
     GeneralConfig,
     KeysConfig,
     LayoutConfig,
-    ScriptEntry,
+    ScriptField,
     ThemeColors,
 )
 
@@ -21,7 +21,7 @@ class AppConfig(msgspec.Struct, kw_only=True):
     bar: BarConfig
     dashboard: DashboardConfig
     formatter: FormatterConfig
-    script: dict[str, ScriptEntry]
+    script: dict[str, ScriptField]
 
     @classmethod
     def from_resolved(cls, data: dict) -> "AppConfig":
@@ -29,8 +29,8 @@ class AppConfig(msgspec.Struct, kw_only=True):
             if typ is FieldFormatter:
                 return FieldFormatter(obj)
 
-            if typ is ScriptEntry:
-                return ScriptEntry(obj)
+            if typ is ScriptField:
+                return ScriptField(obj)
 
             raise TypeError(f"Cannot convert {type(obj)} to {typ}")
 
