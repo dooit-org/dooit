@@ -4,9 +4,17 @@ from typing import Optional
 from textual import on
 from textual.app import App
 from textual.binding import Binding
+from textual.types import SelectType
 
 from dooit.config import ConfigService
-from dooit.ui.api.events import DooitEvent, ModeChanged, ModeType, QuitApp, Startup
+from dooit.ui.api.events import (
+    DooitEvent,
+    ModeChanged,
+    ModeType,
+    QuitApp,
+    Startup,
+    TimerEvent,
+)
 from dooit.ui.api.events.events import ShutDown
 from dooit.ui.screens import HelpScreen, MainScreen
 from dooit.ui.widgets import BarSwitcher
@@ -44,6 +52,7 @@ class Dooit(App):
         config: Optional[Path] = None,
     ):
         super().__init__(watch_css=True)
+        self._seconds_passed = 0
         self.dooit_mode: ModeType = "NORMAL"
         self.config_path = config
         manager.connect(db_path)
@@ -60,6 +69,11 @@ class Dooit(App):
 
     async def setup_poller(self):
         self.set_interval(1, self.poll_dooit_db)
+        self.set_interval(1, self.emit_timer)
+
+    def emit_timer(self):
+        self._seconds_passed += 1
+        self.post_message(TimerEvent(self._seconds_passed))
 
     async def on_mount(self):
         await self.base_setup()
