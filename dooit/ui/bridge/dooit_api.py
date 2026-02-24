@@ -95,8 +95,7 @@ class DooitAPI:
             )
 
     def trigger_event(self, event: DooitEvent):
-        return
-        self.plugin_manager.on_event(event)
+        self.refresh_service.trigger_event(event)
 
     # -----------------------------------------
 

@@ -170,7 +170,7 @@ class ScriptField:
         self.entry = ScriptParser.parse_script_entry(context)
         self._cached = "N/A"
 
-    def __call__(self, params: dict[str, Any]):
+    def update(self, **params: dict[str, Any]):
         self._cached = self.entry.func(**params, context=self.entry.context)
 
 

@@ -1,8 +1,8 @@
 from typing import Callable, cast
 
 from dooit.config.config import ScriptField
-from dooit.config.script_parser import RefreshKind, ScriptEntry
-from dooit.ui.bridge.events import DooitEvent, Startup, TimerEvent
+from dooit.config.script_parser import RefreshKind
+from dooit.ui.bridge.events import DooitEvent, TimerEvent
 
 
 class RefreshService:
@@ -19,14 +19,14 @@ class RefreshService:
         self.scripts = scripts
         self.reload_entries = reload_entries
 
-        self._event_triggers: dict[type[DooitEvent], ScriptEntry] = {}
-        self._time_triggers: dict[int, ScriptEntry] = {}
+        self._event_triggers: dict[type[DooitEvent], ScriptField] = {}
+        self._time_triggers: dict[int, ScriptField] = {}
         self.setup_scripts()
 
     def setup_scripts(self):
         for _, script in self.scripts.items():
             refresh = script.entry.refresh
-            self._event_triggers[Startup] = script.entry
+            # self._event_triggers[Startup] = script.entry
 
             if not refresh:
                 continue
@@ -37,15 +37,14 @@ class RefreshService:
                 )
                 event_cls = cast(type[DooitEvent], refresh.value)
 
-                self._event_triggers[event_cls] = script.entry
+                self._event_triggers[event_cls] = script
 
             elif refresh.kind == RefreshKind.INTERVAL:
                 assert isinstance(refresh.value, int)
-                self._time_triggers[refresh.value] = script.entry
+                self._time_triggers[refresh.value] = script
 
     def trigger_event(self, event: DooitEvent) -> None:
         """Trigger scripts registered to an event."""
-
         entry = self._event_triggers.get(type(event))
         params = {}
 
@@ -53,6 +52,6 @@ class RefreshService:
             params |= {"event": event}
 
         if entry:
-            entry.call(**params)
+            entry.update(**params)
             for callback in self.reload_entries.values():
                 callback()
