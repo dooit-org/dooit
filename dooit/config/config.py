@@ -1,4 +1,5 @@
 from enum import Enum
+from string import Template
 from typing import Any
 
 import msgspec
@@ -174,6 +175,19 @@ class ScriptField:
         self._cached = self.entry.func(**params, context=self.entry.context)
 
 
+def resolve_variables(obj: Any, variables: dict[str, str]) -> Any:
+    if isinstance(obj, str) and "$" in obj:
+        try:
+            return Template(obj).substitute(variables)
+        except (KeyError, ValueError):
+            return obj
+    elif isinstance(obj, dict):
+        return {k: resolve_variables(v, variables) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [resolve_variables(v, variables) for v in obj]
+    return obj
+
+
 class AppConfig(msgspec.Struct, kw_only=True):
     general: GeneralConfig
     theme: dict[str, DooitTheme]
@@ -189,13 +203,28 @@ class AppConfig(msgspec.Struct, kw_only=True):
         def dec_hook(typ, obj):
             if typ is FieldFormatter:
                 return FieldFormatter(obj)
-
             if typ is ScriptField:
                 return ScriptField(obj)
-
             raise TypeError(f"Cannot convert {type(obj)} to {typ}")
 
-        return msgspec.convert(data, cls, dec_hook=dec_hook)
+        config = msgspec.convert(data, cls, dec_hook=dec_hook)
+        config._resolve_vars()
+        return config
+
+    def _resolve_vars(self) -> None:
+        """Resolve $variables in-place by round-tripping through dict."""
+        theme = self.get_active_theme()
+        variables = {
+            k: str(v)
+            for k, v in msgspec.structs.asdict(theme).items()
+            if isinstance(v, str)
+        }
+
+        raw = msgspec.structs.asdict(self)
+        resolved = resolve_variables(raw, variables)
+
+        for key, value in resolved.items():
+            setattr(self, key, value)
 
     def get_active_theme(self) -> DooitTheme:
         return self.theme[self.general.theme]
