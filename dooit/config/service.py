@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 from platformdirs import user_config_dir
 
 from dooit.config.config import AppConfig
-from dooit.config.reader import NestedDict
+from dooit.config.reader import ConfigReader
 from dooit.config.refresh_service import RefreshService
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -31,10 +31,10 @@ class ConfigService:
     def _build_config(config_path: Path | None = None) -> AppConfig:
         """Build merged config from base defaults and user overrides."""
         config_paths = [BASE_CONFIG, config_path or USER_CONFIG]
-        base_config = NestedDict()
+        base_config = ConfigReader()
 
         for path in config_paths:
-            config = NestedDict.from_path(path)
+            config = ConfigReader.from_path(path)
             base_config.merge(config)
 
         config = AppConfig.from_resolved(base_config)

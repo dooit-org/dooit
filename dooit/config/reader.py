@@ -1,7 +1,11 @@
 from pathlib import Path
 
 import tomllib
-from typing_extensions import Any, Self
+from platformdirs import user_config_dir
+from typing_extensions import Any
+
+BASE_CONFIG = Path(__file__).parent / "default" / "config.toml"
+USER_CONFIG = Path(user_config_dir("dooit")) / "config.toml"
 
 
 def resolve_script_full_path(parent: Path, script: str):
@@ -14,17 +18,24 @@ def resolve_script_full_path(parent: Path, script: str):
     return f"{path.resolve()}::{func_name}"
 
 
-class NestedDict(dict[str, Any]):
+class ConfigReader(dict[str, Any]):
     """
     A dictionary subclass that allows attribute (dot) access to keys
     and can recursively merge other dictionaries
     """
 
     def __init__(self, **kwargs: object) -> None:
-        super().__init__()
+        super().__init__(**kwargs)
+        self.load_defaults()
+
+    def load_defaults(self):
+        self.from_path(BASE_CONFIG)
+
+        if USER_CONFIG.exists():
+            self.merge(ConfigReader.from_path(USER_CONFIG))
 
     @classmethod
-    def from_path(cls, path: Path) -> "NestedDict":
+    def from_path(cls, path: Path) -> "ConfigReader":
         if not path.exists():
             return cls()
 
@@ -34,7 +45,7 @@ class NestedDict(dict[str, Any]):
         return cls.from_dict(data, path.parent)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any], parent: Path) -> "NestedDict":
+    def from_dict(cls, data: dict[str, Any], parent: Path) -> "ConfigReader":
         """
         Create a ConfigData instance from a regular dictionary.
         """
@@ -49,16 +60,16 @@ class NestedDict(dict[str, Any]):
 
         return config_data
 
-    def merge(self, other: Self) -> None:
+    def merge(self, other: "ConfigReader") -> None:
         """
-        Recursively merge another ConfigData into this one.
+        Recursively merge another ConfigReader into this one.
         For nested dictionaries, merge them recursively instead of replacing.
         """
 
         for key, value in other.items():
             existing = self.get(key)
 
-            if isinstance(existing, NestedDict) and isinstance(value, NestedDict):
+            if isinstance(existing, ConfigReader) and isinstance(value, ConfigReader):
                 existing.merge(value)
             else:
                 self[key] = value
