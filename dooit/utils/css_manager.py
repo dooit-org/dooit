@@ -1,11 +1,10 @@
 import sys
 from pathlib import Path
-from typing import Optional, Type
 from uuid import uuid4
 
 from platformdirs import user_cache_dir
 
-from dooit.models.theme import DooitThemeBase
+from dooit.config import ThemeColors
 
 dooit_cache_path = Path(user_cache_dir("dooit"))
 
@@ -20,20 +19,19 @@ def generate_random_id():
 
 
 class CssManager:
+    cache_path: Path = dooit_cache_path
     base_css: Path = BASE_PATH / "ui" / "styles.tcss"
+    css_file: Path = dooit_cache_path / "dooit.tcss"
     themes = dict()
 
     def __init__(
         self,
-        theme: DooitThemeBase = DooitThemeBase(),
-        cache_path: Path = dooit_cache_path,
+        theme: ThemeColors,
     ):
-        self.theme: DooitThemeBase = theme
-        self.cache_path = cache_path
-        self.stylesheets: Path = cache_path / "stylesheets"
-        self.css_file: Path = cache_path / "dooit.tcss"
+        self.theme: ThemeColors = theme
+        self.stylesheets: Path = self.cache_path / "stylesheets"
 
-        cache_path.mkdir(parents=True, exist_ok=True)
+        self.cache_path.mkdir(parents=True, exist_ok=True)
         if not self.css_file.exists():
             self.write("")
 
@@ -60,16 +58,11 @@ class CssManager:
 
         self.write(css)
 
-    def add_theme(self, theme: Type[DooitThemeBase]):
-        self.themes[theme._name] = theme()
-        self.refresh_css()
-
-    def set_theme(self, theme: dict):
-        theme = DooitThemeBase(**theme)
+    def set(self, theme: ThemeColors):
         self.theme = theme
         self.refresh_css()
 
-    def inject_css(self, css: str, _id: Optional[str] = None) -> str:
+    def inject_css(self, css: str, _id: str | None = None) -> str:
         uuid = _id or generate_random_id()
         css_file = self.stylesheets / f"{uuid}.tcss"
 

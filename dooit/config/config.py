@@ -38,6 +38,46 @@ class ThemeColors(BaseConfigType):
     primary: str
     secondary: str
 
+    def to_css(self) -> str:
+        return (
+            f"$background1: {self.background1};\n"
+            f"$background2: {self.background2};\n"
+            f"$background3: {self.background3};\n"
+            f"$foreground1: {self.foreground1};\n"
+            f"$foreground2: {self.foreground2};\n"
+            f"$foreground3: {self.foreground3};\n"
+            f"$red: {self.red};\n"
+            f"$orange: {self.orange};\n"
+            f"$yellow: {self.yellow};\n"
+            f"$green: {self.green};\n"
+            f"$blue: {self.blue};\n"
+            f"$purple: {self.purple};\n"
+            f"$magenta: {self.magenta};\n"
+            f"$primary: {self.primary};\n"
+            f"$secondary: {self.secondary};\n"
+        )
+
+    @classmethod
+    def nord(cls) -> "ThemeColors":
+        return cls(
+            background1="#2E3440",
+            background2="#3B4252",
+            background3="#434C5E",
+            foreground1="#D8DEE9",
+            foreground2="#E5E9F0",
+            foreground3="#ECEFF4",
+            red="#BF616A",
+            orange="#D08770",
+            yellow="#EBCB8B",
+            green="#A3BE8C",
+            blue="#81A1C1",
+            purple="#B48EAD",
+            magenta="#88C0D0",
+            cyan="#8FBCBB",
+            primary="#81A1C1",
+            secondary="#88C0D0",
+        )
+
 
 # --- general ---
 class GeneralConfig(BaseConfigType):

@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING
 
+from dooit.config import ThemeColors
 from dooit.config.config import AppConfig
 from dooit.config.reader import ConfigReader
 from dooit.config.refresh_service import RefreshService
@@ -30,7 +31,7 @@ class DooitAPI:
         app: "Dooit",
     ) -> None:
         self.app = app
-        self.css = CssManager()
+        self.css = CssManager(ThemeColors.nord())
         self.css.refresh_css()
         self.plugin_manager = PluginManager(self)
         self.keys = KeyManager(self.app.get_dooit_mode)
@@ -50,7 +51,7 @@ class DooitAPI:
 
         # Apply theme
         theme = config.get_active_theme()
-        self.css.set_theme(theme.as_dict())
+        self.css.set(theme)
 
         # Apply formatters
         self.formatter.todos.description.set(config.formatter.todo.description)

@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Callable, Iterable, Optional
 
 from dooit.ui.bridge.events import DooitEvent
-from dooit.utils import PyScriptReader
+from dooit.utils.py_script_reader import PyScriptReader
 
 
 class ScriptKeyword(str, Enum):
