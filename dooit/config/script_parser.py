@@ -4,8 +4,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Iterable, Optional
 
-from ...ui.bridge.events import DooitEvent
-from .script_reader import ScriptReader
+from dooit.ui.bridge.events import DooitEvent
+from dooit.utils import PyScriptReader
 
 
 class ScriptKeyword(str, Enum):
@@ -41,10 +41,10 @@ class ScriptReaderFactory:
     _cache = {}
 
     @classmethod
-    def get_reader(cls, path: Path) -> ScriptReader:
+    def get_reader(cls, path: Path) -> PyScriptReader:
         resolved_path = path.resolve()
         if resolved_path not in cls._cache:
-            cls._cache[resolved_path] = ScriptReader(resolved_path)
+            cls._cache[resolved_path] = PyScriptReader(resolved_path)
         return cls._cache[resolved_path]
 
 

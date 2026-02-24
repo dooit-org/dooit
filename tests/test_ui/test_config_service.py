@@ -1,18 +1,19 @@
 from pathlib import Path
 
-from dooit.config.service import ConfigService
-from dooit.config.utils import NestedDict, ConfigResolver
-from dooit.config.utils.formatter_parser import (
+from dooit.config.parsing.formatter_parser import (
     FormatterEntry,
     FormatterParser,
 )
-from dooit.config.utils.script_parser import (
+
+from dooit.config.parsing import ConfigResolver, NestedDict
+from dooit.config.parsing.py_script_reader import ScriptReader
+from dooit.config.parsing.script_parser import (
     RefreshConfig,
     RefreshKind,
     ScriptParser,
     ScriptReaderFactory,
 )
-from dooit.config.utils.script_reader import ScriptReader
+from dooit.config.service import ConfigService
 from dooit.ui.bridge.events import ModeChanged
 from dooit.ui.tui import Dooit
 from tests.test_ui.ui_base import run_pilot

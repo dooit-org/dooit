@@ -3,7 +3,7 @@ from typing import Any
 
 import msgspec
 
-from dooit.config.utils.script_parser import ScriptParser
+from dooit.config.script_parser import ScriptParser
 from dooit.models import DooitModel
 
 S = dict(kw_only=True, frozen=True)

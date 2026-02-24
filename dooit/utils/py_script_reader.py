@@ -1,20 +1,10 @@
 import importlib.util
 from pathlib import Path
-from typing import Any, Callable, final
-
-from rich.text import Text
-
-
-class ScriptFunction:
-    def __init__(self, function: Callable[..., Text | None]):
-        self.function = function
-
-    def call(self, base_params: dict[str, Any], context: dict[str, Any]):
-        return self.function(**base_params, context=context)
+from typing import Callable, final
 
 
 @final
-class ScriptReader:
+class PyScriptReader:
     def __init__(self, filepath: Path):
         self.filepath = filepath
         self.module = self.load_module()

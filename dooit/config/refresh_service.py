@@ -1,7 +1,7 @@
 from typing import Protocol, cast, runtime_checkable
 
 from dooit.config.config import ScriptField
-from dooit.config.utils.script_parser import RefreshKind, ScriptEntry
+from dooit.config.script_parser import RefreshKind, ScriptEntry
 from dooit.ui.bridge.events import DooitEvent, Startup, TimerEvent
 
 
