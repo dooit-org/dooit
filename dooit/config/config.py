@@ -57,27 +57,6 @@ class DooitTheme(BaseConfigType):
             f"$secondary: {self.secondary};\n"
         )
 
-    @classmethod
-    def nord(cls) -> "DooitTheme":
-        return cls(
-            background1="#2E3440",
-            background2="#3B4252",
-            background3="#434C5E",
-            foreground1="#D8DEE9",
-            foreground2="#E5E9F0",
-            foreground3="#ECEFF4",
-            red="#BF616A",
-            orange="#D08770",
-            yellow="#EBCB8B",
-            green="#A3BE8C",
-            blue="#81A1C1",
-            purple="#B48EAD",
-            magenta="#88C0D0",
-            cyan="#8FBCBB",
-            primary="#81A1C1",
-            secondary="#88C0D0",
-        )
-
 
 # --- general ---
 class GeneralConfig(BaseConfigType):
