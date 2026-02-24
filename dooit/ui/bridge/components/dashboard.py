@@ -1,19 +1,23 @@
-from textual.app import App
-
-from dooit.config import ScriptField
-from dooit.ui.widgets.dashboard import Dashboard
+from dooit.config import AppConfig, ScriptField
 
 from ._base import ApiComponent
 
 
 class DashboardManager(ApiComponent):
-    def __init__(self, app: App) -> None:
+    def __init__(self) -> None:
         super().__init__()
-        self.app = app
         self.widgets: list[ScriptField] = []
+
+    @classmethod
+    def from_config(cls, config: AppConfig):
+        instance = cls()
+        scripts = config.get_scripts()
+
+        dashboard_config = config.dashboard
+        widgets = [scripts[name] for name in dashboard_config.widgets]
+        instance.set(widgets)
+
+        return instance
 
     def set(self, funcs: list[ScriptField]) -> None:
         self.widgets = funcs
-
-    def ui_refresh(self) -> None:
-        self.app.query_one(Dashboard).refresh(recompose=True)

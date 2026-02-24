@@ -1,18 +1,12 @@
-from typing import TYPE_CHECKING
-
 from .formatter_store import FormatterStore
-
-if TYPE_CHECKING:  # pragma: no cover
-    from dooit.ui.bridge.dooit_api import DooitAPI
 
 
 class ModelFormatterBase:
-    def __init__(self, api: "DooitAPI") -> None:
-        self.api = api
+    def __init__(self) -> None:
         self.setup_formatters()
 
     def get_formatter_store(self) -> FormatterStore:
-        return FormatterStore(self.api)
+        return FormatterStore()
 
     def setup_formatters(self) -> None:  # pragma: no cover
         pass

@@ -1,10 +1,15 @@
-from enum import Enum
-from dataclasses import dataclass
 from collections import defaultdict
-from typing import Callable, List, Optional, Tuple, Union
+from dataclasses import dataclass
+from enum import Enum
+from typing import TYPE_CHECKING, Callable, List, Optional, Tuple, Union
+
+from dooit.config.config import AppConfig
+from dooit.ui.bridge.events import ModeType
 
 from ._base import ApiComponent
-from dooit.ui.bridge.events import ModeType
+
+if TYPE_CHECKING:
+    from dooit.ui.bridge.dooit_api import DooitAPI
 
 KeyBindType = defaultdict[str, defaultdict[str, Optional["DooitFunction"]]]
 KeyType = Union[str, List[str]]
@@ -45,10 +50,24 @@ class KeyMatch:
 
 
 class KeyManager(ApiComponent):
-    def __init__(self, get_mode: Callable) -> None:
+    def __init__(self, mode_callback: Callable) -> None:
         self.keybinds: KeyBindType = defaultdict(lambda: defaultdict(lambda: None))
         self._inputs: List[str] = []
-        self.get_mode = get_mode
+        self.mode_callback = mode_callback
+
+    @classmethod
+    def from_config(cls, api: "DooitAPI", config: AppConfig, mode_callback: Callable):
+        instance = cls(mode_callback)
+
+        for action, keybind in config.keys.as_dict().items():
+            trigger = getattr(api, action)
+            instance.set(
+                keys=keybind,
+                callback=trigger,
+                # description=trigger.description,
+                # group=keybind.group,
+            )
+        return instance
 
     @property
     def groups(self) -> List[str]:
@@ -103,7 +122,7 @@ class KeyManager(ApiComponent):
         self._inputs.clear()
 
     def _find_matched_functions(self) -> List[DooitFunction]:
-        keybinds = self.keybinds[self.get_mode()].items()
+        keybinds = self.keybinds[self.mode_callback()].items()
         return [func for key, func in keybinds if key.startswith(self.input) and func]
 
     def search_for_key(self) -> KeyMatch:
@@ -112,7 +131,7 @@ class KeyManager(ApiComponent):
             self.clear_input()
             return KeyMatch.no_match()
 
-        if len(matched) > 1 or self.input not in self.keybinds[self.get_mode()]:
+        if len(matched) > 1 or self.input not in self.keybinds[self.mode_callback()]:
             return KeyMatch.multiple_match()
 
         self.clear_input()

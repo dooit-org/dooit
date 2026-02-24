@@ -21,7 +21,6 @@ class Dashboard(Static):
         items = self.app.api.dashboard.widgets
 
         for i in items:
-            self.app.notify(str(i))
             yield Label(i._cached)
 
     def render(self) -> RenderableType:

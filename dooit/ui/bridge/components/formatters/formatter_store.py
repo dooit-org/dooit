@@ -1,17 +1,13 @@
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from typing import Callable
 
 from rich.text import Text
 
 from dooit.models.workspace import ModelType
 
-if TYPE_CHECKING:  # pragma: no cover
-    from dooit.ui.bridge.dooit_api import DooitAPI
-
 
 class FormatterStore:
-    def __init__(self, api: "DooitAPI") -> None:
+    def __init__(self) -> None:
         self.func: Callable
-        self.api = api
 
     def set(self, func: Callable) -> None:
         self.func = func

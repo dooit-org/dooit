@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING, Optional
 
 from textual.widgets import ContentSwitcher
 
-from dooit.config.config import DooitTheme
+from dooit.config.config import AppConfig, DooitTheme
 from dooit.models import Workspace
 from dooit.models.todo import Todo
 from dooit.ui.widgets.trees import TodosTree, WorkspacesTree
@@ -20,6 +20,18 @@ class VarManager(ApiComponent):
         self.show_confirm = True
         self.always_expand_workspaces = False
         self.always_expand_todos = False
+
+    @classmethod
+    def from_config(cls, config: AppConfig, api: "DooitAPI"):
+        instance = cls(api)
+        var_config = config.general
+        for key, value in var_config.as_dict().items():
+            if hasattr(instance, key) and not isinstance(
+                getattr(type(instance), key, None), property
+            ):
+                setattr(instance, key, value)
+
+        return instance
 
     @property
     def mode(self) -> str:

@@ -1,16 +1,11 @@
-from typing import TYPE_CHECKING
+from dooit.config import AppConfig, ScriptField
 
 from ._base import ApiComponent
 
-if TYPE_CHECKING:  # pragma: no cover
-    from dooit.config import ScriptField
-    from dooit.ui.tui import DooitAPI
-
 
 class BarManager(ApiComponent):
-    def __init__(self, api: "DooitAPI") -> None:
+    def __init__(self) -> None:
         super().__init__()
-        self.api = api
         self.widgets_left = []
         self.widgets_right = []
 
@@ -21,5 +16,15 @@ class BarManager(ApiComponent):
     def get(self):
         return self.widgets_left, self.widgets_right
 
-    def ui_refresh(self) -> None:
-        self.api.app.bar.refresh()
+    @classmethod
+    def from_config(cls, config: AppConfig) -> "BarManager":
+        instance = cls()
+
+        scripts = config.get_scripts()
+        bar_config = config.bar
+
+        left = [scripts[name] for name in bar_config.widgets_left]
+        right = [scripts[name] for name in bar_config.widgets_right]
+        instance.set(left, right)
+
+        return instance

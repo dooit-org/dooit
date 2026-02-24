@@ -20,7 +20,7 @@ from dooit.ui.widgets import BarSwitcher
 from dooit.ui.widgets.bars import StatusBar
 from dooit.ui.widgets.trees import WorkspacesTree
 from dooit.ui.widgets.trees.model_tree import ModelTree
-from dooit.utils import CssManager
+from dooit.utils.css_manager import CssManager
 
 from ..models import manager
 from .bridge import DooitAPI

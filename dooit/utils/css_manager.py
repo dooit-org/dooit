@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from platformdirs import user_cache_dir
 
-from dooit.config import DooitTheme
+from dooit.config.config import AppConfig, DooitTheme
 
 dooit_cache_path = Path(user_cache_dir("dooit"))
 
@@ -39,6 +39,11 @@ class CssManager:
             parents=True,
             exist_ok=True,
         )
+
+    @classmethod
+    def from_config(cls, config: AppConfig):
+        theme = config.get_active_theme()
+        return cls(theme)
 
     def read_css(self) -> str:
         return self.css_file.read_text()

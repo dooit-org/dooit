@@ -1,4 +1,3 @@
-from configparser import ConfigParser
 from pathlib import Path
 
 import tomllib
