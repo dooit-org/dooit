@@ -130,6 +130,7 @@ format = "%H:%M"
 
 [script.user]
 _script = "./scripts::user"
+_refresh = "on Startup"
 format = "{username}"
 
 [script.qoute]
