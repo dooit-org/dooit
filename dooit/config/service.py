@@ -14,10 +14,6 @@ BASE_CONFIG = Path(__file__).parent / "default" / "config.toml"
 USER_CONFIG = Path(user_config_dir("dooit")) / "config.toml"
 
 
-def _noop_func() -> str:
-    return ""
-
-
 class ConfigService:
     """Service class for applying configuration from ConfigManager."""
 
@@ -82,13 +78,6 @@ class ConfigService:
         scripts = self.config.get_scripts()
         widgets = [scripts[name] for name in dashboard_config.widgets]
         self.api.dashboard.set(widgets)
-
-        # self.api.dashboard.set_widget_funcs(funcs)
-        # self.api.dashboard.ui_refresh()
-        # self.refresh_service.register_target("dashboard", self.api.dashboard)
-
-        # for name in widget_names:
-        #     self.refresh_service.add_reload_target(name, "dashboard")
 
     def _apply_keys(self) -> None:
         keys_config = self.config.keys.as_dict()

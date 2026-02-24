@@ -1,10 +1,10 @@
+from os import PathLike
 from pathlib import Path
 from typing import Optional
 
 from textual import on
 from textual.app import App
 from textual.binding import Binding
-from textual.types import SelectType
 
 from dooit.config import ConfigService
 from dooit.ui.api.events import (
@@ -48,7 +48,7 @@ class Dooit(App):
 
     def __init__(
         self,
-        db_path: Optional[str] = None,
+        db_path: Optional[PathLike] = None,
         config: Optional[Path] = None,
     ):
         super().__init__(watch_css=True)
