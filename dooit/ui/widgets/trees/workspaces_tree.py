@@ -4,9 +4,6 @@ from textual import on
 from textual.widgets.option_list import Option
 
 from dooit.models import Workspace
-
-WorkspaceWidget = Literal["description"]
-WorkspaceLayout = list[WorkspaceWidget]
 from dooit.ui.bridge.events import (
     WorkspaceRemoved,
     WorkspaceSelected,
@@ -19,6 +16,9 @@ if TYPE_CHECKING:  # pragma: no cover
     from dooit.ui.bridge.components.formatters.model_formatters import (
         WorkspaceFormatter,
     )
+
+WorkspaceWidget = Literal["description"]
+WorkspaceLayout = list[WorkspaceWidget]
 
 
 class WorkspacesTree(ModelTree[Workspace, WorkspaceRenderDict]):

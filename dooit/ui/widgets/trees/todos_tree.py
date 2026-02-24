@@ -4,9 +4,6 @@ from textual import on
 from textual.widgets.option_list import Option
 
 from dooit.models import Todo, Workspace
-
-TodoWidget = Literal["description", "due", "urgency", "recurrence", "status", "effort"]
-TodoLayout = list[TodoWidget]
 from dooit.ui.bridge.events import TodoRemoved
 from dooit.ui.bridge.events.events import TodoSelected
 
@@ -19,6 +16,8 @@ if TYPE_CHECKING:  # pragma: no cover
         TodoFormatter,
     )
 
+TodoWidget = Literal["description", "due", "urgency", "recurrence", "status", "effort"]
+TodoLayout = list[TodoWidget]
 Model = Union[Todo, Workspace]
 
 
