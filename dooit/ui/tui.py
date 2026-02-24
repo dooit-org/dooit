@@ -16,7 +16,7 @@ from dooit.ui.bridge.events import (
 )
 from dooit.ui.bridge.events.events import ShutDown
 from dooit.ui.screens import HelpScreen, MainScreen
-from dooit.ui.widgets import BarSwitcher
+from dooit.ui.widgets import BarSwitcher, Dashboard
 from dooit.ui.widgets.bars import StatusBar
 from dooit.ui.widgets.trees import WorkspacesTree
 from dooit.ui.widgets.trees.model_tree import ModelTree
@@ -84,6 +84,10 @@ class Dooit(App):
     @property
     def workspace_tree(self) -> WorkspacesTree:
         return self.screen.query_one(WorkspacesTree)
+
+    @property
+    def dashboard(self) -> Dashboard:
+        return self.screen.query_one(Dashboard)
 
     @property
     def bar(self) -> StatusBar:

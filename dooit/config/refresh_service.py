@@ -1,13 +1,8 @@
-from typing import Protocol, cast, runtime_checkable
+from typing import Callable, cast
 
 from dooit.config.config import ScriptField
 from dooit.config.script_parser import RefreshKind, ScriptEntry
 from dooit.ui.bridge.events import DooitEvent, Startup, TimerEvent
-
-
-@runtime_checkable
-class Refreshable(Protocol):
-    def ui_refresh(self) -> None: ...
 
 
 class RefreshService:
@@ -19,7 +14,7 @@ class RefreshService:
     def __init__(
         self,
         scripts: dict[str, ScriptField],
-        reload_entries: dict[str, Refreshable],
+        reload_entries: dict[str, Callable],
     ) -> None:
         self.scripts = scripts
         self.reload_entries = reload_entries
@@ -59,5 +54,5 @@ class RefreshService:
 
         if entry:
             entry.call(**params)
-            for targets in self.reload_entries.values():
-                targets.ui_refresh()
+            for callback in self.reload_entries.values():
+                callback()

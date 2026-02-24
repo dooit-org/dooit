@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING
 
 from dooit.config.config import AppConfig
 from dooit.config.reader import ConfigReader
+from dooit.config.refresh_service import RefreshService
 from dooit.ui.bridge.events import BarNotification, NotificationType
 from dooit.ui.widgets import ModelTree
 from dooit.ui.widgets.trees import TodosTree
@@ -44,10 +45,25 @@ class DooitAPI:
         self.vars = VarManager.from_config(config, self)
         self.dashboard = DashboardManager.from_config(config)
 
-        # reload_targets = {}
-        # self.refresh_service = RefreshService(scripts, reload_targets)
+        self.refresh_service = RefreshService(
+            config.get_scripts(),
+            {"bar": self.refresh_bar, "dashboard": self.dashboard_refresh},
+        )
 
         self.css.refresh_css()
+
+    def refresh_bar(self):
+        self.app.bar.refresh()
+
+    def dashboard_refresh(self):
+        self.app.dashboard.refresh(recompose=True)
+
+    def workspace_refresh(self):
+        self.app.workspace_tree.force_refresh()
+
+    def todo_refresh(self):
+        for tree in self.app.screen.query(TodosTree):
+            tree.force_refresh()
 
     def no_op(self):
         """<NOP>"""
