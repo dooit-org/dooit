@@ -1,7 +1,7 @@
 from .config import AppConfig
 from .errors import ConfigError, ConfigValidationError
+from .reader import NestedDict
 from .service import ConfigService
-from .utils import NestedDict
 
 __all__ = [
     "ConfigError",

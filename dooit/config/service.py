@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING
 from platformdirs import user_config_dir
 
 from dooit.config.config import AppConfig
+from dooit.config.reader import NestedDict
 from dooit.config.refresh_service import RefreshService
-from dooit.config.utils import NestedDict
 
 if TYPE_CHECKING:  # pragma: no cover
     from dooit.ui.bridge.dooit_api import DooitAPI

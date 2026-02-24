@@ -1,4 +1,3 @@
-from .data import NestedDict
 from .script_parser import (
     RefreshConfig,
     RefreshKind,
@@ -9,7 +8,6 @@ from .script_parser import (
 from .script_reader import ScriptFunction, ScriptReader
 
 __all__ = [
-    "NestedDict",
     "ScriptReader",
     "ScriptFunction",
     "ScriptParser",
