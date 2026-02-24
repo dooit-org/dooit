@@ -1,5 +1,8 @@
 from typing import TYPE_CHECKING
 
+from dooit.config.config import AppConfig
+from dooit.config.reader import ConfigReader
+from dooit.config.refresh_service import RefreshService
 from dooit.ui.bridge.events import BarNotification, NotificationType
 from dooit.ui.bridge.plug import PluginManager
 from dooit.ui.widgets import ModelTree
@@ -27,14 +30,66 @@ class DooitAPI:
         app: "Dooit",
     ) -> None:
         self.app = app
-        self.plugin_manager = PluginManager(self)
         self.css = CssManager()
+        self.css.refresh_css()
+        self.plugin_manager = PluginManager(self)
         self.keys = KeyManager(self.app.get_dooit_mode)
         self.layouts = LayoutManager(self.app)
         self.formatter = Formatter(self)
         self.bar = BarManager(self)
         self.vars = VarManager(self)
         self.dashboard = DashboardManager(self.app)
+        # self.load_config()
+
+    def load_config(self):
+        """Load and apply configuration from base defaults and user overrides."""
+        config = ConfigReader()
+        config.load_defaults()
+
+        config = AppConfig.from_resolved(config)
+
+        # Apply theme
+        theme = config.get_active_theme()
+        self.css.set_theme(theme.as_dict())
+
+        # Apply formatters
+        self.formatter.todos.description.set(config.formatter.todo.description)
+        self.formatter.todos.due.set(config.formatter.todo.due)
+        self.formatter.todos.urgency.set(config.formatter.todo.urgency)
+        self.formatter.todos.effort.set(config.formatter.todo.effort)
+        self.formatter.todos.status.set(config.formatter.todo.status)
+        self.formatter.todos.recurrence.set(config.formatter.todo.recurrence)
+        self.formatter.workspaces.description.set(
+            config.formatter.workspace.description
+        )
+
+        # Apply layout
+        self.layouts.todo_layout = config.layout.todo
+        self.layouts.workspace_layout = config.layout.workspace
+
+        # Apply keys
+        for action, key_binding in config.keys.as_dict().items():
+            method = getattr(self, action)
+            self.keys.set(key_binding, method)
+
+        # Apply bar
+        scripts = config.get_scripts()
+        bar_config = config.bar
+        left = [scripts[name] for name in bar_config.widgets_left]
+        right = [scripts[name] for name in bar_config.widgets_right]
+        self.bar.set(left, right)
+        self.bar.ui_refresh()
+
+        # Apply dashboard
+        dashboard_config = config.dashboard
+        widgets = [scripts[name] for name in dashboard_config.widgets]
+        self.dashboard.set(widgets)
+
+        # Setup refresh service
+
+        # reload_targets = {"bar": self.bar, "dashboard": self.dashboard}
+        reload_targets = {}
+        self.refresh_service = RefreshService(scripts, reload_targets)
 
         self.css.refresh_css()
 

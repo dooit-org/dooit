@@ -6,7 +6,6 @@ from textual import on
 from textual.app import App
 from textual.binding import Binding
 
-from dooit.config import ConfigService
 from dooit.ui.bridge.events import (
     DooitEvent,
     ModeChanged,
@@ -59,10 +58,9 @@ class Dooit(App):
 
     async def base_setup(self):
         self.api = DooitAPI(self)
-        self.config_service = ConfigService(self.api, self.config_path)
-
         await self.push_screen("main")
-        self.config_service.apply_config()
+
+        self.api.load_config()
 
         self.post_message(Startup())
         self.post_message(ModeChanged("NORMAL"))
@@ -109,7 +107,6 @@ class Dooit(App):
 
     @on(DooitEvent)
     def global_message(self, event: DooitEvent):
-        self.config_service.refresh_service.trigger_event(event)
         if isinstance(self.screen, MainScreen):
             self.api.trigger_event(event)
             self.bar.refresh()

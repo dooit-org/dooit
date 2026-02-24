@@ -1,3 +1,4 @@
+from configparser import ConfigParser
 from pathlib import Path
 
 import tomllib
@@ -26,13 +27,12 @@ class ConfigReader(dict[str, Any]):
 
     def __init__(self, **kwargs: object) -> None:
         super().__init__(**kwargs)
-        self.load_defaults()
 
     def load_defaults(self):
-        self.from_path(BASE_CONFIG)
-
-        if USER_CONFIG.exists():
-            self.merge(ConfigReader.from_path(USER_CONFIG))
+        base_reader = self.from_path(BASE_CONFIG)
+        user_reader = self.from_path(USER_CONFIG)
+        self.merge(base_reader)
+        self.merge(user_reader)
 
     @classmethod
     def from_path(cls, path: Path) -> "ConfigReader":
