@@ -4,7 +4,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Iterable, Optional
 
-from ...ui.api.events import DooitEvent
+from ...ui.bridge.events import DooitEvent
 from .script_reader import ScriptReader
 
 
@@ -119,7 +119,7 @@ class ScriptParser:
         name = refresh.replace("on", "", 1).strip()
         assert bool(name), "Event name cannot be empty in refresh config"
 
-        from dooit.ui.api import events as events_module
+        from dooit.ui.bridge import events as events_module
 
         event = getattr(events_module, name, None)
         assert event is not None, f"Event '{name}' not found for refresh config"

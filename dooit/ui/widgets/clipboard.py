@@ -1,4 +1,4 @@
-from dooit.api.model import DooitModel
+from dooit.models.base import DooitModel
 from dooit.ui.widgets.todo import TodoWidget
 
 

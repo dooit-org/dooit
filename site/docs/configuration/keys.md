@@ -13,8 +13,8 @@ api.keys.set(keybind, callback, description, group)
 Example: 
 
 ```python{6-7}
-from dooit.ui.api import DooitAPI, subscribe
-from dooit.ui.api.events import Startup
+from dooit.ui.bridge import DooitAPI, subscribe
+from dooit.ui.bridge.events import Startup
 
 @subscribe(Startup)
 def setup(api: DooitAPI, _):
@@ -36,8 +36,8 @@ For example, you'd like to use `+/-` keys for increasing or decreasing urgency b
 So you could set something like this:
 
 ```python{6-7}
-from dooit.ui.api import DooitAPI, subscribe
-from dooit.ui.api.events import Startup
+from dooit.ui.bridge import DooitAPI, subscribe
+from dooit.ui.bridge.events import Startup
 
 @subscribe(Startup)
 def setup(api: DooitAPI, _):
@@ -56,8 +56,8 @@ This will also hide the keybinds from help menu
 
 
 ```python{6-7}
-from dooit.ui.api import DooitAPI, subscribe
-from dooit.ui.api.events import Startup
+from dooit.ui.bridge import DooitAPI, subscribe
+from dooit.ui.bridge.events import Startup
 
 @subscribe(Startup)
 def setup(api: DooitAPI, _):

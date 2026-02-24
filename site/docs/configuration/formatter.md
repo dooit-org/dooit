@@ -30,7 +30,7 @@ Check out [`Backend API`](../backend/introduction.md) to get the know about the 
 
 ```python
 from datetime import datetime
-from dooit.api import Todo
+from dooit.models import Todo
 
 def my_custom_due(todo: Todo) -> str:
     if not todo.due:
@@ -46,7 +46,7 @@ For example the date is `30-12-2024`, then this function will return `Dec 30, 20
 ### An example formatter to highlight all words in description that starts with `!` symbol
 
 ```python
-from dooit.api import Todo
+from dooit.models import Todo
 from rich.text import Text
 
 def redify_important(todo: Todo) -> Text:
@@ -68,8 +68,8 @@ Check out [`Layout`](./layout) Section for column names
 
 
 ```py
-from dooit.ui.api import DooitAPI, subscribe
-from dooit.ui.api.events import Startup
+from dooit.ui.bridge import DooitAPI, subscribe
+from dooit.ui.bridge.events import Startup
 
 @subscribe(Startup)
 def set_formatters(api: DooitAPI, _):

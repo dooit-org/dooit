@@ -10,8 +10,8 @@ Dashboard takes in a list of items to display
 You can use api's `dashboard` attribute to set it
 
 ```py
-from dooit.ui.api import DooitAPI, subscribe
-from dooit.ui.api.events import Startup
+from dooit.ui.bridge import DooitAPI, subscribe
+from dooit.ui.bridge.events import Startup
 
 @subscribe(Startup)
 def dashboard_setup(api: DooitAPI, _):
@@ -35,8 +35,8 @@ For example:
 
 
 ```py
-from dooit.ui.api import DooitAPI, subscribe
-from dooit.ui.api.events import Startup
+from dooit.ui.bridge import DooitAPI, subscribe
+from dooit.ui.bridge.events import Startup
 from rich.text import Text
 
 

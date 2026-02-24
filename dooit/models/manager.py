@@ -22,7 +22,7 @@ class Manager:
             path: Path to SQLite database file. Can include ~ for home directory.
         """
 
-        from dooit.api import BaseModel
+        from dooit.models import BaseModel
 
         path = Path(path or DATABASE_FILE).expanduser()
         connection_string = f"sqlite:///{path}"

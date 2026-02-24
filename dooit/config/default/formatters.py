@@ -1,4 +1,4 @@
-from dooit.api import Todo, Workspace
+from dooit.models import Todo, Workspace
 
 
 def workspace_description(workspace: Workspace, **kwargs):

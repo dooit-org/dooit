@@ -19,9 +19,9 @@ i.e. all the text inputs like `description` or `due`
 :::
 
 ```py
-from dooit.ui.api.widgets import TodoWidget, WorkspaceWidget
-from dooit.ui.api import DooitAPI, subscribe
-from dooit.ui.api.events import Startup
+from dooit.ui.bridge.widgets import TodoWidget, WorkspaceWidget
+from dooit.ui.bridge import DooitAPI, subscribe
+from dooit.ui.bridge.events import Startup
 
 @subscribe(Startup)
 def layout_setup(api: DooitAPI, _):

@@ -7,7 +7,7 @@ from textual.app import App
 from textual.binding import Binding
 
 from dooit.config import ConfigService
-from dooit.ui.api.events import (
+from dooit.ui.bridge.events import (
     DooitEvent,
     ModeChanged,
     ModeType,
@@ -15,7 +15,7 @@ from dooit.ui.api.events import (
     Startup,
     TimerEvent,
 )
-from dooit.ui.api.events.events import ShutDown
+from dooit.ui.bridge.events.events import ShutDown
 from dooit.ui.screens import HelpScreen, MainScreen
 from dooit.ui.widgets import BarSwitcher
 from dooit.ui.widgets.bars import StatusBar
@@ -23,8 +23,8 @@ from dooit.ui.widgets.trees import WorkspacesTree
 from dooit.ui.widgets.trees.model_tree import ModelTree
 from dooit.utils import CssManager
 
-from ..api import manager
-from .api import DooitAPI
+from ..models import manager
+from .bridge import DooitAPI
 
 PRINTABLE = (
     "0123456789"

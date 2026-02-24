@@ -1,13 +1,14 @@
 from typing import TYPE_CHECKING, Callable
+
 from textual.widgets import Static
 
-
-from ...api.events import ModeChanged
+from ...bridge.events import ModeChanged
 
 if TYPE_CHECKING:  # pragma: no cover
-    from .bar_switcher import BarSwitcher
+    from dooit.ui.bridge.dooit_api import DooitAPI
     from dooit.ui.tui import Dooit
-    from dooit.ui.api.dooit_api import DooitAPI
+
+    from .bar_switcher import BarSwitcher
 
 
 class BarBase(Static):

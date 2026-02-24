@@ -1,4 +1,5 @@
 from collections.abc import Callable
+
 from rich.console import Group, RenderableType
 from rich.style import Style
 from rich.table import Table
@@ -6,7 +7,8 @@ from rich.text import Text
 from textual.app import ComposeResult
 from textual.widgets import Static
 
-from dooit.ui.api.api_components.keys import KeyManager
+from dooit.ui.bridge.components.keys import KeyManager
+
 from .base import BaseScreen
 
 

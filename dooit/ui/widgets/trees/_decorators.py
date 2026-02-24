@@ -1,9 +1,10 @@
 from functools import partial
-from typing import Any, Callable, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable
+
 from textual.widgets.option_list import OptionDoesNotExist
 
-from dooit.api.exceptions import NoNodeError
-from dooit.ui.api.events import ShowConfirm
+from dooit.models.exceptions import NoNodeError
+from dooit.ui.bridge.events import ShowConfirm
 
 if TYPE_CHECKING:  # pragma: no cover
     from .model_tree import ModelTree

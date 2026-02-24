@@ -2,13 +2,13 @@ from functools import partial
 from collections import defaultdict
 from typing import TYPE_CHECKING, Callable, List, Type
 
-from dooit.ui.api.events import DooitEvent
+from dooit.ui.bridge.events import DooitEvent
 
 DOOIT_EVENT_ATTR = "__dooit_event"
 DOOIT_TIMER_ATTR = "__dooit_timer"
 
 if TYPE_CHECKING:  # pragma: no cover
-    from dooit.ui.api.dooit_api import DooitAPI
+    from dooit.ui.bridge.dooit_api import DooitAPI
 
 
 class PluginManager:

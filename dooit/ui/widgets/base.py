@@ -1,5 +1,5 @@
 from textual.widget import Widget
-from dooit.ui.api.events import ModeChanged, ModeType
+from dooit.ui.bridge.events import ModeChanged, ModeType
 
 
 class HelperWidget(Widget):

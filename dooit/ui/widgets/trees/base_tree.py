@@ -1,10 +1,12 @@
 from collections import defaultdict
 from typing import TYPE_CHECKING, Union
+
+from textual import events, on
 from textual.widgets import OptionList
 from textual.widgets.option_list import Option
-from textual import events, on
 
-from dooit.api import Todo, Workspace
+from dooit.models import Todo, Workspace
+
 from ._decorators import require_highlighted_node
 
 ModelType = Union[Todo, Workspace]

@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Dict, Generic, TypeVar
-from dooit.api import Workspace, Todo
+
+from dooit.models import Todo, Workspace
 from dooit.ui.widgets.renderers import (
     BaseRenderer,
     TodoRender,

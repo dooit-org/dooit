@@ -1,7 +1,8 @@
 from pathlib import Path
-from dooit.api.theme import DooitThemeBase
-from dooit.utils import CssManager
 from tempfile import TemporaryDirectory
+
+from dooit.models.theme import DooitThemeBase
+from dooit.utils import CssManager
 
 
 class TestTheme(DooitThemeBase):

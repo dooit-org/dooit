@@ -1,8 +1,10 @@
-from typing import List, Tuple
 from datetime import datetime, timedelta
-from pytest import raises, mark
-from dooit.api.exceptions import NoParentError, MultipleParentError
-from dooit.api import Todo, Workspace
+from typing import List, Tuple
+
+from pytest import mark, raises
+
+from dooit.models import Todo, Workspace
+from dooit.models.exceptions import MultipleParentError, NoParentError
 from tests.test_core.core_base import *  # noqa
 
 

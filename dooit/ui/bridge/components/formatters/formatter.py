@@ -4,7 +4,7 @@ from .._base import ApiComponent
 from .model_formatters import TodoFormatter, WorkspaceFormatter
 
 if TYPE_CHECKING:  # pragma: no cover
-    from dooit.ui.api.dooit_api import DooitAPI
+    from dooit.ui.bridge.dooit_api import DooitAPI
 
 
 class Formatter(ApiComponent):

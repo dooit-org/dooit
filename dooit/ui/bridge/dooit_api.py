@@ -1,20 +1,21 @@
 from typing import TYPE_CHECKING
-from dooit.ui.api.events import BarNotification, NotificationType
-from dooit.ui.api.plug import PluginManager
-from .events import DooitEvent, SwitchTab, QuitApp
+
+from dooit.ui.bridge.events import BarNotification, NotificationType
+from dooit.ui.bridge.plug import PluginManager
 from dooit.ui.widgets import ModelTree
 from dooit.ui.widgets.trees import TodosTree
 from dooit.utils import CssManager
 
-from .api_components import (
+from .components import (
+    BarManager,
+    DashboardManager,
+    Formatter,
     KeyManager,
     KeyMatchType,
     LayoutManager,
-    Formatter,
-    BarManager,
     VarManager,
-    DashboardManager,
 )
+from .events import DooitEvent, QuitApp, SwitchTab
 
 if TYPE_CHECKING:  # pragma: no cover
     from ..tui import Dooit

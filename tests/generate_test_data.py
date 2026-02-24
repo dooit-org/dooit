@@ -1,9 +1,10 @@
-import faker
 from datetime import timedelta
 from random import randint
-from dooit.api import Todo, Workspace
-from dooit.utils.database import delete_all_data
 
+import faker
+
+from dooit.models import Todo, Workspace
+from dooit.utils.database import delete_all_data
 
 f = faker.Faker()
 
@@ -71,7 +72,7 @@ def generate(session, test=True):
 
 
 if __name__ == "__main__":  # pragma: no cover (not called in tests)
-    from dooit.api import manager
+    from dooit.models import manager
 
     manager.connect()
 

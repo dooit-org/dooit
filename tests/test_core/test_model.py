@@ -1,4 +1,4 @@
-from dooit.api.workspace import Workspace
+from dooit.models.workspace import Workspace
 from tests.test_core.core_base import *  # noqa
 
 

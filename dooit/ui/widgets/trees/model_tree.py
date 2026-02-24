@@ -1,28 +1,31 @@
 from collections import defaultdict
 from functools import cache
 from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, Union
+
 from textual.app import ComposeResult
 from textual.widgets import Label
 from textual.widgets.option_list import Option
-from dooit.api import Todo, Workspace
-from dooit.ui.api.events import (
+
+from dooit.models import Todo, Workspace
+from dooit.ui.bridge.events import (
+    BarNotification,
     ModeChanged,
     StartSearch,
     StartSort,
-    BarNotification,
 )
 from dooit.ui.widgets.renderers import BaseRenderer
-from .base_tree import BaseTree
-from ._render_dict import RenderDict
+
 from ._decorators import (
     fix_highlight,
     refresh_tree,
-    require_highlighted_node,
     require_confirmation,
+    require_highlighted_node,
 )
+from ._render_dict import RenderDict
+from .base_tree import BaseTree
 
 if TYPE_CHECKING:  # pragma: no cover
-    from dooit.ui.api.api_components.formatters._model_formatter_base import (
+    from dooit.ui.bridge.components.formatters._model_formatter_base import (
         ModelFormatterBase,
     )
 

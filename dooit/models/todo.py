@@ -1,14 +1,14 @@
-from typing import TYPE_CHECKING, Optional, Union
 from datetime import datetime, timedelta
-from typing import List
-from sqlalchemy import ForeignKey, select, nulls_last
+from typing import TYPE_CHECKING, List, Optional, Union
+
+from sqlalchemy import ForeignKey, nulls_last, select
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
-from .model import DooitModel
+
+from .base import DooitModel
 from .manager import manager
 
-
 if TYPE_CHECKING:  # pragma: no cover
-    from dooit.api.workspace import Workspace
+    from dooit.models.workspace import Workspace
 
 
 class Todo(DooitModel):

@@ -1,10 +1,12 @@
 from datetime import datetime, timedelta
+
 from pytest import raises
-from dooit.api.exceptions import NoNodeError
-from dooit.api import Todo
-from dooit.ui.widgets.renderers.base_renderer import BaseRenderer
-from tests.test_ui.ui_base import run_pilot, create_and_move_to_todo
+
+from dooit.models import Todo
+from dooit.models.exceptions import NoNodeError
 from dooit.ui.tui import Dooit
+from dooit.ui.widgets.renderers.base_renderer import BaseRenderer
+from tests.test_ui.ui_base import create_and_move_to_todo, run_pilot
 
 
 def custom_formatter(todo):

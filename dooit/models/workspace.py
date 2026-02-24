@@ -1,8 +1,11 @@
 from typing import List, Optional, Union
+
 from sqlalchemy import ForeignKey, asc, select
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from ..api.todo import Todo
-from .model import DooitModel
+
+from dooit.models.base import DooitModel
+from dooit.models.todo import Todo
+
 from .manager import manager
 
 ModelType = Union["Workspace", "Todo"]

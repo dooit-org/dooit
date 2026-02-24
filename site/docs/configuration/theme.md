@@ -39,8 +39,8 @@ Each theme consists of these colors:
 You can access the current colorscheme by using `theme` var from api.vars
 
 ```py
-from dooit.ui.api import DooitAPI, subscribe
-from dooit.ui.api.events import Startup
+from dooit.ui.bridge import DooitAPI, subscribe
+from dooit.ui.bridge.events import Startup
 
 @subscribe(Startup)
 def setup(api: DooitAPI, _):
@@ -55,8 +55,8 @@ def setup(api: DooitAPI, _):
 Import the theme you would like to set and then add it to the api
 
 ```py
-from dooit.ui.api import DooitAPI, subscribe
-from dooit.ui.api.events import Startup
+from dooit.ui.bridge import DooitAPI, subscribe
+from dooit.ui.bridge.events import Startup
 from dooit_extras.themes import Gruvbox
 
 @subscribe(Startup)
@@ -70,7 +70,7 @@ def layout_setup(api: DooitAPI, _):
 If you want to create your own colorscheme, you can use the `DooitThemeBase` and overrride the colors
 
 ```py
-from dooit.api.theme import DooitThemeBase
+from dooit.models.theme import DooitThemeBase
 
 
 class Nord(DooitThemeBase):

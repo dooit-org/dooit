@@ -2,9 +2,10 @@ import re
 from datetime import datetime, timedelta
 from typing import Any, Optional, Tuple
 
-from .simple_input import SimpleInput
-from dooit.api import Todo, Workspace
+from dooit.models import Todo, Workspace
 from dooit.utils import parse
+
+from .simple_input import SimpleInput
 
 
 class TodoDescription(SimpleInput[Todo, str]):

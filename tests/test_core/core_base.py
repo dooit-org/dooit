@@ -1,6 +1,6 @@
-from dooit.api import manager
-from dooit.api import Workspace, Todo
 import pytest
+
+from dooit.models import Todo, Workspace, manager
 
 TEMP_PATH = ":memory:"
 

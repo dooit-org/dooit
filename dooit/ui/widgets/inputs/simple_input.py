@@ -1,6 +1,7 @@
 from typing import Any, Generic, TypeVar
 
-from dooit.api import DooitModel
+from dooit.models import DooitModel
+
 from ._input import Input
 
 ModelType = TypeVar("ModelType", bound=DooitModel)

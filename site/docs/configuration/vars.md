@@ -37,8 +37,8 @@ def show_confirm(self) -> bool
 Returns the current mode of the app (`NORMAL/INSERT/SORT/CONFIRM/DATE/SEARCH`)
 
 ```py{6}
-from dooit.ui.api.events import DooitEvent
-from dooit.ui.api import DooitAPI, subscribe
+from dooit.ui.bridge.events import DooitEvent
+from dooit.ui.bridge import DooitAPI, subscribe
 
 @subscribe(DooitEvent)
 def foo(api: DooitAPI, event: DooitEvent):
@@ -54,8 +54,8 @@ def mode(self) -> str
 Returns the current mode of the app (`NORMAL/INSERT/SORT/CONFIRM/DATE/SEARCH`)
 
 ```py{6}
-from dooit.ui.api.events import DooitEvent
-from dooit.ui.api import DooitAPI, subscribe
+from dooit.ui.bridge.events import DooitEvent
+from dooit.ui.bridge import DooitAPI, subscribe
 
 @subscribe(DooitEvent)
 def foo(api: DooitAPI, event: DooitEvent):
@@ -70,8 +70,8 @@ def theme(self) -> DooitThemeBase
 Returns the current theme object (see [theme](../configuration/theme.md))
 
 ```py{6}
-from dooit.ui.api.events import DooitEvent
-from dooit.ui.api import DooitAPI, subscribe
+from dooit.ui.bridge.events import DooitEvent
+from dooit.ui.bridge import DooitAPI, subscribe
 
 @subscribe(DooitEvent)
 def foo(api: DooitAPI, event: DooitEvent):
@@ -89,8 +89,8 @@ def workspaces_tree(self) -> WorkspacesTree
 Returns the current workspaces tree object
 
 ```py{6}
-from dooit.ui.api.events import DooitEvent
-from dooit.ui.api import DooitAPI, subscribe
+from dooit.ui.bridge.events import DooitEvent
+from dooit.ui.bridge import DooitAPI, subscribe
 
 @subscribe(DooitEvent)
 def foo(api: DooitAPI, event: DooitEvent):
@@ -108,8 +108,8 @@ def current_workspace(self) -> Optional[Workspace]
 Returns the currently highlighted workspace object if available; otherwise, returns `None` (see [workspace](../backend/workspace.md))
 
 ```py{6}
-from dooit.ui.api.events import DooitEvent
-from dooit.ui.api import DooitAPI, subscribe
+from dooit.ui.bridge.events import DooitEvent
+from dooit.ui.bridge import DooitAPI, subscribe
 
 @subscribe(DooitEvent)
 def foo(api: DooitAPI, event: DooitEvent):
@@ -127,8 +127,8 @@ def todos_tree(self) -> Optional[TodosTree]
 Returns the todos tree for the current workspace if available; otherwise, returns `None`
 
 ```py{6}
-from dooit.ui.api.events import DooitEvent
-from dooit.ui.api import DooitAPI, subscribe
+from dooit.ui.bridge.events import DooitEvent
+from dooit.ui.bridge import DooitAPI, subscribe
 
 @subscribe(DooitEvent)
 def foo(api: DooitAPI, event: DooitEvent):
@@ -146,8 +146,8 @@ def current_todo(self) -> Optional[Todo]
 Returns the currently highlighted todo item if available; otherwise, returns `None` (see [todo](../backend/todo.md))
 
 ```py{6}
-from dooit.ui.api.events import DooitEvent
-from dooit.ui.api import DooitAPI, subscribe
+from dooit.ui.bridge.events import DooitEvent
+from dooit.ui.bridge import DooitAPI, subscribe
 
 @subscribe(DooitEvent)
 def foo(api: DooitAPI, event: DooitEvent):

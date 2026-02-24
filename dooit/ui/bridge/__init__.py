@@ -1,12 +1,12 @@
-from .dooit_api import DooitAPI
-from .plug import PluginManager
-from .api_components import (
-    KeyManager,
+from .components import (
+    Formatter,
     KeyBindType,
+    KeyManager,
     LayoutManager,
     VarManager,
-    Formatter,
 )
+from .dooit_api import DooitAPI
+from .plug import PluginManager
 
 __all__ = [
     "DooitAPI",

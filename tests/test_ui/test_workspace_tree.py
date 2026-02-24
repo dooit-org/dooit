@@ -1,9 +1,10 @@
 from pytest import raises
 from textual.widgets import ContentSwitcher
-from dooit.api.exceptions import NoNodeError
+
+from dooit.models.exceptions import NoNodeError
+from dooit.ui.tui import Dooit
 from dooit.ui.widgets.trees.todos_tree import TodosTree
 from tests.test_ui.ui_base import run_pilot
-from dooit.ui.tui import Dooit
 
 
 async def test_workspaces_tree():

@@ -1,5 +1,5 @@
 from rich.console import RenderableType
-from dooit.ui.api.events.events import NotificationType
+from dooit.ui.bridge.events.events import NotificationType
 from .._base import BarBase
 
 

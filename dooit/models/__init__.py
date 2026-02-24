@@ -1,8 +1,8 @@
-from .model import DooitModel, BaseModel
+from .base import BaseModel, DooitModel
+from .hooks import fix_hooks, update_hooks, validation_hooks
+from .manager import manager
 from .todo import Todo
 from .workspace import Workspace
-from .manager import manager
-from .hooks import fix_hooks, validation_hooks, update_hooks
 
 __all__ = [
     "BaseModel",

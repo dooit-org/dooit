@@ -2,10 +2,10 @@ from typing import TYPE_CHECKING, Any, Callable, Optional
 
 from rich.text import Text
 
-from dooit.api.workspace import ModelType
+from dooit.models.workspace import ModelType
 
 if TYPE_CHECKING:  # pragma: no cover
-    from dooit.ui.api.dooit_api import DooitAPI
+    from dooit.ui.bridge.dooit_api import DooitAPI
 
 
 class FormatterStore:

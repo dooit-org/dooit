@@ -1,11 +1,8 @@
-from typing import TYPE_CHECKING, Protocol, cast, runtime_checkable
+from typing import Protocol, cast, runtime_checkable
 
 from dooit.config.types import ScriptField
 from dooit.config.utils.script_parser import RefreshKind, ScriptEntry
-from dooit.ui.api.events import DooitEvent, Startup, TimerEvent
-
-if TYPE_CHECKING:  # pragma: no cover
-    from dooit.ui.api.dooit_api import DooitAPI
+from dooit.ui.bridge.events import DooitEvent, Startup, TimerEvent
 
 
 @runtime_checkable
@@ -21,11 +18,9 @@ class RefreshService:
 
     def __init__(
         self,
-        api: "DooitAPI",
         scripts: dict[str, ScriptField],
         reload_entries: dict[str, Refreshable],
     ) -> None:
-        self.api = api
         self.scripts = scripts
         self.reload_entries = reload_entries
 

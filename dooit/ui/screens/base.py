@@ -3,7 +3,7 @@ from textual.app import events
 from textual.screen import Screen
 
 if TYPE_CHECKING:  # pragma: no cover
-    from ..api import DooitAPI
+    from ..bridge import DooitAPI
     from ..tui import Dooit
 
 

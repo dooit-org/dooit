@@ -1,17 +1,22 @@
 from typing import Type
+
 from sqlalchemy.event import listen
 from sqlalchemy.orm.attributes import get_history
 from textual import events, on
 from textual.containers import Container
 from textual.widgets import ContentSwitcher
-from dooit.api import Todo, Workspace
-from dooit.api.model import DooitModel
-from dooit.ui.api.events import (
+
+from dooit.models import Todo, Workspace
+from dooit.models.base import DooitModel
+from dooit.ui.bridge.events import (
+    BarNotification,
     DooitEvent,
     ModeChanged,
     ShowConfirm,
+    SpawnHelp,
     StartSearch,
     StartSort,
+    SwitchTab,
     TodoDescriptionChanged,
     TodoDueChanged,
     TodoEffortChanged,
@@ -20,12 +25,10 @@ from dooit.ui.api.events import (
     TodoUrgencyChanged,
     WorkspaceDescriptionChanged,
     WorkspaceSelected,
-    SwitchTab,
-    SpawnHelp,
-    BarNotification,
 )
-from dooit.ui.widgets.trees import WorkspacesTree, TodosTree
 from dooit.ui.widgets import BarSwitcher, Dashboard
+from dooit.ui.widgets.trees import TodosTree, WorkspacesTree
+
 from .base import BaseScreen
 
 

@@ -56,8 +56,8 @@ Dooit now has a dedicated theme api for colors so that the colors will match pro
 
 
 ```py
-from dooit.ui.api import DooitAPI, subscribe
-from dooit.ui.api.events import Startup
+from dooit.ui.bridge import DooitAPI, subscribe
+from dooit.ui.bridge.events import Startup
 
 @subscribe(Startup)
 def foo(api: DooitAPI, _):
@@ -90,8 +90,8 @@ DASHBOARD = [ART, NL, SEP, NL, NL, NL, help_message]
 ### New
 
 ```py
-from dooit.ui.api import DooitAPI, subscribe
-from dooit.ui.api.events import Startup
+from dooit.ui.bridge import DooitAPI, subscribe
+from dooit.ui.bridge.events import Startup
 from rich.text import Text
 
 
@@ -162,8 +162,8 @@ If you still want to have custom functions, check out [`Custom`](https://dooit-o
 
 ```py
 from dooit_extras.bar_widgets import Mode, Spacer, Clock, Date
-from dooit.ui.api.events import Startup
-from dooit.ui.api import DooitAPI, subscribe
+from dooit.ui.bridge.events import Startup
+from dooit.ui.bridge import DooitAPI, subscribe
 
 
 @subscribe(Startup)
@@ -197,7 +197,7 @@ COLUMN_ORDER = ["description", "due", "urgency"]  # order of columns
 ### New
 
 ```py
-from dooit.ui.api.widgets import TodoWidget, WorkspaceWidget
+from dooit.ui.bridge.widgets import TodoWidget, WorkspaceWidget
 
 @subscribe(Startup)
 def layout_setup(api: DooitAPI, _):

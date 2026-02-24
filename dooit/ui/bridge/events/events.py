@@ -3,8 +3,8 @@ from typing import Callable, Literal, Optional
 
 from textual.message import Message
 
-from dooit.api import Todo, Workspace
-from dooit.api.model import DooitModel
+from dooit.models import Todo, Workspace
+from dooit.models.base import DooitModel
 
 ModeType = Literal["NORMAL", "INSERT", "DATE", "SEARCH", "SORT", "CONFIRM"]
 EmptyWidgetType = Literal["todo", "workspace", "no_search_results"]

@@ -1,21 +1,22 @@
 from typing import TYPE_CHECKING, Literal, Optional
+
 from textual import on
 from textual.widgets.option_list import Option
 
-from dooit.api import Workspace
+from dooit.models import Workspace
 
 WorkspaceWidget = Literal["description"]
 WorkspaceLayout = list[WorkspaceWidget]
-from dooit.ui.api.events import (
+from dooit.ui.bridge.events import (
     WorkspaceRemoved,
     WorkspaceSelected,
 )
-from .model_tree import ModelTree
-from ._render_dict import WorkspaceRenderDict
 
+from ._render_dict import WorkspaceRenderDict
+from .model_tree import ModelTree
 
 if TYPE_CHECKING:  # pragma: no cover
-    from dooit.ui.api.api_components.formatters.model_formatters import (
+    from dooit.ui.bridge.components.formatters.model_formatters import (
         WorkspaceFormatter,
     )
 

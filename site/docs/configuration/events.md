@@ -10,7 +10,7 @@ Timer is not an event, it just tells dooit to update a function every `X` second
 :::
 
 ``` python
-from dooit.ui.api import DooitAPI, timer
+from dooit.ui.bridge import DooitAPI, timer
 
 @timer(1) # in seconds
 def foo(api: DooitAPI):
@@ -23,8 +23,8 @@ Subscribe can be used to execute and update values of function on a particular e
 It takes in two parameters: `api` and `event` which are a copy of dooit api and the event respectively
 
 ``` python
-from dooit.ui.api.events import DooitEvent
-from dooit.ui.api import DooitAPI, subscribe
+from dooit.ui.bridge.events import DooitEvent
+from dooit.ui.bridge import DooitAPI, subscribe
 
 @subscribe(DooitEvent)
 def foo(api: DooitAPI, event: DooitEvent):
@@ -243,4 +243,3 @@ Triggered when the user updates the urgency level of a todo.
 | old   |                                        | The previous urgency level of the todo.         |
 | new   |                                        | The updated urgency level of the todo.          |
 | todo  |                                        | The todo object whose urgency level was changed. |
-

@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from platformdirs import user_cache_dir
 
-from dooit.api.theme import DooitThemeBase
+from dooit.models.theme import DooitThemeBase
 
 dooit_cache_path = Path(user_cache_dir("dooit"))
 

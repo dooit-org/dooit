@@ -1,8 +1,10 @@
 from typing import Callable
+
 from rich.console import RenderableType
 from rich.text import Text
+
+from dooit.models import DooitModel
 from dooit.ui.widgets.bars._base import BarBase
-from dooit.api import DooitModel
 
 
 class SortBar(BarBase):

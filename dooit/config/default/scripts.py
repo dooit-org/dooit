@@ -8,7 +8,7 @@ from rich.style import Style
 from rich.text import Text
 
 if TYPE_CHECKING:
-    from dooit.ui.api.events import ModeChanged
+    from dooit.ui.bridge.events import ModeChanged
 
 QUOTES = [
     "The only way to do great work is to love what you do.",

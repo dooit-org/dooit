@@ -2,8 +2,8 @@
 #
 # from time import sleep
 # from pathlib import Path
-# from dooit.api.manager import Manager
-# from dooit.api.workspace import Workspace
+# from dooit.models.manager import Manager
+# from dooit.models.workspace import Workspace
 # from tests.test_core.core_base import CoreTestBase
 # import tempfile
 #

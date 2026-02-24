@@ -4,7 +4,7 @@ from collections import defaultdict
 from typing import Callable, List, Optional, Tuple, Union
 
 from ._base import ApiComponent
-from dooit.ui.api.events import ModeType
+from dooit.ui.bridge.events import ModeType
 
 KeyBindType = defaultdict[str, defaultdict[str, Optional["DooitFunction"]]]
 KeyType = Union[str, List[str]]

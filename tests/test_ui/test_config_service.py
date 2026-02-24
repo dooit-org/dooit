@@ -13,7 +13,7 @@ from dooit.config.utils.script_parser import (
     ScriptReaderFactory,
 )
 from dooit.config.utils.script_reader import ScriptReader
-from dooit.ui.api.events import ModeChanged
+from dooit.ui.bridge.events import ModeChanged
 from dooit.ui.tui import Dooit
 from tests.test_ui.ui_base import run_pilot
 

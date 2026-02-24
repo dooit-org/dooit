@@ -8,7 +8,7 @@ from dooit.config.refresh_service import RefreshService
 from dooit.config.utils import NestedDict
 
 if TYPE_CHECKING:  # pragma: no cover
-    from dooit.ui.api.dooit_api import DooitAPI
+    from dooit.ui.bridge.dooit_api import DooitAPI
 
 BASE_CONFIG = Path(__file__).parent / "default" / "config.toml"
 USER_CONFIG = Path(user_config_dir("dooit")) / "config.toml"
@@ -25,7 +25,7 @@ class ConfigService:
     def _setup_refresh_service(self) -> RefreshService:
         scripts_config = self.config.get_scripts()
         reload_targets = {"bar": self.api.bar, "dashboard": self.api.dashboard}
-        return RefreshService(self.api, scripts_config, reload_targets)
+        return RefreshService(scripts_config, reload_targets)
 
     @staticmethod
     def _build_config(config_path: Path | None = None) -> AppConfig:

@@ -7,7 +7,7 @@ For backend, **there are two tables**: `Workspace` and  `Todo`
 You can easily import them from `dooit.api`
 
 ```py
-from dooit.api import Workspace, Todo, manager
+from dooit.models import Workspace, Todo, manager
 manager.connect() # this sets up connection to the database
 
 # from here on, you can perform any operations
@@ -71,4 +71,3 @@ class Todo(DooitModel):
 
 
 ```
-

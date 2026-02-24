@@ -1,4 +1,4 @@
-from dooit.ui.api.events import SpawnHelp
+from dooit.ui.bridge.events import SpawnHelp
 from tests.test_ui.ui_base import run_pilot
 from dooit.ui.tui import Dooit
 from dooit.ui.screens import HelpScreen, MainScreen

@@ -1,8 +1,9 @@
 from typing import Optional
-from dooit.api.workspace import Workspace
-from dooit.ui.api.api_components.formatters import FormatterStore
-from tests.test_ui.ui_base import run_pilot
+
+from dooit.models.workspace import Workspace
+from dooit.ui.bridge.components.formatters import FormatterStore
 from dooit.ui.tui import Dooit
+from tests.test_ui.ui_base import run_pilot
 
 
 def format_with_prefix(workspace: Workspace) -> Optional[str]:

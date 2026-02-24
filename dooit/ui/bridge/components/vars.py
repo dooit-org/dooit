@@ -2,15 +2,15 @@ from typing import TYPE_CHECKING, Optional
 
 from textual.widgets import ContentSwitcher
 
-from dooit.api import Workspace
-from dooit.api.theme import DooitThemeBase
-from dooit.api.todo import Todo
-from dooit.ui.widgets.trees import WorkspacesTree, TodosTree
+from dooit.models import Workspace
+from dooit.models.theme import DooitThemeBase
+from dooit.models.todo import Todo
+from dooit.ui.widgets.trees import TodosTree, WorkspacesTree
+
 from ._base import ApiComponent
 
-
 if TYPE_CHECKING:  # pragma: no cover
-    from dooit.ui.api.dooit_api import DooitAPI
+    from dooit.ui.bridge.dooit_api import DooitAPI
 
 
 class VarManager(ApiComponent):
