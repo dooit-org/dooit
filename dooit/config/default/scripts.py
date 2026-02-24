@@ -60,7 +60,7 @@ def mode(event: "ModeChanged", **kwargs):
 
 
 def clock(**kwargs):
-    fmt = kwargs.get("format", "%H:%M")
+    fmt = kwargs.get("format", "%H:%M:%S")
     return Text(datetime.now().strftime(fmt))
 
 

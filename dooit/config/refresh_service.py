@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import Callable, cast
 
 from dooit.config.config import ScriptField
@@ -19,14 +20,15 @@ class RefreshService:
         self.scripts = scripts
         self.reload_entries = reload_entries
 
-        self._event_triggers: dict[type[DooitEvent], ScriptField] = {}
-        self._time_triggers: dict[int, ScriptField] = {}
+        self._event_triggers: dict[type[DooitEvent], list[ScriptField]] = defaultdict(
+            list
+        )
+        self._time_triggers: dict[int, list[ScriptField]] = defaultdict(list)
         self.setup_scripts()
 
     def setup_scripts(self):
         for _, script in self.scripts.items():
             refresh = script.entry.refresh
-            # self._event_triggers[Startup] = script.entry
 
             if not refresh:
                 continue
@@ -37,21 +39,29 @@ class RefreshService:
                 )
                 event_cls = cast(type[DooitEvent], refresh.value)
 
-                self._event_triggers[event_cls] = script
+                self._event_triggers[event_cls].append(script)
 
             elif refresh.kind == RefreshKind.INTERVAL:
                 assert isinstance(refresh.value, int)
-                self._time_triggers[refresh.value] = script
+                self._time_triggers[refresh.value].append(script)
 
     def trigger_event(self, event: DooitEvent) -> None:
         """Trigger scripts registered to an event."""
-        entry = self._event_triggers.get(type(event))
-        params = {}
 
-        if not isinstance(event, TimerEvent):
-            params |= {"event": event}
+        if isinstance(event, TimerEvent):
+            entries = []
+            for interval in self._time_triggers.keys():
+                if event.second % interval == 0:
+                    entries.extend(self._time_triggers[interval])
+        else:
+            entries = self._event_triggers[type(event)]
 
-        if entry:
+        for entry in entries:
+            params = {}
+
+            if not isinstance(event, TimerEvent):
+                params |= {"event": event}
+
             entry.update(**params)
             for callback in self.reload_entries.values():
                 callback()
