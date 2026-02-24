@@ -1,4 +1,4 @@
-from .config import AppConfig
+from .config import AppConfig, ScriptField
 from .errors import ConfigError, ConfigValidationError
 from .reader import ConfigReader
 
@@ -9,5 +9,5 @@ __all__ = [
     "ConfigValidationError",
     "ConfigReader",
     "AppConfig",
-    # "ScriptParser",
+    "ScriptField",
 ]
