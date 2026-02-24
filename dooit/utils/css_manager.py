@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from platformdirs import user_cache_dir
 
-from dooit.config import ThemeColors
+from dooit.config import DooitTheme
 
 dooit_cache_path = Path(user_cache_dir("dooit"))
 
@@ -26,9 +26,9 @@ class CssManager:
 
     def __init__(
         self,
-        theme: ThemeColors,
+        theme: DooitTheme,
     ):
-        self.theme: ThemeColors = theme
+        self.theme: DooitTheme = theme
         self.stylesheets: Path = self.cache_path / "stylesheets"
 
         self.cache_path.mkdir(parents=True, exist_ok=True)
@@ -58,7 +58,7 @@ class CssManager:
 
         self.write(css)
 
-    def set(self, theme: ThemeColors):
+    def set(self, theme: DooitTheme):
         self.theme = theme
         self.refresh_css()
 

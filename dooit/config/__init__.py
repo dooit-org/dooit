@@ -1,4 +1,4 @@
-from .config import AppConfig, ScriptField, ThemeColors
+from .config import AppConfig, ScriptField, DooitTheme
 from .errors import ConfigError, ConfigValidationError
 from .reader import ConfigReader
 
@@ -10,5 +10,5 @@ __all__ = [
     "ConfigReader",
     "AppConfig",
     "ScriptField",
-    "ThemeColors",
+    "DooitTheme",
 ]

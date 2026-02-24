@@ -15,7 +15,7 @@ class BaseConfigType(msgspec.Struct, forbid_unknown_fields=True, **S):
 
 
 # --- theme ---
-class ThemeColors(BaseConfigType):
+class DooitTheme(BaseConfigType):
     """
     Theme colors for dooit (all hex codes)
     """
@@ -58,7 +58,7 @@ class ThemeColors(BaseConfigType):
         )
 
     @classmethod
-    def nord(cls) -> "ThemeColors":
+    def nord(cls) -> "DooitTheme":
         return cls(
             background1="#2E3440",
             background2="#3B4252",
@@ -197,7 +197,7 @@ class ScriptField:
 
 class AppConfig(msgspec.Struct, kw_only=True):
     general: GeneralConfig
-    theme: dict[str, ThemeColors]
+    theme: dict[str, DooitTheme]
     layout: LayoutConfig
     keys: KeysConfig
     bar: BarConfig
@@ -218,7 +218,7 @@ class AppConfig(msgspec.Struct, kw_only=True):
 
         return msgspec.convert(data, cls, dec_hook=dec_hook)
 
-    def get_active_theme(self) -> ThemeColors:
+    def get_active_theme(self) -> DooitTheme:
         return self.theme[self.general.theme]
 
     def get_scripts(self) -> dict:

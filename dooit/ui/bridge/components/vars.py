@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING, Optional
 
 from textual.widgets import ContentSwitcher
 
-from dooit.config.config import ThemeColors
+from dooit.config.config import DooitTheme
 from dooit.models import Workspace
 from dooit.models.todo import Todo
 from dooit.ui.widgets.trees import TodosTree, WorkspacesTree
@@ -26,7 +26,7 @@ class VarManager(ApiComponent):
         return self.api.app.dooit_mode
 
     @property
-    def theme(self) -> ThemeColors:
+    def theme(self) -> DooitTheme:
         return self.api.css.theme
 
     @property
