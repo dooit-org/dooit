@@ -1,7 +1,7 @@
 from rich.console import RenderableType
 from rich.table import Table
 
-from .._base import BarBase
+from ._base import BarBase
 
 
 class StatusBar(BarBase):
@@ -9,9 +9,6 @@ class StatusBar(BarBase):
         super().__init__(*args, **kwargs)
         self.widgets_left = []
         self.widgets_right = []
-
-    def ui_refresh(self) -> None:
-        self.refresh()
 
     def render(self) -> RenderableType:
         self.widgets_left = self.api.bar.widgets_left

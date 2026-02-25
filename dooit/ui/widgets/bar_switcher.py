@@ -6,13 +6,8 @@ from textual.widgets import ContentSwitcher
 
 from dooit.models.base import DooitModel
 from dooit.ui.bridge.events.events import BarNotification
-from dooit.ui.widgets.bars._base import BarBase
 
-from .confirm_bar import ConfirmBar
-from .notification_bar import NotificationBar
-from .search_bar import SearchBar
-from .sort_bar import SortBar
-from .status_bar import StatusBar
+from .bars import BarBase, ConfirmBar, NotificationBar, SearchBar, SortBar, StatusBar
 
 
 class BarSwitcher(ContentSwitcher):

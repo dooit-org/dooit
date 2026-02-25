@@ -8,7 +8,7 @@ if TYPE_CHECKING:  # pragma: no cover
     from dooit.ui.bridge.dooit_api import DooitAPI
     from dooit.ui.tui import Dooit
 
-    from .bar_switcher import BarSwitcher
+    from ..bar_switcher import BarSwitcher
 
 
 class BarBase(Static):
@@ -39,7 +39,7 @@ class BarBase(Static):
 
     @property
     def switcher(self) -> "BarSwitcher":
-        from .bar_switcher import BarSwitcher
+        from ..bar_switcher import BarSwitcher
 
         parent = self.parent
         assert isinstance(parent, BarSwitcher)

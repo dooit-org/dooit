@@ -1,14 +1,15 @@
-from .bar_switcher import BarSwitcher
-from .status_bar import StatusBar, StatusBarWidget
-from .search_bar import SearchBar
-from .confirm_bar import ConfirmBar
-from .sort_bar import SortBar
+from ._base import BarBase
+from .confirm import ConfirmBar
+from .notification import NotificationBar
+from .search import SearchBar
+from .sort import SortBar
+from .status import StatusBar
 
 __all__ = [
-    "BarSwitcher",
+    "BarBase",
     "StatusBar",
     "SearchBar",
-    "StatusBarWidget",
     "ConfirmBar",
     "SortBar",
+    "NotificationBar",
 ]

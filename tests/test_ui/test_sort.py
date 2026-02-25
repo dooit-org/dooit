@@ -5,7 +5,7 @@ from pytest import raises
 from dooit.models.exceptions import NoNodeError
 from dooit.ui.tui import Dooit
 from dooit.ui.widgets.bars import SortBar
-from dooit.ui.widgets.bars.status_bar.bar import StatusBar
+from dooit.ui.widgets.bars.status_bar.status import StatusBar
 from tests.test_ui.ui_base import create_and_move_to_todo, run_pilot
 
 

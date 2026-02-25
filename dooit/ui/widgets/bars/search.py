@@ -1,8 +1,9 @@
 from typing import Callable
+
 from rich.console import RenderableType
 
-from .._base import BarBase
-from ...inputs._input import Input
+from ..inputs._input import Input
+from ._base import BarBase
 
 
 class SearchBar(BarBase):

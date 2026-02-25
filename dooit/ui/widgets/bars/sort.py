@@ -4,7 +4,8 @@ from rich.console import RenderableType
 from rich.text import Text
 
 from dooit.models import DooitModel
-from dooit.ui.widgets.bars._base import BarBase
+
+from ._base import BarBase
 
 
 class SortBar(BarBase):

@@ -1,8 +1,10 @@
 from typing import Callable
+
 from rich.console import RenderableType
 
 from dooit.ui.bridge.events import BarNotification
-from .._base import BarBase
+
+from ._base import BarBase
 
 DEFFAULT_MSG = r"Are you sure? \[y/N]"
 
