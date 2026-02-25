@@ -169,7 +169,7 @@ class FormatterConfig(BaseConfigType):
 class ScriptField:
     def __init__(self, context: dict):
         self.entry = ScriptParser.parse_script_entry(context)
-        self._cached = ""
+        self._cached = " "
 
     def update(self, **params: Any):
         self._cached = self.entry.func(**params, context=self.entry.context)
