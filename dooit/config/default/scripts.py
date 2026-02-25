@@ -45,6 +45,10 @@ def small_pad(**kwargs):
 
 
 def mode(event: ModeChanged, context):
+    mode = event.mode.lower()
+    if mode not in context:
+        return Text("")
+
     settings = context[event.mode.lower()]
     fmt = settings["format"]
     return Text(fmt, style=build_style(settings["css"]))

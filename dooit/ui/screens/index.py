@@ -110,7 +110,6 @@ class MainScreen(BaseScreen):
     @on(ShowConfirm)
     def show_confirm(self, event: ShowConfirm):
         self.app.bar_switcher.switch_to_confirm(event.callback)
-        self.post_message(ModeChanged("CONFIRM"))
 
     @on(WorkspaceSelected)
     async def workspace_selected(self, event: WorkspaceSelected):

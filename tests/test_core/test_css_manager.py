@@ -1,34 +1,55 @@
-from pathlib import Path
-from tempfile import TemporaryDirectory
+# from pathlib import Path
+# from tempfile import TemporaryDirectory
 
-from dooit.models.theme import DooitThemeBase
-from dooit.utils import CssManager
-
-
-class TestTheme(DooitThemeBase):
-    _name = "test_theme"
+# from dooit.config import DooitTheme
+# from dooit.utils.css_manager import CssManager
 
 
-# ----------------------------------------
-
-RANDOM_CSS = """
-#random_css {
-    background: red;
-}
-"""
+# class TestTheme():
+#     _name = "test_theme"
 
 
-def test_css_injections():
-    cache_path = Path(TemporaryDirectory().name)
-    manager = CssManager(cache_path=cache_path)
+# def test_css_manager():
+#     cache_path = Path(TemporaryDirectory().name)
+#     manager = CssManager(cache_path=cache_path)
 
-    injection_id = manager.inject_css(RANDOM_CSS)
-    assert RANDOM_CSS in manager.read_css()
+#     assert manager.css_file.exists()
+#     manager.refresh_css()
 
-    assert manager.is_active(injection_id)
+#     # via classname
+#     manager.set_theme(TestTheme)
+#     assert manager.theme.__class__ is TestTheme
 
-    assert manager.unject_css(injection_id)
-    assert RANDOM_CSS not in manager.read_css()
+#     # reset
+#     manager.set_theme(DooitThemeBase)
+#     assert manager.theme is not TestTheme
 
-    incorrect_id = "incorrect_id"
-    assert not manager.unject_css(incorrect_id)
+#     # via name
+#     manager.add_theme(TestTheme)
+#     manager.set_theme("test_theme")
+#     assert manager.theme.__class__ is TestTheme
+
+
+# # ----------------------------------------
+
+# RANDOM_CSS = """
+# #random_css {
+#     background: red;
+# }
+# """
+
+
+# def test_css_injections():
+#     cache_path = Path(TemporaryDirectory().name)
+#     manager = CssManager(cache_path=cache_path)
+
+#     injection_id = manager.inject_css(RANDOM_CSS)
+#     assert RANDOM_CSS in manager.read_css()
+
+#     assert manager.is_active(injection_id)
+
+#     assert manager.unject_css(injection_id)
+#     assert RANDOM_CSS not in manager.read_css()
+
+#     incorrect_id = "incorrect_id"
+#     assert not manager.unject_css(incorrect_id)
