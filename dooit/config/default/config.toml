@@ -107,7 +107,7 @@ highlighted.css.bold = true
 
 [bar]
 widgets_left = ["mode"]
-widgets_right = ["clock", "user"]
+widgets_right = ["clock", "pad", "user"]
 
 [dashboard]
 widgets = ["qoute", "ascii"]
@@ -115,23 +115,25 @@ widgets = ["qoute", "ascii"]
 [script.mode]
 _script = "./scripts::mode"
 _refresh = "on ModeChanged"
-normal.format = "NORMAL"
+normal.format = " NOR "
 normal.css.color = "$background2"
 normal.css.background = "$primary"
-insert.format = "INSERT"
+insert.format = " INS "
 insert.css.color = "$background2"
 insert.css.background = "$secondary"
-css.padding = 1
 
 [script.clock]
 _script = "./scripts::clock"
 _refresh = "every 1s"
-format = "%H:%M"
+format = " %H:%M:%S "
+css.color = "$background2"
+css.background = "$primary"
 
 [script.user]
 _script = "./scripts::user"
-_refresh = "on Startup"
-format = "{username}"
+format = " {username} "
+css.color = "$background2"
+css.background = "$secondary"
 
 [script.qoute]
 _script = "./scripts::qoute"
@@ -142,3 +144,6 @@ css.color = "$secondary"
 _script = "./scripts::ascii"
 format = "{ascii_art}"
 css.color = "$primary"
+
+[script.pad]
+_script = "./scripts::small_pad"

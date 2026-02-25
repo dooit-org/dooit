@@ -2,13 +2,11 @@ import getpass
 import platform as platform_module
 import random
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 from rich.style import Style
 from rich.text import Text
 
-if TYPE_CHECKING:
-    from dooit.ui.bridge.events import ModeChanged
+from dooit.ui.bridge.events import ModeChanged, TimerEvent
 
 QUOTES = [
     "The only way to do great work is to love what you do.",
@@ -32,7 +30,7 @@ DOOIT_ASCII = r"""
 """.strip()
 
 
-def _build_style(css: dict) -> Style:
+def build_style(css: dict) -> Style:
     """Convert a config CSS dict to a Rich Style."""
     return Style(
         color=css.get("color"),
@@ -42,32 +40,27 @@ def _build_style(css: dict) -> Style:
     )
 
 
-def mode(event: "ModeChanged", **kwargs):
-    mode_name = event.mode.lower()
-
-    mode_config = kwargs.get(mode_name, {})
-    global_css = kwargs.get("css", {})
-    padding = int(global_css.get("padding", 0)) if isinstance(global_css, dict) else 0
-    pad = " " * padding
-
-    if isinstance(mode_config, dict):
-        fmt = mode_config.get("format", mode_name.upper())
-        css = mode_config.get("css", {})
-        style = _build_style(css) if isinstance(css, dict) else Style()
-        return Text(f"{pad}{fmt}{pad}", style=style)
-
-    return Text(f"{pad}{mode_name.upper()}{pad}")
+def small_pad(**kwargs):
+    return Text(" ")
 
 
-def clock(**kwargs):
-    fmt = kwargs.get("format", "%H:%M:%S")
-    return Text(datetime.now().strftime(fmt))
+def mode(event: ModeChanged, context):
+    settings = context[event.mode.lower()]
+    fmt = settings["format"]
+    return Text(fmt, style=build_style(settings["css"]))
 
 
-def user(**kwargs):
-    fmt = kwargs.get("format", "{username}")
+def clock(event: TimerEvent, context):
+    fmt = context["format"]
+    text = datetime.now().strftime(fmt)
+    return Text(text, style=build_style(context["css"]))
+
+
+def user(event: TimerEvent, context):
+    fmt = context["format"]
     username = getpass.getuser()
-    return Text(fmt.format(username=username))
+    text = fmt.format(username=username)
+    return Text(text, style=build_style(context["css"]))
 
 
 def qoute(**kwargs):
