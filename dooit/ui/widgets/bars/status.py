@@ -22,6 +22,7 @@ class StatusBar(BarBase):
             row.append(widget._cached)
 
         table.add_column("spacer", ratio=1)
+        row.append("")
 
         for widget in self.widgets_right:
             table.add_column(widget.entry.name)
