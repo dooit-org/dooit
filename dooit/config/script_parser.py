@@ -77,7 +77,7 @@ class ScriptParser:
         reload_targets = set(reload_targets_value)
 
         refresh_value = script_entry.get(ScriptKeyword.REFRESH)
-        refresh = cls.parse_refresh(refresh_value) if refresh_value else None
+        refresh = cls.parse_refresh(refresh_value or "on Startup")
         context = {k: v for k, v in script_entry.items() if not k.startswith("_")}
 
         return ScriptEntry(
