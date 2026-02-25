@@ -180,8 +180,6 @@ def resolve_variables(obj: Any, variables: dict[str, str]) -> Any:
         return Template(obj).substitute(variables)
     elif isinstance(obj, dict):
         return {k: resolve_variables(v, variables) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [resolve_variables(v, variables) for v in obj]
     return obj
 
 
@@ -202,7 +200,6 @@ class AppConfig(msgspec.Struct, kw_only=True):
                 return FieldFormatter(obj)
             if typ is ScriptField:
                 return ScriptField(obj)
-            raise TypeError(f"Cannot convert {type(obj)} to {typ}")
 
         config = msgspec.convert(data, cls, dec_hook=dec_hook)
         config._resolve_vars()
