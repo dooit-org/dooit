@@ -177,10 +177,7 @@ class ScriptField:
 
 def resolve_variables(obj: Any, variables: dict[str, str]) -> Any:
     if isinstance(obj, str) and "$" in obj:
-        try:
-            return Template(obj).substitute(variables)
-        except (KeyError, ValueError):
-            return obj
+        return Template(obj).substitute(variables)
     elif isinstance(obj, dict):
         return {k: resolve_variables(v, variables) for k, v in obj.items()}
     elif isinstance(obj, list):
