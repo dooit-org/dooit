@@ -1,11 +1,11 @@
 from collections import defaultdict
-from functools import cache
-from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Generic, Optional, TypeVar, Union
 
 from textual.app import ComposeResult
 from textual.widgets import Label
 from textual.widgets.option_list import Option
 
+from dooit.config.config import BaseConfigLayout
 from dooit.models import Todo, Workspace
 from dooit.ui.bridge.events import (
     BarNotification,
@@ -55,16 +55,12 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         self._filter_refresh = False
         self._model_clipboard = None
 
-    @cache
-    def get_column_width(self, attr: str) -> int:
-        return max(i._get_attr_width(attr) for i in self._renderers.values())
-
     @property
     def formatter(self) -> "ModelFormatterBase":
         raise NotImplementedError  # pragma: no cover
 
     @property
-    def render_layout(self) -> Any:
+    def render_layout(self) -> BaseConfigLayout:
         raise NotImplementedError  # pragma: no cover
 
     @property
@@ -131,7 +127,6 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
     @fix_highlight
     def force_refresh(self) -> None:
         self._force_refresh()
-        self.get_column_width.cache_clear()
 
     def is_node_expaned(self, _id: str) -> bool:
         return self.expanded_nodes[_id]
@@ -173,8 +168,7 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         self.post_message(StartSearch(self.set_filter))
 
     def start_edit(self, property: str) -> bool:
-        columns = list(self.render_layout)
-        if property not in columns:
+        if property not in self.render_layout.columns:
             self.post_message(
                 BarNotification(f"No such column: [b]{property}[/b]", "error")
             )
@@ -194,7 +188,6 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
             self.post_message(BarNotification(str(e), "error"))
 
         self.app.post_message(ModeChanged("NORMAL"))
-        self.get_column_width.cache_clear()
         self.update_current_prompt()
 
     def reset_state(self):

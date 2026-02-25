@@ -1,23 +1,26 @@
-from dooit.ui.widgets.trees.todos_tree import TodoLayout
-from dooit.ui.widgets.trees.workspaces_tree import WorkspaceLayout
+from dooit.config.config import (
+    AppConfig,
+    TodoLayoutConfig,
+    WorkspaceLayoutConfig,
+)
 
 from ._base import ApiComponent
 
 
 class LayoutManager(ApiComponent):
     def __init__(self) -> None:
-        self.todo_layout: TodoLayout = []
-        self.workspace_layout: WorkspaceLayout = []
+        self.todo_layout: TodoLayoutConfig
+        self.workspace_layout: WorkspaceLayoutConfig
 
     @classmethod
-    def from_config(cls, config):
+    def from_config(cls, config: AppConfig):
         instance = cls()
         instance.todo_layout = config.layout.todo
         instance.workspace_layout = config.layout.workspace
         return instance
 
-    def set_todo_layout(self, layout: TodoLayout) -> None:
+    def set_todo_layout(self, layout: TodoLayoutConfig) -> None:
         self.todo_layout = layout
 
-    def set_workspace_layout(self, layout: WorkspaceLayout) -> None:
+    def set_workspace_layout(self, layout: WorkspaceLayoutConfig) -> None:
         self.workspace_layout = layout

@@ -21,8 +21,8 @@ secondary = "#81a1c1"
 theme = "nord"
 
 [layout]
-todo = ["status", "description", "due", "urgency"]
-workspace = ["description"]
+todo.columns = ["status", "description", "due", "urgency"]
+workspace.columns = ["description"]
 
 [keys]
 switch_focus = "<tab>"

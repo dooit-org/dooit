@@ -7,7 +7,7 @@ import msgspec
 from dooit.config.script_parser import ScriptParser
 from dooit.models import DooitModel
 
-S = dict(kw_only=True, frozen=True)
+S = dict(kw_only=True)
 
 
 class BaseConfigType(msgspec.Struct, forbid_unknown_fields=True, **S):
@@ -90,9 +90,26 @@ class WorkspaceField(str, Enum):
     DESCRIPTION = "description"
 
 
+class BaseConfigLayout(BaseConfigType):
+    columns: list[TodoField]
+    description: int = 0
+
+
+class TodoLayoutConfig(BaseConfigLayout):
+    due: int = 25
+    urgency: int = 1
+    recurrence: int = 4
+    status: int = 1
+    effort: int = 3
+
+
+class WorkspaceLayoutConfig(BaseConfigLayout):
+    pass
+
+
 class LayoutConfig(BaseConfigType):
-    todo: list[TodoField]
-    workspace: list[WorkspaceField]
+    todo: TodoLayoutConfig
+    workspace: WorkspaceLayoutConfig
 
 
 # --- layout ---

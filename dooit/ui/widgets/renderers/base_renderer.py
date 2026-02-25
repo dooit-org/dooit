@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Generic, List, TypeVar, Union
 from rich.console import RenderableType
 from rich.table import Table
 
+from dooit.config.config import BaseConfigLayout
 from dooit.models import Todo, Workspace
 
 from ..inputs.simple_input import SimpleInput
@@ -35,7 +36,7 @@ class BaseRenderer(Generic[ModelType]):
         return self._model.uuid
 
     @property
-    def table_layout(self) -> List:
+    def table_layout(self) -> BaseConfigLayout:
         return self.tree.render_layout
 
     @property
@@ -53,9 +54,6 @@ class BaseRenderer(Generic[ModelType]):
 
         return max(len(component.value) + 1, len(rendered))
 
-    def _get_max_width(self, attr: str) -> int:
-        return self.tree.get_column_width(attr)
-
     def make_renderable(self) -> Table:
         layout = self.table_layout
 
@@ -66,22 +64,20 @@ class BaseRenderer(Generic[ModelType]):
             table.add_column("padding", width=2 * nest)
             row.append("")
 
-        for attr in layout:
+        for attr in layout.columns:
+            width = getattr(layout, attr)
+
+            if width:
+                table.add_column(attr, width=width)
+            else:
+                table.add_column(attr, ratio=1)
+
             component = self._get_component(attr)
-
-            if len(component.render()) > self._get_max_width(attr):
-                self.tree.get_column_width.cache_clear()
-
             if component.is_editing:
                 rendered = component.render()
             else:
                 formatter = self.tree.formatter
                 rendered = getattr(formatter, attr).format_value(component.model)
-
-            if attr == "description":
-                table.add_column(attr, ratio=1)
-            else:
-                table.add_column(attr, width=self._get_max_width(attr))
 
             row.append(rendered)
 
@@ -98,7 +94,6 @@ class BaseRenderer(Generic[ModelType]):
 
     def stop_edit(self):
         getattr(self, self.editing).stop_edit()
-        self.tree.get_column_width.cache_clear()
         self.editing = ""
 
     def handle_keypress(self, key: str) -> bool:
