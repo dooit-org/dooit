@@ -140,6 +140,7 @@ class MainScreen(BaseScreen):
         listen(table, "after_update", track)
 
     def on_mount(self):
+        self.app.after_main_mount()
         listeners = (
             (Workspace, "description", WorkspaceDescriptionChanged),
             (Todo, "description", TodoDescriptionChanged),

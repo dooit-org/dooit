@@ -60,8 +60,7 @@ class Dooit(App):
         self.api = DooitAPI(self)
         await self.push_screen("main")
 
-        self.api.load_config()
-
+    def after_main_mount(self):
         self.post_message(Startup())
         self.post_message(ModeChanged("NORMAL"))
 
