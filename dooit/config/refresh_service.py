@@ -57,11 +57,6 @@ class RefreshService:
             entries = self._event_triggers[type(event)]
 
         for entry in entries:
-            params = {}
-
-            if not isinstance(event, TimerEvent):
-                params |= {"event": event}
-
-            entry.update(**params)
+            entry.update(event=event)
             for callback in self.reload_entries.values():
                 callback()
