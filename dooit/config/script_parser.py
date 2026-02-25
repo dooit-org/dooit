@@ -2,10 +2,12 @@ import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Iterable, Optional
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Optional
 
-from dooit.ui.bridge.events import DooitEvent
 from dooit.utils.py_script_reader import PyScriptReader
+
+if TYPE_CHECKING:
+    from dooit.ui.bridge.events import DooitEvent
 
 
 class ScriptKeyword(str, Enum):
@@ -22,7 +24,7 @@ class RefreshKind(str, Enum):
 @dataclass(frozen=True)
 class RefreshConfig:
     kind: RefreshKind
-    value: int | type[DooitEvent]
+    value: int | type["DooitEvent"]
 
 
 @dataclass
