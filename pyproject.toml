@@ -53,4 +53,4 @@ asyncio_default_fixture_loop_scope = "function"
 ignore = ["E712"]
 
 [tool.coverage.report]
-omit = ["nix/store/*", "dooit/utils/default_config.py"]
+omit = ["nix/store/*", "dooit/config/default/*.py"]
