@@ -212,7 +212,6 @@ class AppConfig(msgspec.Struct, kw_only=True):
         return config
 
     def _resolve_vars(self) -> None:
-        """Resolve $variables in-place by round-tripping through dict."""
         theme = self.get_active_theme()
         variables = {
             k: str(v)
@@ -220,11 +219,8 @@ class AppConfig(msgspec.Struct, kw_only=True):
             if isinstance(v, str)
         }
 
-        raw = msgspec.structs.asdict(self)
-        resolved = resolve_variables(raw, variables)
-
-        for key, value in resolved.items():
-            setattr(self, key, value)
+        for field in self.script.values():
+            field.entry.context = resolve_variables(field.entry.context, variables)
 
     def get_active_theme(self) -> DooitTheme:
         return self.theme[self.general.theme]
