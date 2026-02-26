@@ -59,9 +59,9 @@ def todo_due(todo: Todo, context: dict) -> Text:
 
     if todo.due:
         if todo.due.hour or todo.due.minute:
-            fmt_str = context["date_format"]
-        else:
             fmt_str = context["date_format_with_time"]
+        else:
+            fmt_str = context["date_format"]
 
         due_str = todo.due.strftime(fmt_str)
     else:
