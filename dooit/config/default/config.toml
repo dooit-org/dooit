@@ -76,21 +76,26 @@ overdue.css.color = "$red"
 
 [formatter.todo.due]
 _script = "./formatters.py::todo_due"
-format = "{due_date}"
-format_string = "%Y-%m-%d"
-format_string_with_time = "%Y-%m-%d %H:%M"
+date_format = "%Y-%m-%d"
+date_format_with_time = "%Y-%m-%d %H:%M"
+overdue.format = "{date}"
+overdue.css.color = "$red"
+pending.format = "{date}"
+pending.css.color = "$yellow"
+completed.format = "{date}"
+completed.css.color = "$green"
 highlighted.css.bold = true
 
 [formatter.todo.urgency]
 _script = "./formatters.py::todo_urgency"
-a.format = "(!)1"
-a.css.color = "$red"
-b.format = "(!)2"
-b.css.color = "$orange"
-c.format = "(!)3"
-c.css.color = "$yellow"
-d.format = "(!)4"
-d.css.color = "$green"
+1.format = "(!)1"
+1.css.color = "$red"
+2.format = "(!)2"
+2.css.color = "$orange"
+3.format = "(!)3"
+3.css.color = "$yellow"
+4.format = "(!)4"
+4.css.color = "$green"
 highlighted.css.bold = true
 
 [formatter.todo.effort]
