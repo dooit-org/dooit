@@ -30,9 +30,6 @@ class RefreshService:
         for _, script in self.scripts.items():
             refresh = script.entry.refresh
 
-            if not refresh:
-                continue
-
             if refresh.kind == RefreshKind.EVENT:
                 assert isinstance(refresh.value, type) and issubclass(
                     refresh.value, DooitEvent

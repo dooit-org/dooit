@@ -31,8 +31,8 @@ class RefreshConfig:
 class ScriptEntry:
     name: str
     func: Callable
+    refresh: RefreshConfig
     reload_targets: set[str] = field(default_factory=set)
-    refresh: Optional["RefreshConfig"] = None
     context: dict = field(default_factory=dict)
 
     def call(self, **params):
