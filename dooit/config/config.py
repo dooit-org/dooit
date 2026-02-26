@@ -17,10 +17,6 @@ class BaseConfigType(msgspec.Struct, forbid_unknown_fields=True, **S):
 
 # --- theme ---
 class DooitTheme(BaseConfigType):
-    """
-    Theme colors for dooit (all hex codes)
-    """
-
     background1: str
     background2: str
     background3: str
@@ -35,7 +31,6 @@ class DooitTheme(BaseConfigType):
     purple: str
     magenta: str
     cyan: str
-
     primary: str
     secondary: str
 
@@ -61,19 +56,11 @@ class DooitTheme(BaseConfigType):
 
 # --- general ---
 class GeneralConfig(BaseConfigType):
-    """
-    All the stuff that goes into general section
-    """
-
     theme: str
 
 
 # --- layout ---
 class TodoField(str, Enum):
-    """
-    Enum for todo layout
-    """
-
     DESCRIPTION = "description"
     DUE = "due"
     URGENCY = "urgency"
@@ -83,10 +70,6 @@ class TodoField(str, Enum):
 
 
 class WorkspaceField(str, Enum):
-    """
-    Enum for workspace layout
-    """
-
     DESCRIPTION = "description"
 
 
@@ -112,7 +95,7 @@ class LayoutConfig(BaseConfigType):
     workspace: WorkspaceLayoutConfig
 
 
-# --- layout ---
+# --- keys ---
 class KeysConfig(BaseConfigType):
     switch_focus: str
     move_down: str
@@ -161,7 +144,7 @@ class FieldFormatter:
         self.func = ScriptParser.parse_script_entry(config)
 
     def __call__(self, model: DooitModel) -> str:
-        return self.func.func(model)
+        return self.func.func(model, context=self.config)
 
 
 class TodoFormatter(BaseConfigType):
@@ -197,9 +180,12 @@ def resolve_variables(obj: Any, variables: dict[str, str]) -> Any:
         return Template(obj).substitute(variables)
     elif isinstance(obj, dict):
         return {k: resolve_variables(v, variables) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [resolve_variables(v, variables) for v in obj]
     return obj
 
 
+# --- app config ---
 class AppConfig(msgspec.Struct, kw_only=True):
     general: GeneralConfig
     theme: dict[str, DooitTheme]
@@ -212,26 +198,17 @@ class AppConfig(msgspec.Struct, kw_only=True):
 
     @classmethod
     def from_resolved(cls, data: dict) -> "AppConfig":
+        theme_name = data["general"]["theme"]
+        variables = data["theme"][theme_name]
+        data = resolve_variables(data, variables)
+
         def dec_hook(typ, obj):
             if typ is FieldFormatter:
                 return FieldFormatter(obj)
             if typ is ScriptField:
                 return ScriptField(obj)
 
-        config = msgspec.convert(data, cls, dec_hook=dec_hook)
-        config._resolve_vars()
-        return config
-
-    def _resolve_vars(self) -> None:
-        theme = self.get_active_theme()
-        variables = {
-            k: str(v)
-            for k, v in msgspec.structs.asdict(theme).items()
-            if isinstance(v, str)
-        }
-
-        for field in self.script.values():
-            field.entry.context = resolve_variables(field.entry.context, variables)
+        return msgspec.convert(data, cls, dec_hook=dec_hook)
 
     def get_active_theme(self) -> DooitTheme:
         return self.theme[self.general.theme]
