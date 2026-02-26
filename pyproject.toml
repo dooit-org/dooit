@@ -22,7 +22,7 @@ dependencies = [
     "python-dateutil>=2.9.0.post0",
     "pyyaml>=6.0.2",
     "sqlalchemy>=2.0.43",
-    "textual>=6.1.0",
+    "textual>=8.0",
     "tzlocal>=5.3.1",
 ]
 
