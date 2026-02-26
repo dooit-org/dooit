@@ -88,13 +88,13 @@ highlighted.css.bold = true
 
 [formatter.todo.urgency]
 _script = "./formatters.py::todo_urgency"
-1.format = "(!)1"
+1.format = "! 1"
 1.css.color = "$red"
-2.format = "(!)2"
+2.format = "! 2"
 2.css.color = "$orange"
-3.format = "(!)3"
+3.format = "! 3"
 3.css.color = "$yellow"
-4.format = "(!)4"
+4.format = "! 4"
 4.css.color = "$green"
 highlighted.css.bold = true
 

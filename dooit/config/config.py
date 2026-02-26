@@ -80,9 +80,9 @@ class BaseConfigLayout(BaseConfigType):
 
 class TodoLayoutConfig(BaseConfigLayout):
     due: int = 25
-    urgency: int = 1
+    urgency: int = 3
     recurrence: int = 4
-    status: int = 1
+    status: int = 2
     effort: int = 3
 
 
