@@ -182,7 +182,7 @@ class Todo(DooitModel):
         return list(manager.session.execute(query).scalars().all())
 
     @staticmethod
-    def clone_from_id(id: int, order_index: int) -> "Todo":
+    def clone_from_id(id: int, order_index: int = -1) -> "Todo":
         todo = Todo.from_id(str(id))
         fields = ["description", "due", "effort", "recurrence", "urgency", "pending"]
         attrs = {field: getattr(todo, field) for field in fields}

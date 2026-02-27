@@ -125,7 +125,7 @@ class Workspace(DooitModel):
         return list(manager.session.execute(query).scalars().all())
 
     @staticmethod
-    def clone_from_id(id: int, order_index: int) -> "Workspace":
+    def clone_from_id(id: int, order_index: int = -1) -> "Workspace":
         workspace = Workspace.from_id(str(id))
         fields = ["description"]
         attrs = {field: getattr(workspace, field) for field in fields}
