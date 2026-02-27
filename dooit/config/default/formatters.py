@@ -15,24 +15,26 @@ def build_style(css: dict) -> Style:
 
 def workspace_description(workspace: Workspace, context: dict) -> Text:
     if child_count := len(workspace.workspaces):
-        text = context["format_with_child"].format(
+        text = context["format_with_children"].format(
             description=workspace.description, child_count=child_count
         )
     else:
         text = context["format"].format(description=workspace.description)
 
-    return Text(text)
+    css = context.get("css", {})
+    return Text(text, style=build_style(css))
 
 
 def todo_description(todo: Todo, context: dict) -> Text:
     if child_count := len(todo.todos):
-        text = context["format_with_child"].format(
+        text = context["format_with_children"].format(
             description=todo.description, child_count=child_count
         )
     else:
         text = context["format"].format(description=todo.description)
 
-    return Text(text)
+    css = context.get("css", {})
+    return Text(text, style=build_style(css))
 
 
 def todo_status(todo: Todo, context: dict) -> Text:

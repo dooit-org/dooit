@@ -56,13 +56,14 @@ show_help = "?"
 [formatter.workspace.description]
 _script = "./formatters.py::workspace_description"
 format = "{description}"
-format_with_child = "{description} ({child_count})"
+format_with_children = "{description} ({child_count})"
 highlighted.css.bold = true
+css.color = "$foreground1"
 
 [formatter.todo.description]
 _script = "./formatters.py::todo_description"
 format = "{description}"
-format_with_child = "{description} ({child_count})"
+format_with_children = "{description} ({child_count})"
 highlighted.css.bold = true
 
 [formatter.todo.status]
