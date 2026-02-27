@@ -1,5 +1,7 @@
 from copy import deepcopy
+from pathlib import Path
 
+import tomllib
 from pytest import raises
 
 from dooit.config.config import AppConfig
@@ -8,6 +10,28 @@ from dooit.config.reader import ConfigReader
 
 base_data = ConfigReader()
 base_data.load_defaults()
+
+
+def test_override_merge():
+    data = deepcopy(base_data)
+    old = data["formatter"]["todo"]["description"]["format"]
+    assert (
+        data["formatter"]["todo"]["description"]["highlighted"]["css"]["bold"] == True
+    )
+
+    sample_config = """
+    [formatter.todo.description]
+    highlighted.css.bold = false
+    """
+
+    extra_data = tomllib.loads(sample_config)
+    data.merge(ConfigReader.from_dict(extra_data, Path(__file__)))
+
+    assert (
+        data["formatter"]["todo"]["description"]["highlighted"]["css"]["bold"] == False
+    )
+
+    assert data["formatter"]["todo"]["description"]["format"] == old
 
 
 def test_incorect_color():
