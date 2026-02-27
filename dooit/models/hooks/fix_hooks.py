@@ -1,6 +1,7 @@
 from sqlalchemy import event, text
-from ..workspace import Workspace
+
 from ..todo import Todo
+from ..workspace import Workspace
 
 
 @event.listens_for(Workspace, "before_insert")

@@ -12,7 +12,6 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 class Todo(DooitModel):
-    # id: Mapped[int] = mapped_column(primary_key=True, default=generate_unique_id)
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     order_index: Mapped[int] = mapped_column(default=-1)
     description: Mapped[str] = mapped_column(default="")
