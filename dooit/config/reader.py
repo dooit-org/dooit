@@ -1,3 +1,4 @@
+from os import environ
 from pathlib import Path
 
 import tomllib
@@ -6,6 +7,7 @@ from typing_extensions import Any
 
 BASE_CONFIG = Path(__file__).parent / "default" / "config.toml"
 USER_CONFIG = Path(user_config_dir("dooit")) / "config.toml"
+IS_PYTEST_RUNNING = environ.get("PYTEST_RUNNING")
 
 
 def resolve_script_full_path(parent: Path, script: str):
@@ -31,7 +33,9 @@ class ConfigReader(dict[str, Any]):
         base_reader = self.from_path(BASE_CONFIG)
         user_reader = self.from_path(USER_CONFIG)
         self.merge(base_reader)
-        self.merge(user_reader)
+
+        if not IS_PYTEST_RUNNING:  # pragma: no cover
+            self.merge(user_reader)
 
     @classmethod
     def from_path(cls, path: Path) -> "ConfigReader":

@@ -22,6 +22,8 @@ def test_override_merge():
     sample_config = """
     [formatter.todo.description]
     highlighted.css.bold = false
+    css.color = "$red"
+    css.bold = true
     """
 
     extra_data = tomllib.loads(sample_config)
