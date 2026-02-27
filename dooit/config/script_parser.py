@@ -4,6 +4,7 @@ from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Iterable, Optional
 
+from dooit.config.errors import ConfigError, ConfigValidationError
 from dooit.utils.py_script_reader import PyScriptReader
 
 if TYPE_CHECKING:
@@ -35,9 +36,6 @@ class ScriptEntry:
     reload_targets: set[str] = field(default_factory=set)
     context: dict = field(default_factory=dict)
 
-    def call(self, **params):
-        return self.func(**params, context=self.context)
-
 
 class ScriptReaderFactory:
     _cache = {}
@@ -54,11 +52,11 @@ class ScriptParser:
     @classmethod
     def parse_script_entry(cls, script_entry: dict[str, Any]) -> ScriptEntry:
         if ScriptKeyword.SCRIPT not in script_entry:
-            raise ValueError("Missing '_script' key in script entry")
+            raise ConfigError("Missing '_script' key in script entry")
 
         script_ref = script_entry[ScriptKeyword.SCRIPT]
         if "::" not in script_ref:
-            raise ValueError(f"Invalid script reference: {script_ref}")
+            raise ConfigValidationError(f"Invalid script reference: {script_ref}")
 
         script_path_str, func_name = script_ref.split("::", 1)
         script_path = Path(script_path_str)
@@ -100,13 +98,13 @@ class ScriptParser:
             event_cls = cls.parse_event(refresh)
             return RefreshConfig(kind=RefreshKind.EVENT, value=event_cls)
 
-        raise ValueError(f"Invalid refresh config: '{refresh}'. ")
+        raise ConfigValidationError(f"Invalid refresh config: '{refresh}'. ")
 
     @classmethod
     def parse_refresh_interval(cls, refresh: str) -> int:
         match = re.match(r"^every\s+(\d+)\s*([smh])$", refresh.strip())
         if not match:
-            raise ValueError(
+            raise ConfigValidationError(
                 f"Invalid refresh interval format: '{refresh}'. "
                 f"Expected format: 'every <amount><unit>', e.g. 'every 5m' or 'every 30s'."
             )
