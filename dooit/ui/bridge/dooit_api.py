@@ -1,5 +1,7 @@
 from typing import TYPE_CHECKING
 
+from textual.css.query import NoMatches
+
 from dooit.config.config import AppConfig
 from dooit.config.reader import ConfigReader
 from dooit.config.refresh_service import RefreshService
@@ -21,6 +23,16 @@ from .events import DooitEvent, QuitApp, SwitchTab
 
 if TYPE_CHECKING:  # pragma: no cover
     from ..tui import Dooit
+
+
+def ignore_no_matches(fn):
+    def wrapper(*args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except NoMatches:
+            pass
+
+    return wrapper
 
 
 class DooitAPI:
@@ -52,15 +64,19 @@ class DooitAPI:
 
         self.css.refresh_css()
 
+    @ignore_no_matches
     def refresh_bar(self):
         self.app.bar.refresh()
 
+    @ignore_no_matches
     def dashboard_refresh(self):
         self.app.dashboard.refresh(recompose=True)
 
+    @ignore_no_matches
     def workspace_refresh(self):
         self.app.workspace_tree.force_refresh()
 
+    @ignore_no_matches
     def todo_refresh(self):
         for tree in self.app.screen.query(TodosTree):
             tree.force_refresh()
