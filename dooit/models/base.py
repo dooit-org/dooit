@@ -1,4 +1,3 @@
-import uuid
 from typing import Any, List, Literal, TypeVar
 
 from sqlalchemy import inspect
@@ -149,5 +148,5 @@ class DooitModel(BaseModel, BaseModelMixin):
         manager.save(self)
 
     @staticmethod
-    def clone_from_id(id: int, order_index: int) -> "DooitModel":
+    def clone_from_id(id: int, order_index: int) -> "DooitModel":  # pragma: no cover
         raise NotImplementedError

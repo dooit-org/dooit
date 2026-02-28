@@ -1,4 +1,5 @@
 from copy import deepcopy
+from logging import raiseExceptions
 from pathlib import Path
 
 import tomllib
@@ -93,3 +94,53 @@ def test_reload_targets():
 
     config = AppConfig.from_resolved(data)
     assert config.script["mode"].entry.reload_targets == {"bar"}
+
+
+def test_reload_targets_invalid():
+    data = deepcopy(base_data)
+    extra_config = """
+    [script.mode]
+    css.color = "$red"
+    css.bold = true
+    _reload = ["bar"]
+    """
+
+    extra_data = tomllib.loads(extra_config)
+    data.merge(ConfigReader.from_dict(extra_data, Path(__file__)))
+
+    with raises(ConfigValidationError, match="comma separated string"):
+        AppConfig.from_resolved(data)
+
+
+def test_refresh_invalid():
+    data = deepcopy(base_data)
+    extra_config = """
+    [script.mode]
+    css.color = "$red"
+    css.bold = true
+    _refresh = "on "
+    """
+
+    extra_data = tomllib.loads(extra_config)
+    data.merge(ConfigReader.from_dict(extra_data, Path(__file__)))
+
+    with raises(
+        ConfigValidationError, match="Event name cannot be empty in refresh config"
+    ):
+        AppConfig.from_resolved(data)
+
+
+def test_refresh_invalid_event():
+    data = deepcopy(base_data)
+    extra_config = """
+    [script.mode]
+    css.color = "$red"
+    css.bold = true
+    _refresh = "on UnknownEvent"
+    """
+
+    extra_data = tomllib.loads(extra_config)
+    data.merge(ConfigReader.from_dict(extra_data, Path(__file__)))
+
+    with raises(ConfigValidationError, match="not found for refresh config"):
+        AppConfig.from_resolved(data)

@@ -39,7 +39,7 @@ class ConfigReader(dict[str, Any]):
 
     @classmethod
     def from_path(cls, path: Path) -> "ConfigReader":
-        if not path.exists():
+        if not path.exists():  # pragma: no cover
             return cls()
 
         with open(path, "rb") as f:
