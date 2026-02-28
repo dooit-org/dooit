@@ -2,7 +2,7 @@ import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Iterable, Optional
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
 from dooit.config.errors import ConfigError, ConfigValidationError
 from dooit.utils.py_script_reader import PyScriptReader
@@ -70,11 +70,10 @@ class ScriptParser:
         func = reader.get_function(func_name.strip())
 
         reload_targets_value = script_entry.get(ScriptKeyword.RELOAD, "")
-        assert isinstance(reload_targets_value, str), (
-            "_reload must be comma separated string"
-        )
+        if not isinstance(reload_targets_value, str):
+            raise ConfigValidationError("_reload must be comma separated string")
 
-        reload_targets = set(reload_targets_value.split())
+        reload_targets = cls.parse_reload_targets(reload_targets_value)
 
         refresh_value = script_entry.get(ScriptKeyword.REFRESH)
         refresh = cls.parse_refresh(refresh_value or "on Startup")
@@ -117,12 +116,14 @@ class ScriptParser:
     @classmethod
     def parse_event(cls, refresh: str) -> type["DooitEvent"]:
         name = refresh.replace("on", "", 1).strip()
-        assert bool(name), "Event name cannot be empty in refresh config"
+        if not name:
+            raise ConfigValidationError("Event name cannot be empty in refresh config")
 
         from dooit.ui.bridge import events as events_module
 
         event = getattr(events_module, name, None)
-        assert event is not None, f"Event '{name}' not found for refresh config"
+        if event is None:
+            raise ConfigValidationError(f"Event '{name}' not found for refresh config")
 
         return event
 
