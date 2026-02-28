@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 class ScriptKeyword(str, Enum):
     SCRIPT = "_script"
     REFRESH = "_refresh"
-    RELOAD_TARGETS = "reload_targets"
+    RELOAD = "_reload"
 
 
 class RefreshKind(str, Enum):
@@ -69,12 +69,12 @@ class ScriptParser:
         reader = ScriptReaderFactory.get_reader(script_path)
         func = reader.get_function(func_name.strip())
 
-        reload_targets_value = script_entry.get(ScriptKeyword.RELOAD_TARGETS, [])
-        assert isinstance(reload_targets_value, Iterable), (
-            "reload_targets must be an iterable of strings"
+        reload_targets_value = script_entry.get(ScriptKeyword.RELOAD, "")
+        assert isinstance(reload_targets_value, str), (
+            "_reload must be comma separated string"
         )
 
-        reload_targets = set(reload_targets_value)
+        reload_targets = set(reload_targets_value.split())
 
         refresh_value = script_entry.get(ScriptKeyword.REFRESH)
         refresh = cls.parse_refresh(refresh_value or "on Startup")

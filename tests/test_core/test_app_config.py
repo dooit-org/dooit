@@ -77,3 +77,19 @@ def test_invalid_refresh_interval():
 
     with raises(ConfigValidationError):
         AppConfig.from_resolved(data)
+
+
+def test_reload_targets():
+    data = deepcopy(base_data)
+    extra_config = """
+    [script.mode]
+    css.color = "$red"
+    css.bold = true
+    _reload = "bar"
+    """
+
+    extra_data = tomllib.loads(extra_config)
+    data.merge(ConfigReader.from_dict(extra_data, Path(__file__)))
+
+    config = AppConfig.from_resolved(data)
+    assert config.script["mode"].entry.reload_targets == {"bar"}
