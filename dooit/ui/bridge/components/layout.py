@@ -18,9 +18,3 @@ class LayoutManager(ApiComponent):
         instance.todo_layout = config.layout.todo
         instance.workspace_layout = config.layout.workspace
         return instance
-
-    def set_todo_layout(self, layout: TodoLayoutConfig) -> None:
-        self.todo_layout = layout
-
-    def set_workspace_layout(self, layout: WorkspaceLayoutConfig) -> None:
-        self.workspace_layout = layout

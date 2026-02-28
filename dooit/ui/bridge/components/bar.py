@@ -13,9 +13,6 @@ class BarManager(ApiComponent):
         self.widgets_left = left
         self.widgets_right = right
 
-    def get(self):
-        return self.widgets_left, self.widgets_right
-
     @classmethod
     def from_config(cls, config: AppConfig) -> "BarManager":
         instance = cls()
