@@ -6,11 +6,9 @@ from .components import (
     VarManager,
 )
 from .dooit_api import DooitAPI
-from .plug import PluginManager
 
 __all__ = [
     "DooitAPI",
-    "PluginManager",
     "KeyManager",
     "KeyBindType",
     "LayoutManager",
