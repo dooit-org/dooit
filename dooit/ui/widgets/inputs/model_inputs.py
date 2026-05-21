@@ -8,18 +8,24 @@ from dooit.utils import parse
 
 
 class TodoDescription(SimpleInput[Todo, str]):
+    """Input widget for editing a Todo item's description."""
+
     @property
     def _property(self) -> str:
         return "description"
 
 
 class WorkspaceDescription(SimpleInput[Workspace, str]):
+    """Input widget for editing a Workspace item's description."""
+
     @property
     def _property(self) -> str:
         return "description"
 
 
 class Due(SimpleInput[Todo, datetime]):
+    """Input widget for editing a Todo item's due date."""
+
     def _get_default_value(self) -> str:
         value = self.model_value
 
@@ -43,8 +49,11 @@ class Due(SimpleInput[Todo, datetime]):
 
 
 class Urgency(SimpleInput[Todo, int]):
+    """Input widget for editing a Todo item's urgency level."""
+
     @property
     def value(self) -> str:
+        """Return the urgency as a string, or empty string if zero."""
         res = self.model.urgency
 
         if res == 0:
@@ -60,6 +69,8 @@ class Urgency(SimpleInput[Todo, int]):
 
 
 class Effort(SimpleInput[Todo, int]):
+    """Input widget for editing a Todo item's effort estimate."""
+
     def _typecast_value(self, value: str) -> Any:
         if not value or value == "0":
             return 0
@@ -68,6 +79,8 @@ class Effort(SimpleInput[Todo, int]):
 
 
 class Status(SimpleInput[Todo, str]):
+    """Input widget for displaying and toggling a Todo item's completion status."""
+
     def _get_default_value(self) -> str:
         val = self.model_value
 
@@ -87,8 +100,11 @@ class Status(SimpleInput[Todo, str]):
 
 
 class Recurrence(SimpleInput[Todo, timedelta]):
+    """Input widget for editing a Todo item's recurrence interval."""
+
     @staticmethod
     def parse_recurrence(recurrence: str) -> timedelta:
+        """Parse a recurrence string like '2d' or '1w' into a timedelta."""
         DURATION_LEGEND = {
             "m": "minute",
             "h": "hour",
@@ -114,6 +130,7 @@ class Recurrence(SimpleInput[Todo, timedelta]):
 
     @staticmethod
     def timedelta_to_simple_string(td: timedelta):
+        """Convert a timedelta to a compact string like '2d', '1w', '3h', or '5m'."""
         if td.days >= 7 and td.days % 7 == 0:
             weeks = td.days // 7
             return f"{weeks}w"

@@ -17,9 +17,11 @@ class Input:
 
     @property
     def value(self) -> str:
+        """Return the current text value of the input."""
         return self._value
 
     def draw(self) -> str:
+        """Return the display text, including the cursor if currently editing."""
         if self.is_editing:
             text = self._render_text_with_cursor()
         else:
@@ -28,6 +30,7 @@ class Input:
         return text
 
     def render(self) -> str:
+        """Return the drawn text with leading and trailing whitespace removed."""
         return self.draw().strip()
 
     def _render_text_with_cursor(self) -> str:
@@ -42,9 +45,11 @@ class Input:
         )
 
     def start_edit(self) -> None:
+        """Enable editing mode for the input."""
         self.is_editing = True
 
     def stop_edit(self) -> None:
+        """Disable editing mode for the input."""
         self.is_editing = False
 
     def _insert_text(self, text: Optional[str] = None) -> None:
@@ -121,14 +126,17 @@ class Input:
             self._cursor_position = prev  # Because the cursor never actually moved :)
 
     def clear_input(self) -> None:
+        """Clear all text from the input by simulating backspace from the end."""
         self.move_cursor_to_end()
         while self._value:
             self.keypress("backspace")
 
     def move_cursor_to_end(self) -> None:
+        """Move the cursor to the end of the current text."""
         self._cursor_position = len(self._value)
 
     def keypress(self, key: str) -> None:
+        """Handle a keypress event and update the input state accordingly."""
         # Moving backward
         if key == "left":
             self._move_cursor_backward()

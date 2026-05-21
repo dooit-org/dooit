@@ -32,20 +32,24 @@ class SimpleInput(Input, Generic[ModelType, ModelValue]):
 
     @property
     def model_value(self) -> ModelValue:
+        """Return the current value of the bound model property."""
         return getattr(self.model, self._property)
 
     @model_value.setter
     def model_value(self, value: str) -> None:
+        """Set the value of the bound model property."""
         return setattr(self.model, self._property, value)
 
     def _typecast_value(self, value: str) -> Any:
         return value
 
     def reset(self) -> str:
+        """Reset the cursor position to the end of the value and return the value."""
         self._cursor_pos = len(self.value)
         return self.value
 
     def stop_edit(self) -> None:
+        """Stop editing, persist the value to the model, and reset the display."""
         self._value = self.value.strip()
         try:
             self.model_value = self._typecast_value(self.value)
@@ -56,4 +60,5 @@ class SimpleInput(Input, Generic[ModelType, ModelValue]):
             self.move_cursor_to_end()
 
     def keypress(self, key: str) -> None:
+        """Handle a keypress event by delegating to the parent Input."""
         super().keypress(key)
