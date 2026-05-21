@@ -11,6 +11,12 @@ from .base import BaseScreen
 
 
 class HelpWidget(Static):
+    """
+    Base static widget used by all components on the help screen.
+
+    Provides shared CSS defaults for centering and sizing.
+    """
+
     DEFAULT_CSS = """
     HelpWidget {
         content-align: center middle;
@@ -21,11 +27,21 @@ class HelpWidget(Static):
 
 
 class Header(HelpWidget):
+    """
+    Header widget that displays the welcome message at the top of the help screen.
+    """
+
     def render(self) -> RenderableType:
+        """Render the welcome message."""
         return "Welcome to Dooit!"
 
 
 class Outro(HelpWidget):
+    """
+    Footer widget that displays credits, a GitHub link, and navigation hints
+    at the bottom of the help screen.
+    """
+
     COMPONENT_CLASSES = {
         "exit",
         "thanks",
@@ -33,6 +49,7 @@ class Outro(HelpWidget):
     }
 
     def render(self) -> RenderableType:
+        """Render the credits, GitHub link, and escape hint."""
         thanks = Text.from_markup(
             "     Thanks for using Dooit <3",
             style=self.get_component_rich_style("thanks"),
@@ -57,6 +74,10 @@ class Outro(HelpWidget):
 
 
 class DooitKeyTable(HelpWidget):
+    """
+    Widget that renders a table of all configured keybindings grouped by category.
+    """
+
     DEFAULT_CSS = """
     DooitKeyTable {
         padding: 1 2;
@@ -77,6 +98,7 @@ class DooitKeyTable(HelpWidget):
         self.no_op = no_op
 
     def render(self) -> RenderableType:
+        """Render all keybinding groups as styled Rich tables."""
         tables = []
 
         for group in self.keybinds.groups:
@@ -129,18 +151,23 @@ class HelpScreen(BaseScreen):
     ]
 
     def compose(self) -> ComposeResult:
+        """Compose the help screen with header, key table, and outro widgets."""
         yield Header()
         yield DooitKeyTable(self.api.keys, self.api.no_op)
         yield Outro()
 
     def key_down(self):
+        """Scroll the help screen down using the down arrow key."""
         self.scroll_down()
 
     def key_up(self):
+        """Scroll the help screen up using the up arrow key."""
         self.scroll_up()
 
     def key_j(self):
+        """Scroll the help screen down using the j key."""
         self.scroll_down()
 
     def key_k(self):
+        """Scroll the help screen up using the k key."""
         self.scroll_up()

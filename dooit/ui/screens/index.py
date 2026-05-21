@@ -30,6 +30,10 @@ from .base import BaseScreen
 
 
 class DualSplit(Container):
+    """
+    A two-column grid container that holds the workspace and todo panels side by side.
+    """
+
     DEFAULT_CSS = """
     DualSplit {
         layout: grid;
@@ -40,14 +44,28 @@ class DualSplit(Container):
 
 
 class DualSplitLeft(Container):
+    """
+    Container for the left panel of the dual-split layout (workspaces).
+    """
+
     pass
 
 
 class DualSplitRight(Container):
+    """
+    Container for the right panel of the dual-split layout (todos).
+    """
+
     pass
 
 
 class MainScreen(BaseScreen):
+    """
+    The primary screen of Dooit, containing the workspace tree, todo lists,
+    dashboard, and status bar. Handles key routing and SQLAlchemy event listeners
+    for tracking model field changes.
+    """
+
     DEFAULT_CSS = """
     MainScreen {
         layout: grid;
@@ -57,6 +75,7 @@ class MainScreen(BaseScreen):
     """
 
     def compose(self):
+        """Compose the main screen with workspace tree, todo switcher, dashboard, and status bar."""
         workspaces_tree = WorkspacesTree(Workspace._get_or_create_root())
 
         with DualSplit():
@@ -69,6 +88,7 @@ class MainScreen(BaseScreen):
         yield BarSwitcher()
 
     async def handle_key(self, event: events.Key) -> bool:
+        """Route key events to the bar switcher or the API key handler."""
         # NOTE: Investigate why keys are sent to this screen
         if self.app.screen != self:
             return True
@@ -83,34 +103,41 @@ class MainScreen(BaseScreen):
 
     @on(BarNotification)
     def show_notification(self, event: BarNotification):
+        """Display a notification message in the status bar."""
         self.app.bar_switcher.switch_to_notification(event)
 
     @on(SwitchTab)
     def switch_tab(self, event: SwitchTab) -> None:
+        """Switch focus to the next widget when a tab switch is requested."""
         event.stop()
         self.app.action_focus_next()
 
     @on(SpawnHelp)
     async def spawn_help(self, _: SpawnHelp) -> None:
+        """Push the help screen onto the screen stack."""
         self.app.push_screen("help")
 
     @on(StartSearch)
     def start_search(self, event: StartSearch):
+        """Activate the search bar and switch to SEARCH mode."""
         self.app.bar_switcher.switch_to_search(event.callback)
         self.post_message(ModeChanged("SEARCH"))
 
     @on(StartSort)
     def start_sort(self, event: StartSort):
+        """Activate the sort bar and switch to SORT mode."""
         self.app.bar_switcher.switch_to_sort(event.model, event.callback)
         self.post_message(ModeChanged("SORT"))
 
     @on(ShowConfirm)
     def show_confirm(self, event: ShowConfirm):
+        """Activate the confirmation bar and switch to CONFIRM mode."""
         self.app.bar_switcher.switch_to_confirm(event.callback)
         self.post_message(ModeChanged("CONFIRM"))
 
     @on(WorkspaceSelected)
     async def workspace_selected(self, event: WorkspaceSelected):
+        """Switch to or create the todo tree for the selected workspace."""
         switcher = self.query_one("#todo_switcher", expect_type=ContentSwitcher)
         tree = TodosTree(event.workspace)
 

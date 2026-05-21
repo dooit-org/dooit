@@ -19,6 +19,7 @@ class BaseScreen(Screen, inherit_bindings=False):
 
     @property
     def app(self) -> "Dooit":
+        """Return the running Dooit application instance."""
         from ..tui import Dooit
 
         app = super().app
@@ -28,9 +29,11 @@ class BaseScreen(Screen, inherit_bindings=False):
 
     @property
     def api(self) -> "DooitAPI":
+        """Return the DooitAPI instance from the application."""
         return self.app.api
 
     def resolve_key(self, event: events.Key) -> str:
+        """Resolve a Key event to a string representation of the pressed key."""
         if not event.character:
             return event.key
 

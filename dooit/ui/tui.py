@@ -22,6 +22,13 @@ PRINTABLE = (
 
 
 class Dooit(App):
+    """
+    Main application class for Dooit, a terminal-based todo manager.
+
+    Manages the overall application lifecycle, screen navigation, plugin loading,
+    and database polling for external changes.
+    """
+
     CSS_PATH = CssManager().css_file
     ENABLE_COMMAND_PALETTE = False
 
@@ -45,6 +52,7 @@ class Dooit(App):
         manager.connect(db_path)
 
     async def base_setup(self):
+        """Initialize the API, scan for plugins, and push the main screen."""
         self.api = DooitAPI(self)
         self.api.plugin_manager.scan()
         self.post_message(Startup())
@@ -52,6 +60,7 @@ class Dooit(App):
         self.push_screen("main")
 
     async def setup_poller(self):
+        """Set up a periodic timer to poll the database for external changes."""
         self.set_interval(1, self.poll_dooit_db)
 
     async def on_mount(self):
@@ -64,20 +73,25 @@ class Dooit(App):
 
     @property
     def workspace_tree(self) -> WorkspacesTree:
+        """Return the WorkspacesTree widget from the current screen."""
         return self.screen.query_one(WorkspacesTree)
 
     @property
     def bar(self) -> StatusBar:
+        """Return the StatusBar widget from the current screen."""
         return self.screen.query_one(BarSwitcher).status_bar
 
     @property
     def bar_switcher(self) -> BarSwitcher:
+        """Return the BarSwitcher widget from the current screen."""
         return self.screen.query_one(BarSwitcher)
 
     def get_dooit_mode(self) -> ModeType:
+        """Return the current application mode (e.g. NORMAL, SEARCH, SORT)."""
         return self.dooit_mode
 
     async def poll_dooit_db(self):  # pragma: no cover
+        """Check for external database changes and refresh all trees if needed."""
         def refresh_all_trees():
             trees = self.screen.query(ModelTree)
             for tree in trees:
@@ -88,16 +102,19 @@ class Dooit(App):
 
     @on(DooitEvent)
     def global_message(self, event: DooitEvent):
+        """Dispatch a DooitEvent to the plugin API and refresh the status bar."""
         if isinstance(self.screen, MainScreen):
             self.api.trigger_event(event)
             self.bar.refresh()
 
     @on(ShutDown)
     def shutdown(self, _: ShutDown):
+        """Clean up CSS resources on application shutdown."""
         self.api.css.cleanup()
 
     @on(ModeChanged)
     def change_status(self, event: ModeChanged):
+        """Update the application mode and refresh tree options when returning to NORMAL."""
         self.dooit_mode = event.mode
         if event.mode == "NORMAL":
             self.workspace_tree.refresh_options()
@@ -107,6 +124,7 @@ class Dooit(App):
 
     @on(QuitApp)
     async def quit_app(self):
+        """Handle the QuitApp event by triggering the quit action."""
         await self.action_quit()
 
     async def action_open_url(self, url: str) -> None:  # pragma: no cover
