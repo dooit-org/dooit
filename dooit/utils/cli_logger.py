@@ -5,6 +5,10 @@ from rich.console import Console
 
 
 class LogLevel(Enum):
+    """
+    Enumeration of available log severity levels.
+    """
+
     INFO = "INFO"
     WARN = "WARN"
     ERROR = "ERROR"
@@ -12,6 +16,10 @@ class LogLevel(Enum):
 
 
 class CliLogger:
+    """
+    Rich-based CLI logger that prints colored, level-prefixed messages to the console.
+    """
+
     def __init__(self) -> None:
         self.console = Console()
         self.print = self.console.print
@@ -40,15 +48,19 @@ class CliLogger:
         self.print(message)
 
     def info(self, *messages: str) -> None:
+        """Log one or more messages at the INFO level."""
         self._log(LogLevel.INFO, *messages)
 
     def warn(self, *messages: str) -> None:
+        """Log one or more messages at the WARN level."""
         self._log(LogLevel.WARN, *messages)
 
     def error(self, *messages: str) -> None:
+        """Log one or more messages at the ERROR level."""
         self._log(LogLevel.ERROR, *messages)
 
     def success(self, *messages: str) -> None:
+        """Log one or more messages at the SUCCESS level."""
         self._log(LogLevel.SUCCESS, *messages)
 
 

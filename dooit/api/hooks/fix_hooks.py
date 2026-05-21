@@ -5,6 +5,7 @@ from ..todo import Todo
 
 @event.listens_for(Workspace, "before_insert")
 def fix_order_id_workspace(_, connection, target: Workspace):
+    """Fix and adjust order indices for workspaces before insertion."""
     if target.is_root:
         return
 
@@ -25,6 +26,7 @@ def fix_order_id_workspace(_, connection, target: Workspace):
 
 @event.listens_for(Todo, "before_insert")
 def fix_order_id_todo(_, connection, target: Todo):
+    """Fix and adjust order indices for todos before insertion."""
     if target.order_index is None or target.order_index == -1:
         target.order_index = len(target.siblings) - 1
 

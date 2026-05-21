@@ -14,6 +14,7 @@ operations = []
 
 
 def parse_recurrence(recurrence: str) -> timedelta:
+    """Parse a recurrence string (e.g., '2d', '1w') into a timedelta."""
     DURATION_LEGEND = {
         "m": "minute",
         "h": "hour",
@@ -33,6 +34,7 @@ def parse_recurrence(recurrence: str) -> timedelta:
 
 
 def parse_due(due: str) -> Optional[datetime]:
+    """Parse a due date string (timestamp or 'none') into a datetime or None."""
     if due == "none":
         return None
 
@@ -41,21 +43,28 @@ def parse_due(due: str) -> Optional[datetime]:
 
 
 class Migrator2to3:
+    """
+    Handles migration of data from dooit v2 (YAML-based) to v3 (SQLite-based).
+    """
+
     old_location = BASE_PATH / "todo.yaml"
     new_location = BASE_PATH / "dooit.db"
 
     @classmethod
     def check_for_old_data(cls):
+        """Check whether a v2 data file exists at the expected location."""
         if not cls.old_location.exists():
             return False
 
         return True
 
     def load_old(self):
+        """Load and return the old v2 YAML configuration data."""
         with self.old_location.open() as f:
             return safe_load(f)
 
     def backup_old_config(self):
+        """Rename the old v2 config file to a .bak backup."""
         logger.info("Moving old config to a backup file ...")
 
         backup_location = self.old_location.with_suffix(".bak")
@@ -64,6 +73,7 @@ class Migrator2to3:
         logger.success("Backup successful")
 
     def migrate(self):
+        """Run the full migration from v2 YAML data to the v3 database."""
         logger.info("Checking for old data ...")
 
         if not self.check_for_old_data():
@@ -95,6 +105,7 @@ class Migrator2to3:
     # ------------------------------------------------
 
     def create_workspace(self, data, parent=None):
+        """Create a workspace and its children from v2 data recursively."""
         description = data.get("description")
         child_workspaces = data.get("workspaces", [])
         todos = data.get("todos", [])
@@ -109,6 +120,7 @@ class Migrator2to3:
             self.create_todo(child, parent_workspace=workspace)
 
     def create_todo(self, data: List, parent_todo=None, parent_workspace=None):
+        """Create a todo and its children from v2 data recursively."""
         self_data = data[0]
         if len(data) == 1:
             children_data = []

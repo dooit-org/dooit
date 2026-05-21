@@ -5,6 +5,7 @@ from ..todo import Todo
 
 @event.listens_for(Todo, "before_update")
 def update_children_to_pending(_, connection, target: Todo):
+    """Mark all child todos as pending when the parent becomes pending."""
     if not target.pending:
         return
 
@@ -17,6 +18,7 @@ def update_children_to_pending(_, connection, target: Todo):
 
 @event.listens_for(Todo, "before_update")
 def update_children_to_completed(_, connection, target: Todo):
+    """Mark all child todos as completed when the parent is completed."""
     if target.pending:
         return
 
@@ -26,6 +28,7 @@ def update_children_to_completed(_, connection, target: Todo):
 
 @event.listens_for(Todo, "before_update")
 def update_parent_to_pending(mapper, connection, target: Todo):
+    """Mark the parent todo as pending when any child becomes pending."""
     if not target.pending or not target.parent_todo:
         return
 
@@ -35,6 +38,7 @@ def update_parent_to_pending(mapper, connection, target: Todo):
 
 @event.listens_for(Todo, "before_update")
 def update_parent_to_completed(mapper, connection, target: Todo):
+    """Mark the parent todo as completed when all siblings are completed."""
     if target.pending or not target.parent_todo:
         return
 
@@ -49,6 +53,7 @@ def update_parent_to_completed(mapper, connection, target: Todo):
 
 @event.listens_for(Todo, "before_update")
 def update_due_for_recurrence(mapper, connection, todo: Todo):
+    """Advance the due date by the recurrence interval when a recurring todo is completed."""
     if todo.recurrence is None:
         return
 

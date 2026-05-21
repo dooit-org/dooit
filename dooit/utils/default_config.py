@@ -13,6 +13,7 @@ from rich.text import Text
 
 @subscribe(ModeChanged)
 def get_mode(api: DooitAPI, event: ModeChanged):
+    """Return a styled Text widget displaying the current input mode."""
     theme = api.vars.theme
     mode = event.mode
 
@@ -32,6 +33,7 @@ def get_mode(api: DooitAPI, event: ModeChanged):
 
 @timer(1)
 def get_clock(api: DooitAPI):
+    """Return a styled Text widget displaying the current time."""
     theme = api.vars.theme
     time = datetime.now().strftime("%H:%M:%S")
     return Text(
@@ -45,6 +47,7 @@ def get_clock(api: DooitAPI):
 
 @subscribe(Startup)
 def get_user(api: DooitAPI, _: Startup):
+    """Return a styled Text widget displaying the current OS username."""
     theme = api.vars.theme
     try:
         username = os.getlogin()
@@ -66,6 +69,7 @@ def get_user(api: DooitAPI, _: Startup):
 
 
 def todo_status_formatter(status: str, _: Todo, api: DooitAPI):
+    """Format a todo status as a colored symbol (o, x, or !)."""
     text = "o"
     theme = api.vars.theme
 
@@ -83,6 +87,7 @@ def todo_status_formatter(status: str, _: Todo, api: DooitAPI):
 
 
 def todo_due_formatter(due, _):
+    """Format a due datetime as a human-readable date string."""
     if due is None:
         return ""
 
@@ -95,6 +100,7 @@ def todo_due_formatter(due, _):
 
 
 def todo_urgency_formatter(urgency, _, api: DooitAPI):
+    """Format an urgency level as a colored exclamation-prefixed string."""
     if urgency == 0:
         return ""
 
@@ -113,6 +119,7 @@ def todo_urgency_formatter(urgency, _, api: DooitAPI):
 
 
 def todo_recurrence_formatter(recurrence: Optional[timedelta], _):
+    """Format a recurrence timedelta as a simple human-readable string."""
     if recurrence is None:
         return ""
 
@@ -124,6 +131,7 @@ def todo_recurrence_formatter(recurrence: Optional[timedelta], _):
 
 @subscribe(Startup)
 def key_setup(api: DooitAPI, _):
+    """Configure the default keybindings for the application."""
     api.keys.set("<tab>", api.switch_focus)
     api.keys.set("j", api.move_down)
     api.keys.set("k", api.move_up)
@@ -155,6 +163,7 @@ def key_setup(api: DooitAPI, _):
 
 @subscribe(Startup)
 def layout_setup(api: DooitAPI, _):
+    """Configure the default column layouts for workspace and todo views."""
     api.layouts.workspace_layout = [WorkspaceWidget.description]
     api.layouts.todo_layout = [
         TodoWidget.status,
@@ -166,6 +175,7 @@ def layout_setup(api: DooitAPI, _):
 
 @subscribe(Startup)
 def formatter_setup(api: DooitAPI, _):
+    """Register the default formatters for todo fields."""
     api.formatter.todos.status.add(todo_status_formatter)
     api.formatter.todos.due.add(todo_due_formatter)
     api.formatter.todos.urgency.add(todo_urgency_formatter)
@@ -174,6 +184,7 @@ def formatter_setup(api: DooitAPI, _):
 
 @subscribe(Startup)
 def bar_setup(api: DooitAPI, _):
+    """Configure the default status bar widgets."""
     bar_widgets = [
         StatusBarWidget(get_mode),
         StatusBarWidget(lambda: "", width=0),
@@ -186,6 +197,7 @@ def bar_setup(api: DooitAPI, _):
 
 @subscribe(Startup)
 def dashboard_setup(api: DooitAPI, _):
+    """Configure the default dashboard welcome message."""
     api.dashboard.set(
         [
             "Welcome to Dooit!",

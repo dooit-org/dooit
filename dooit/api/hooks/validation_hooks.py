@@ -6,6 +6,7 @@ from ..todo import Todo
 @event.listens_for(Todo, "before_insert")
 @event.listens_for(Todo, "before_update")
 def validate_parent_todo(mapper, connection, target: Todo):
+    """Validate that a todo has exactly one parent (workspace or todo, not both)."""
     if target.parent_workspace is None and target.parent_todo is None:
         raise NoParentError("Todo must have a parent workspace or todo")
 
@@ -16,6 +17,7 @@ def validate_parent_todo(mapper, connection, target: Todo):
 @event.listens_for(Todo, "before_insert")
 @event.listens_for(Todo, "before_update")
 def validate_urgency(mapper, connection, target: Todo):
+    """Clamp the urgency value of a todo to the valid range of 1 to 4."""
     if target.urgency is None:
         return
 
