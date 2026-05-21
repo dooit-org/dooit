@@ -26,6 +26,7 @@ def temporary_sys_path(path: Path):
 
 
 def register(api: "PluginManager", path: Path) -> None:
+    """Dynamically load a Python module from the given path and register its objects with the plugin manager."""
     module_name = f"dynamic_{path.stem}"
     spec = importlib.util.spec_from_file_location(module_name, path)
 
@@ -41,6 +42,7 @@ def register(api: "PluginManager", path: Path) -> None:
 
 
 def load_file(api: "PluginManager", path: Path) -> bool:
+    """Load a plugin file and register its contents, returning True if the file exists."""
     if not path.exists():
         return False
 

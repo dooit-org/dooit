@@ -21,6 +21,13 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 class DooitAPI:
+    """
+    Central API for interacting with the Dooit application.
+
+    Provides methods for navigation, editing, clipboard operations,
+    and plugin/event management within the TUI.
+    """
+
     def __init__(
         self,
         app: "Dooit",
@@ -46,9 +53,11 @@ class DooitAPI:
         self.app.post_message(QuitApp())
 
     def notify(self, message: str, level: NotificationType = "info") -> None:
+        """Display a notification message in the status bar."""
         self.app.bar_switcher.switch_to_notification(BarNotification(message, level))
 
     async def handle_key(self, key: str) -> None:
+        """Handle a keypress by dispatching to registered keybindings or the focused widget."""
         keymatch = self.keys.register_key(key)
 
         if keymatch.match_type == KeyMatchType.NoMatchFound:
@@ -67,12 +76,14 @@ class DooitAPI:
             )
 
     def trigger_event(self, event: DooitEvent):
+        """Trigger a DooitEvent and notify all registered plugin handlers."""
         self.plugin_manager.on_event(event)
 
     # -----------------------------------------
 
     @property
     def focused(self) -> ModelTree:
+        """Return the currently focused ModelTree widget."""
         focused = self.app.focused
         if isinstance(focused, ModelTree):
             return focused
@@ -150,6 +161,7 @@ class DooitAPI:
         return self.edit("recurrence")
 
     def edit_effort(self):
+        """Start editing the effort of the todo."""
         return self.edit("effort")
 
     def add_sibling(self):

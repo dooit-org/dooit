@@ -26,10 +26,16 @@ DEFAULT_CONFIG = BASE_PATH / "utils" / "default_config.py"
 
 
 def is_running_under_pytest() -> bool:
+    """Check whether the current process is running under pytest."""
     return "PYTEST_CURRENT_TEST" in os.environ
 
 
 class PluginManager:
+    """
+    Manages plugin registration, event dispatching, and timer scheduling
+    for the Dooit application.
+    """
+
     def __init__(self, api: "DooitAPI", config: Optional[Path] = None) -> None:
         self.config = config or CONFIG_FILE
         self.events: defaultdict[Type[DooitEvent], List[Callable]] = defaultdict(list)
@@ -38,6 +44,7 @@ class PluginManager:
         self.app = api.app
 
     def scan(self):
+        """Load and register plugins from the default and user configuration files."""
         load_file(self, DEFAULT_CONFIG)
         if is_running_under_pytest():
             return
@@ -55,6 +62,7 @@ class PluginManager:
             pass
 
     def on_event(self, event: DooitEvent):
+        """Dispatch a DooitEvent to all matching registered event handlers."""
         matched_events = [
             e for e in self.events.keys() if issubclass(event.__class__, e)
         ]
@@ -74,6 +82,7 @@ class PluginManager:
             self.api.app.set_interval(interval, func)
 
     def register(self, obj):
+        """Register a callable as an event handler or timer based on its attributes."""
         if event := getattr(obj, DOOIT_EVENT_ATTR, None):
             return self._register_events(event, obj)
 
