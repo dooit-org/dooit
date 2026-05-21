@@ -10,6 +10,10 @@ ModelTypeList = Union[List["Workspace"], List["Todo"]]
 
 
 class Workspace(DooitModel):
+    """
+    Model representing a workspace, which can contain nested workspaces and todos.
+    """
+
     # id: Mapped[int] = mapped_column(primary_key=True, default=generate_unique_id)
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     order_index: Mapped[int] = mapped_column(default=-1)
@@ -54,6 +58,8 @@ class Workspace(DooitModel):
 
     @classmethod
     def from_id(cls, _id: str) -> "Workspace":
+        """Look up and return a Workspace instance by its string identifier."""
+
         _id = _id.lstrip("Workspace_")
         query = select(Workspace).where(Workspace.id == _id)
         res = manager.session.execute(query).scalars().first()
@@ -62,14 +68,18 @@ class Workspace(DooitModel):
 
     @property
     def parent(self) -> Optional["Workspace"]:
+        """Return the parent workspace, or None if this is a top-level workspace."""
         return self.parent_workspace
 
     @property
     def has_same_parent_kind(self) -> bool:
+        """Check whether the parent is also a Workspace."""
         return self.parent is not None
 
     @property
     def siblings(self) -> List["Workspace"]:
+        """Return a list of sibling Workspace items sharing the same parent."""
+
         if not self.parent_workspace:
             return []
 
@@ -78,6 +88,8 @@ class Workspace(DooitModel):
         return self.parent_workspace.workspaces
 
     def sort_siblings(self, field: str):
+        """Sort sibling workspaces by the given field name."""
+
         items = (
             self.session.query(Workspace)
             .filter_by(
@@ -93,11 +105,15 @@ class Workspace(DooitModel):
         manager.commit()
 
     def add_workspace(self) -> "Workspace":
+        """Create and return a new child Workspace nested under this one."""
+
         workspace = Workspace(parent_workspace=self)
         workspace.save()
         return workspace
 
     def add_todo(self) -> "Todo":
+        """Create and return a new Todo belonging to this workspace."""
+
         todo = Todo(parent_workspace=self)
         todo.save()
         return todo
@@ -111,6 +127,8 @@ class Workspace(DooitModel):
         return workspace
 
     def save(self) -> None:
+        """Persist the workspace, assigning it to the root workspace if it has no parent."""
+
         if not self.parent_workspace and not self.is_root:
             root = self._get_or_create_root()
             self.parent_workspace = root
@@ -119,11 +137,15 @@ class Workspace(DooitModel):
 
     @classmethod
     def all(cls) -> List["Workspace"]:
+        """Return all non-root Workspace instances from the database."""
+
         query = select(Workspace).where(Workspace.is_root == False)
         return list(manager.session.execute(query).scalars().all())
 
     @staticmethod
     def clone_from_id(id: int, order_index: int) -> "Workspace":
+        """Create a deep copy of the Workspace identified by the given id, including all nested children and todos."""
+
         workspace = Workspace.from_id(str(id))
         fields = ["description"]
         attrs = {field: getattr(workspace, field) for field in fields}

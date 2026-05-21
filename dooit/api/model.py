@@ -12,10 +12,18 @@ T = TypeVar("T")
 
 
 class BaseModel(DeclarativeBase):
+    """
+    SQLAlchemy declarative base for all dooit database models.
+    """
+
     pass
 
 
 class BaseModelMixin:
+    """
+    Mixin that provides automatic table name generation from the class name.
+    """
+
     @declared_attr
     def __tablename__(cls):
         return cls.__name__.lower()
@@ -38,6 +46,10 @@ class DooitModel(BaseModel, BaseModelMixin):
 
     @classmethod
     def comparable_fields(cls):
+        """
+        Return a list of column names that can be used for sorting and comparison.
+        """
+
         to_ignore = ["id", "order_index", "is_root"]
 
         comparable_fields = [
@@ -50,14 +62,18 @@ class DooitModel(BaseModel, BaseModelMixin):
 
     @property
     def uuid(self) -> str:
+        """Return a unique identifier string combining the class name and id."""
         return f"{self.__class__.__name__}_{self.id}"
 
     @property
     def parent(self) -> Any:
+        """Return the parent node of this model."""
         raise NotImplementedError  # pragma: no cover
 
     @property
     def nest_level(self):
+        """Return the nesting depth of this node relative to its top-level ancestor."""
+
         level = 0
         parent = self.parent
 
@@ -73,30 +89,39 @@ class DooitModel(BaseModel, BaseModelMixin):
 
     @property
     def siblings(self) -> List[Any]:
+        """Return a list of sibling nodes sharing the same parent."""
         raise NotImplementedError  # pragma: no cover
 
     @classmethod
     def from_id(cls, _id: str) -> Self:
+        """Look up and return a model instance by its string identifier."""
         raise NotImplementedError  # pragma: no cover
 
     @property
     def session(self):
+        """Return the current SQLAlchemy session from the manager."""
         return manager.session
 
     def is_last_sibling(self) -> bool:
+        """Check whether this node is the last among its siblings."""
         return self.siblings[-1].id == self.id
 
     def is_first_sibling(self) -> bool:
+        """Check whether this node is the first among its siblings."""
         return self.siblings[0].id == self.id
 
     @property
     def has_same_parent_kind(self) -> bool:
+        """Check whether the parent is the same type as this node."""
         raise NotImplementedError  # pragma: no cover
 
     def sort_siblings(self, field: str):
+        """Sort sibling nodes by the given field name."""
         raise NotImplementedError  # pragma: no cover
 
     def reverse_siblings(self):
+        """Reverse the ordering of all siblings."""
+
         for index, model in enumerate(reversed(self.siblings)):
             model.order_index = index
 
@@ -125,6 +150,7 @@ class DooitModel(BaseModel, BaseModelMixin):
         raise NotImplementedError  # pragma: no cover
 
     def add_sibling(self):
+        """Create and return a new sibling node adjacent to this one."""
         return self._add_sibling()
 
     def shift_down(self) -> bool:
@@ -147,11 +173,14 @@ class DooitModel(BaseModel, BaseModelMixin):
         return True
 
     def drop(self) -> None:
+        """Delete this node from the database."""
         manager.delete(self)
 
     def save(self) -> None:
+        """Persist this node to the database."""
         manager.save(self)
 
     @staticmethod
     def clone_from_id(id: int, order_index: int) -> "DooitModel":
+        """Create a duplicate of the model identified by the given id."""
         raise NotImplementedError

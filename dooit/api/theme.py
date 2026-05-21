@@ -1,4 +1,8 @@
 class DooitThemeBase:
+    """
+    Base theme class defining the color palette used throughout the dooit UI.
+    """
+
     _name: str = "dooit-base"
 
     # background colors
@@ -27,6 +31,8 @@ class DooitThemeBase:
 
     @classmethod
     def to_css(cls) -> str:
+        """Convert the theme colors into a CSS variable string for use in stylesheets."""
+
         css = f"""\
 $background1: {cls.background1};
 $background2: {cls.background2};

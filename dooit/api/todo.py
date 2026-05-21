@@ -12,6 +12,10 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 class Todo(DooitModel):
+    """
+    Model representing a todo item, which can be nested under a Workspace or another Todo.
+    """
+
     # id: Mapped[int] = mapped_column(primary_key=True, default=generate_unique_id)
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     order_index: Mapped[int] = mapped_column(default=-1)
@@ -57,6 +61,8 @@ class Todo(DooitModel):
 
     @classmethod
     def from_id(cls, _id: str) -> "Todo":
+        """Look up and return a Todo instance by its string identifier."""
+
         _id = _id.lstrip("Todo_")
         query = select(Todo).where(Todo.id == _id)
         res = manager.session.execute(query).scalars().first()
@@ -65,6 +71,8 @@ class Todo(DooitModel):
 
     @property
     def parent(self) -> Union["Workspace", "Todo"]:
+        """Return the parent node, which is either a Workspace or another Todo."""
+
         assert self.parent_workspace or self.parent_todo
 
         if self.parent_workspace:
@@ -76,14 +84,18 @@ class Todo(DooitModel):
 
     @property
     def has_same_parent_kind(self) -> bool:
+        """Check whether the parent is also a Todo."""
         return self.parent_todo is not None
 
     @property
     def tags(self) -> List[str]:
+        """Extract and return all @-prefixed tags from the description."""
         return [i for i in self.description.split() if i[0] == "@"]
 
     @property
     def status(self) -> str:
+        """Return the current status string: 'completed', 'overdue', or 'pending'."""
+
         if self.is_completed:
             return "completed"
 
@@ -94,6 +106,8 @@ class Todo(DooitModel):
 
     @property
     def siblings(self) -> List["Todo"]:
+        """Return a list of sibling Todo items sharing the same parent."""
+
         if self.parent_workspace:
             return self.parent_workspace.todos
 
@@ -103,6 +117,8 @@ class Todo(DooitModel):
         return []
 
     def sort_siblings(self, field: str):
+        """Sort sibling todos by the given field name."""
+
         if field != "pending":
             items = (
                 self.session.query(Todo)
@@ -129,6 +145,8 @@ class Todo(DooitModel):
         manager.commit()
 
     def add_todo(self) -> "Todo":
+        """Create and return a new child Todo nested under this one."""
+
         todo = Todo(parent_todo=self)
         todo.save()
         return todo
@@ -145,18 +163,23 @@ class Todo(DooitModel):
     # ----------- HELPER FUNCTIONS --------------
 
     def increase_urgency(self) -> None:
+        """Increment the urgency level by one."""
         self.urgency += 1
         self.save()
 
     def decrease_urgency(self) -> None:
+        """Decrement the urgency level by one."""
         self.urgency -= 1
         self.save()
 
     def toggle_complete(self) -> None:
+        """Toggle the completion status between pending and completed."""
         self.pending = not self.pending
         self.save()
 
     def is_due_today(self) -> bool:
+        """Check whether the todo is due today."""
+
         if not self.due:
             return False
 
@@ -164,14 +187,18 @@ class Todo(DooitModel):
 
     @property
     def is_completed(self) -> bool:
+        """Check whether the todo has been marked as completed."""
         return self.pending == False
 
     @property
     def is_pending(self) -> bool:
+        """Check whether the todo is still pending."""
         return self.pending
 
     @property
     def is_overdue(self) -> bool:
+        """Check whether the todo is past its due date and still pending."""
+
         if not self.due:
             return False
 
@@ -179,11 +206,15 @@ class Todo(DooitModel):
 
     @classmethod
     def all(cls) -> List["Todo"]:
+        """Return all Todo instances from the database."""
+
         query = select(Todo)
         return list(manager.session.execute(query).scalars().all())
 
     @staticmethod
     def clone_from_id(id: int, order_index: int) -> "Todo":
+        """Create a deep copy of the Todo identified by the given id, including all nested children."""
+
         todo = Todo.from_id(str(id))
         fields = ["description", "due", "effort", "recurrence", "urgency", "pending"]
         attrs = {field: getattr(todo, field) for field in fields}

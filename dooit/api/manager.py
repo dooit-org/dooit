@@ -39,6 +39,10 @@ class Manager:
             return None
 
     def has_changed(self) -> bool:
+        """
+        Check if the database file has been modified since the last known state.
+        """
+
         current_last_modified = self._get_db_last_modified()
         if current_last_modified and self._db_last_modified != current_last_modified:
             self._db_last_modified = current_last_modified
@@ -47,14 +51,26 @@ class Manager:
         return False
 
     def delete(self, obj):
+        """
+        Delete an object from the database and commit the change.
+        """
+
         self.session.delete(obj)
         self.commit()
 
     def save(self, obj):
+        """
+        Add an object to the session and commit the change.
+        """
+
         self.session.add(obj)
         self.commit()
 
     def commit(self):
+        """
+        Commit the current session and update the last-modified timestamp.
+        """
+
         self.session.commit()
         self._db_last_modified = self._get_db_last_modified()
 
