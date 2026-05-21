@@ -10,9 +10,11 @@ class Clipboard:
     data = None
 
     def copy(self, widget: TodoWidget):
+        """Copy the model data from the given todo widget to the clipboard."""
         model: DooitModel = widget.model
         self.data = model.commit()
 
     @property
     def has_data(self) -> bool:
+        """Return whether the clipboard currently holds any data."""
         return bool(self.data)
