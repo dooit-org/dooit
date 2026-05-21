@@ -14,14 +14,21 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 class BaseTree(OptionList, can_focus=True, inherit_bindings=False):
+    """
+    Base tree widget that extends OptionList with node expansion tracking
+    and cursor movement behavior for tree-style navigation.
+    """
+
     expanded_nodes = defaultdict(bool)
 
     @property
     def api(self) -> "DooitAPI":
+        """Return the Dooit API instance."""
         return self.tui.api
 
     @property
     def tui(self) -> "Dooit":
+        """Return the parent Dooit application instance."""
         from ....ui.tui import Dooit
 
         assert isinstance(self.app, Dooit)
@@ -30,16 +37,19 @@ class BaseTree(OptionList, can_focus=True, inherit_bindings=False):
     @property
     @require_highlighted_node
     def node(self) -> Option:
+        """Return the currently highlighted option node."""
         assert self.highlighted is not None
         return self.get_option_at_index(self.highlighted)
 
     def action_cursor_down(self) -> None:
+        """Move the cursor down, stopping at the last option."""
         if self.highlighted == len(self._options) - 1:
             return
 
         return super().action_cursor_down()
 
     def action_cursor_up(self) -> None:
+        """Move the cursor up, stopping at the first option."""
         if self.highlighted == 0:
             return
 

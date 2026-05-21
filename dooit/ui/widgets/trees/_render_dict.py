@@ -22,6 +22,7 @@ class RenderDict(Dict, Generic[T]):
         self.tree = tree
 
     def from_id(self, _id: str) -> T:
+        """Create and return a renderer instance for the given model ID."""
         raise NotImplementedError  # pragma: no cover
 
     def __getitem__(self, __key: str) -> T:
@@ -38,6 +39,7 @@ class WorkspaceRenderDict(RenderDict[WorkspaceRender]):
     """
 
     def from_id(self, _id: str) -> WorkspaceRender:
+        """Create and return a WorkspaceRender for the workspace with the given ID."""
         w = Workspace.from_id(_id)
         return WorkspaceRender(w, self.tree)
 
@@ -48,5 +50,6 @@ class TodoRenderDict(RenderDict[TodoRender]):
     """
 
     def from_id(self, _id: str) -> TodoRender:
+        """Create and return a TodoRender for the todo with the given ID."""
         t = Todo.from_id(_id)
         return TodoRender(t, self.tree)

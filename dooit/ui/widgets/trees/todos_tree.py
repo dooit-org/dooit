@@ -18,6 +18,11 @@ Model = Union[Todo, Workspace]
 
 
 class TodosTree(ModelTree[Model, TodoRenderDict]):
+    """
+    Tree widget for displaying and managing Todo items,
+    with support for completion toggling and urgency adjustments.
+    """
+
     BORDER_TITLE = "Todos"
 
     def __init__(self, model: Model) -> None:
@@ -27,17 +32,21 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
         return Todo.from_id(id).parent_todo
 
     def is_node_expaned(self, _id: str) -> bool:
+        """Return whether the given todo node is expanded, respecting the always-expand setting."""
         return super().is_node_expaned(_id) or self.api.vars.always_expand_todos
 
     @property
     def formatter(self) -> "TodoFormatter":
+        """Return the todo formatter from the API."""
         return self.api.formatter.todos
 
     @property
     def render_layout(self):
+        """Return the todo layout configuration from the API."""
         return self.api.layouts.todo_layout
 
     def add_todo(self) -> str:
+        """Add a new todo to the tree and return its UUID."""
         todo = self.model.add_todo()
         render = TodoRender(todo, tree=self)
         self.add_option(Option(render.prompt, id=render.id))
@@ -56,18 +65,21 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
         return super()._remove_node()
 
     def toggle_complete(self):
+        """Toggle the completion status of the current todo."""
         assert isinstance(self.current_model, Todo)
 
         self.current_model.toggle_complete()
         self.refresh_options()
 
     def increase_urgency(self):
+        """Increase the urgency level of the current todo."""
         assert isinstance(self.current_model, Todo)
 
         self.current_model.increase_urgency()
         self.update_current_prompt()
 
     def decrease_urgency(self):
+        """Decrease the urgency level of the current todo."""
         assert isinstance(self.current_model, Todo)
 
         self.current_model.decrease_urgency()
@@ -75,6 +87,7 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
 
     @on(ModelTree.OptionHighlighted)
     def todo_highlighted(self, event: ModelTree.OptionHighlighted):
+        """Handle a todo being highlighted by posting a TodoSelected event."""
         assert event.option_id
 
         event.stop()

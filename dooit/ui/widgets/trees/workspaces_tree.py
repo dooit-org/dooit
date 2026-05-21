@@ -18,6 +18,11 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 class WorkspacesTree(ModelTree[Workspace, WorkspaceRenderDict]):
+    """
+    Tree widget for displaying and managing Workspace items,
+    with support for nested workspace hierarchies.
+    """
+
     BORDER_TITLE = "Workspaces"
 
     def __init__(self, model: Workspace) -> None:
@@ -28,17 +33,21 @@ class WorkspacesTree(ModelTree[Workspace, WorkspaceRenderDict]):
         return Workspace.from_id(id).parent_workspace
 
     def is_node_expaned(self, _id: str) -> bool:
+        """Return whether the given workspace node is expanded, respecting the always-expand setting."""
         return super().is_node_expaned(_id) or self.api.vars.always_expand_workspaces
 
     @property
     def formatter(self) -> "WorkspaceFormatter":
+        """Return the workspace formatter from the API."""
         return self.api.formatter.workspaces
 
     @property
     def render_layout(self):
+        """Return the workspace layout configuration from the API."""
         return self.api.layouts.workspace_layout
 
     def add_workspace(self) -> str:
+        """Add a new workspace to the tree and return its UUID."""
         workspace = self.model.add_workspace()
         renderer = self._renderers[workspace.uuid]
         self.add_option(Option(renderer.prompt, id=renderer.id))
@@ -56,6 +65,7 @@ class WorkspacesTree(ModelTree[Workspace, WorkspaceRenderDict]):
 
     @on(ModelTree.OptionHighlighted)
     def workspace_highlighted(self, event: ModelTree.OptionHighlighted):
+        """Handle a workspace being highlighted by posting a WorkspaceSelected event."""
         assert event.option_id
 
         event.stop()
