@@ -7,13 +7,22 @@ from .bar_widget import StatusBarWidget
 
 
 class StatusBar(BarBase):
+    """
+    A bar widget that displays a row of configurable status bar widgets.
+
+    Serves as the default bar shown during normal operation, rendering
+    user-defined StatusBarWidget instances in a horizontal grid layout.
+    """
+
     bar_widgets = []
 
     def set_widgets(self, widgets: List[StatusBarWidget]) -> None:
+        """Set the list of status bar widgets and refresh the display."""
         self.bar_widgets = widgets
         self.refresh()
 
     def render(self) -> RenderableType:
+        """Render all status bar widgets as a horizontal grid table."""
         expand = any(widget.width == 0 for widget in self.bar_widgets)
         table = Table.grid(expand=expand, padding=0)
         row = []

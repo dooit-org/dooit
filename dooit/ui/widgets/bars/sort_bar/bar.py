@@ -6,6 +6,13 @@ from dooit.api import DooitModel
 
 
 class SortBar(BarBase):
+    """
+    A bar widget that presents sortable field options for a model.
+
+    Displays a horizontal list of sort options that can be navigated
+    with arrow keys and selected with enter.
+    """
+
     COMPONENT_CLASSES = {
         "option-highlighted",
     }
@@ -19,6 +26,7 @@ class SortBar(BarBase):
 
     @property
     def selected(self) -> int:
+        """Return the index of the currently selected sort option."""
         return self._selected
 
     @selected.setter
@@ -30,6 +38,7 @@ class SortBar(BarBase):
         self.refresh()
 
     def perform_action(self, cancel: bool):
+        """Invoke the callback with the selected sort field if not cancelled."""
         if cancel:
             return
 
@@ -37,6 +46,7 @@ class SortBar(BarBase):
         self.callback(selected)
 
     async def handle_keypress(self, key: str) -> None:
+        """Handle a keypress to navigate options or confirm/cancel the selection."""
         if key == "escape":
             return self.dismiss(cancel=True)
 
@@ -49,6 +59,7 @@ class SortBar(BarBase):
             self.selected += 1
 
     def render(self) -> RenderableType:
+        """Render the sort options with the current selection highlighted."""
         highlighted_style = self.get_component_rich_style("option-highlighted")
 
         texts = [

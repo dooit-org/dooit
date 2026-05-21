@@ -11,6 +11,14 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 class BarBase(Static):
+    """
+    Abstract base class for all bar widgets in the application.
+
+    Provides common functionality for bars displayed at the bottom of the UI,
+    including access to the app, API, and bar switcher, as well as shared
+    dismiss and action handling logic.
+    """
+
     DEFAULT_CSS = """
     BarBase {
         height: 1;
@@ -26,6 +34,7 @@ class BarBase(Static):
 
     @property
     def app(self) -> "Dooit":
+        """Return the Dooit application instance."""
         from dooit.ui.tui import Dooit
 
         app = super().app
@@ -34,10 +43,12 @@ class BarBase(Static):
 
     @property
     def api(self) -> "DooitAPI":  # pragma: no cover
+        """Return the DooitAPI instance from the application."""
         return self.app.api
 
     @property
     def switcher(self) -> "BarSwitcher":
+        """Return the parent BarSwitcher that manages this bar."""
         from .bar_switcher import BarSwitcher
 
         parent = self.parent
@@ -49,9 +60,11 @@ class BarBase(Static):
         self.switcher.current = "status_bar"
 
     def perform_action(self, cancel: bool):
+        """Execute the bar's action. Subclasses must override this method."""
         raise NotImplementedError  # pragma: no cover
 
     def dismiss(self, cancel: bool):
+        """Dismiss the bar, performing its action and returning to normal mode."""
         self.perform_action(cancel)
         self.app.post_message(ModeChanged("NORMAL"))
         self.remove()
