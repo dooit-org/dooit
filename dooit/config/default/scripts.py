@@ -99,3 +99,7 @@ def text(**kwargs):
 
 def ticker(**kwargs):
     return Text("")
+
+
+def no_op(**_):
+    return ""
