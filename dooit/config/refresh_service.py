@@ -6,6 +6,25 @@ from dooit.config.script_parser import RefreshKind
 from dooit.ui.bridge.events import DooitEvent, TimerEvent
 
 
+class EventDict(dict[type[DooitEvent], list[ScriptField]]):
+    """
+    A special dict that matches the key by event subclassing
+    For example if Event B is subclass of Event A
+    And if Event B happens
+    The subscriber to Event A also gets returned
+    """
+
+    def add(self, event_cls: type[DooitEvent], value: ScriptField) -> None:
+        self.setdefault(event_cls, []).append(value)
+
+    def __getitem__(self, event_cls: type[DooitEvent]) -> list[ScriptField]:
+        matched: list[ScriptField] = []
+        for registered_cls, values in self.items():
+            if issubclass(event_cls, registered_cls):
+                matched.extend(values)
+        return matched
+
+
 class RefreshService:
     """
     Manages script wrappers, __dooit_value caching, timer/event registration,
@@ -20,9 +39,7 @@ class RefreshService:
         self.scripts = scripts
         self.reload_entries = reload_entries
 
-        self._event_triggers: dict[type[DooitEvent], list[ScriptField]] = defaultdict(
-            list
-        )
+        self._event_triggers: EventDict = EventDict()
         self._time_triggers: dict[int, list[ScriptField]] = defaultdict(list)
         self.setup_scripts()
 
@@ -35,8 +52,7 @@ class RefreshService:
                     refresh.value, DooitEvent
                 )
                 event_cls = cast(type[DooitEvent], refresh.value)
-
-                self._event_triggers[event_cls].append(script)
+                self._event_triggers.add(event_cls, script)
 
             elif refresh.kind == RefreshKind.INTERVAL:
                 assert isinstance(refresh.value, int)
