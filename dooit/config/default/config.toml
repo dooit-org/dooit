@@ -19,6 +19,9 @@ secondary = "#81a1c1"
 
 [general]
 theme = "nord"
+show_confirm = true
+always_expand_workspaces = false
+always_expand_todos = false
 
 [layout]
 todo.columns = ["status", "description", "due", "urgency"]

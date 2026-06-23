@@ -57,6 +57,9 @@ class DooitTheme(BaseConfigType):
 # --- general ---
 class GeneralConfig(BaseConfigType):
     theme: str
+    show_confirm: bool
+    always_expand_workspaces: bool = False
+    always_expand_todos: bool = False
 
 
 # --- layout ---
