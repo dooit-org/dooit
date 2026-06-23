@@ -71,5 +71,7 @@ class RefreshService:
 
         for entry in entries:
             entry.update(event=event)
-            for callback in self.reload_entries.values():
+            reload_targets = entry.entry.reload_targets
+            for target in reload_targets:
+                callback = self.reload_entries[target]
                 callback()
