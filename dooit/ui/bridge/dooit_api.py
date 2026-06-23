@@ -59,7 +59,12 @@ class DooitAPI:
 
         self.refresh_service = RefreshService(
             config.get_scripts(),
-            {"bar": self.refresh_bar, "dashboard": self.dashboard_refresh},
+            {
+                "bar": self.refresh_bar,
+                "dashboard": self.dashboard_refresh,
+                "todo": self.todo_refresh,
+                "workspace": self.workspace_refresh,
+            },
         )
 
         self.css.refresh_css()
