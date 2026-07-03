@@ -19,7 +19,6 @@ KeyType = Union[str, List[str]]
 class DooitFunction:
     callback: Callable
     description: str = ""
-    group: str = ""
 
     def __post_init__(self):
         self.description = self.description.strip("\n")
@@ -64,22 +63,14 @@ class KeyManager(ApiComponent):
             instance.set(
                 keys=keybind,
                 callback=trigger,
-                # description=trigger.description,
-                # group=keybind.group,
             )
         return instance
 
-    @property
-    def groups(self) -> List[str]:
-        return list(
-            sorted(set(func.group for func in self.keybinds["NORMAL"].values() if func))
-        )
-
-    def get_keybinds_by_group(self, group: str) -> List[Tuple[str, DooitFunction]]:
+    def get_keybinds(self) -> List[Tuple[str, DooitFunction]]:
         return [
             (key, func)
             for key, func in self.keybinds["NORMAL"].items()
-            if func and func.group == group
+            if func is not None
         ]
 
     def __set_key(
@@ -88,10 +79,9 @@ class KeyManager(ApiComponent):
         key: str,
         callback: Callable,
         description: Optional[str],
-        group: str,
     ) -> None:
         self.keybinds[mode][key] = DooitFunction(
-            callback, description or callback.__doc__ or "", group
+            callback, description or callback.__doc__ or ""
         )
 
     def set(
@@ -99,13 +89,12 @@ class KeyManager(ApiComponent):
         keys: KeyType,
         callback: Callable,
         description: Optional[str] = None,
-        group: str = "",
     ) -> None:
         if isinstance(keys, str):
             keys = [keys]
 
         for key in keys:
-            self.__set_key("NORMAL", key, callback, description, group)
+            self.__set_key("NORMAL", key, callback, description)
 
     @property
     def input(self) -> str:

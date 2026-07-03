@@ -1,6 +1,6 @@
 from collections.abc import Callable
 
-from rich.console import Group, RenderableType
+from rich.console import RenderableType
 from rich.style import Style
 from rich.table import Table
 from rich.text import Text
@@ -79,40 +79,29 @@ class DooitKeyTable(HelpWidget):
         self.no_op = no_op
 
     def render(self) -> RenderableType:
-        tables = []
+        t = Table.grid(expand=True, padding=(0, 1))
+        t.add_column("key")
+        t.add_column("arrow")
+        t.add_column("description")
 
-        for group in self.keybinds.groups:
-            t = Table.grid(expand=True, padding=(0, 1))
-            t_title = Text(group, style=self.get_component_rich_style("table-title"))
-            if group:
-                t_title.pad(1)
+        for keybind, func in self.keybinds.get_keybinds():
+            if func.description == "<NOP>":
+                continue
 
-            t.add_column("key")
-            t.add_column("arrow")
-            t.add_column("description")
-
-            for keybind, func in self.keybinds.get_keybinds_by_group(group):
-                if func.description == "<NOP>":
-                    continue
-
-                keybind = Text(keybind, style=self.get_component_rich_style("keybind"))
-                arrow = Text("->", style=self.get_component_rich_style("arrow"))
-                description = (
-                    Text(
-                        func.description,
-                        style=self.get_component_rich_style("description"),
-                    )
-                    if func
-                    else Text("")
+            keybind = Text(keybind, style=self.get_component_rich_style("keybind"))
+            arrow = Text("->", style=self.get_component_rich_style("arrow"))
+            description = (
+                Text(
+                    func.description,
+                    style=self.get_component_rich_style("description"),
                 )
+                if func
+                else Text("")
+            )
 
-                t.add_row(keybind, arrow, description)
+            t.add_row(keybind, arrow, description)
 
-            tables.append(t_title)
-            tables.append(t)
-            t.add_row()  # padding
-
-        return Group(*tables)
+        return t
 
 
 class HelpScreen(BaseScreen):
