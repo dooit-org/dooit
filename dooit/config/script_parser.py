@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from typing import TYPE_CHECKING, Any, Callable, Literal, Optional
 
 from dooit.config.errors import ConfigError, ConfigValidationError
 from dooit.utils.py_script_reader import PyScriptReader
@@ -25,7 +27,10 @@ class RefreshKind(str, Enum):
 @dataclass(frozen=True)
 class RefreshConfig:
     kind: RefreshKind
-    value: int | type["DooitEvent"]
+    value: int | type[DooitEvent]
+
+
+ReloadTarget = Literal["bar", "dashboard", "todo", "workspace"]
 
 
 @dataclass
@@ -33,7 +38,7 @@ class ScriptEntry:
     name: str
     func: Callable
     refresh: RefreshConfig
-    reload_targets: set[str] = field(default_factory=set)
+    reload_targets: set[ReloadTarget] = field(default_factory=set)
     context: dict = field(default_factory=dict)
 
 
@@ -131,4 +136,5 @@ class ScriptParser:
     def parse_reload_targets(cls, reload_value: Optional[str]) -> set[str]:
         if not reload_value:
             return set()
+
         return {item.strip() for item in reload_value.split(",") if item.strip()}
