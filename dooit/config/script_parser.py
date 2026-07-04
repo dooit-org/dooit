@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Literal, Optional
+from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, cast, get_args
 
 from dooit.config.errors import ConfigError, ConfigValidationError
 from dooit.utils.py_script_reader import PyScriptReader
@@ -133,8 +133,22 @@ class ScriptParser:
         return event
 
     @classmethod
-    def parse_reload_targets(cls, reload_value: Optional[str]) -> set[str]:
+    def parse_reload_targets(cls, reload_value: Optional[str]) -> set[ReloadTarget]:
         if not reload_value:
             return set()
 
-        return {item.strip() for item in reload_value.split(",") if item.strip()}
+        valid_values = get_args(ReloadTarget)
+
+        targets: set[ReloadTarget] = set()
+
+        for item in reload_value.split(","):
+            item = item.strip()
+            if item not in valid_values:
+                good_values = ", ".join(valid_values)
+                raise ConfigValidationError(
+                    f"{item} is an invalid reload target. Please choose from {good_values}"
+                )
+
+            targets.add(cast(ReloadTarget, item))
+
+        return targets
