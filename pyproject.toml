@@ -1,5 +1,5 @@
 [project]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 name = "dooit"
 version = "3.3.4"
 description = "A TUI Todo Manager"
