@@ -114,6 +114,13 @@ class Dooit(App):
             self.api.trigger_event(event)
             self.bar.refresh()
 
+    @on(Startup)
+    def refresh_all_widgets(self, _):
+        self.api.refresh_dashboard()
+        self.api.refresh_bar()
+        self.api.refresh_todo_tree()
+        self.api.refresh_workspace_tree()
+
     @on(ShutDown)
     def shutdown(self, _: ShutDown):
         self.api.css.cleanup()

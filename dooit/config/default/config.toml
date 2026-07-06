@@ -156,8 +156,3 @@ css.color = "$primary"
 
 [script.pad]
 _script = "./scripts::small_pad"
-
-# Init trigger to refresh everything on startup
-[script.init_refresh]
-_script = "./scripts::no_op"
-_reload = "todo, workspace, bar, dashboard"

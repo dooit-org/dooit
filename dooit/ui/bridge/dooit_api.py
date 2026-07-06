@@ -61,9 +61,9 @@ class DooitAPI:
             config.get_scripts(),
             {
                 "bar": self.refresh_bar,
-                "dashboard": self.dashboard_refresh,
-                "todo": self.todo_refresh,
-                "workspace": self.workspace_refresh,
+                "dashboard": self.refresh_dashboard,
+                "todo": self.refresh_todo_tree,
+                "workspace": self.refresh_workspace_tree,
             },
         )
 
@@ -74,15 +74,15 @@ class DooitAPI:
         self.app.bar.refresh()
 
     @ignore_no_matches
-    def dashboard_refresh(self):
+    def refresh_dashboard(self):
         self.app.dashboard.refresh(recompose=True)
 
     @ignore_no_matches
-    def workspace_refresh(self):
+    def refresh_workspace_tree(self):
         self.app.workspace_tree.force_refresh()
 
     @ignore_no_matches
-    def todo_refresh(self):
+    def refresh_todo_tree(self):
         for tree in self.app.screen.query(TodosTree):
             tree.force_refresh()
 
