@@ -1,8 +1,12 @@
 from collections import defaultdict
-from typing import Callable, cast
+from typing import Callable
 
 from dooit.config.config import ScriptField
-from dooit.config.script_parser import RefreshKind
+from dooit.config.script_parser import (
+    EventRefresh,
+    IntervalRefresh,
+    KeyRefresh,
+)
 from dooit.ui.bridge.events import DooitEvent, TimerEvent
 
 
@@ -41,22 +45,19 @@ class RefreshService:
 
         self._event_triggers: EventDict = EventDict()
         self._time_triggers: dict[int, list[ScriptField]] = defaultdict(list)
+        self._key_triggers: dict[str, list[ScriptField]] = defaultdict(list)
         self.setup_scripts()
 
     def setup_scripts(self):
-        for _, script in self.scripts.items():
+        for script in self.scripts.values():
             refresh = script.entry.refresh
-
-            if refresh.kind == RefreshKind.EVENT:
-                assert isinstance(refresh.value, type) and issubclass(
-                    refresh.value, DooitEvent
-                )
-                event_cls = cast(type[DooitEvent], refresh.value)
-                self._event_triggers.add(event_cls, script)
-
-            elif refresh.kind == RefreshKind.INTERVAL:
-                assert isinstance(refresh.value, int)
-                self._time_triggers[refresh.value].append(script)
+            match refresh:
+                case EventRefresh(event=event_cls):
+                    self._event_triggers.add(event_cls, script)
+                case IntervalRefresh(seconds=seconds):
+                    self._time_triggers[seconds].append(script)
+                case KeyRefresh(key=key):
+                    self._key_triggers[key].append(script)
 
     def trigger_event(self, event: DooitEvent) -> None:
         """Trigger scripts registered to an event."""

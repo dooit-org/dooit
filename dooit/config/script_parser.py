@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, cast, get_args
+from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, Self, cast, get_args
 
 from dooit.config.errors import ConfigError, ConfigValidationError
 from dooit.utils.py_script_reader import PyScriptReader
@@ -19,15 +19,68 @@ class ScriptKeyword(str, Enum):
     RELOAD = "_reload"
 
 
-class RefreshKind(str, Enum):
-    INTERVAL = "interval"
-    EVENT = "event"
+class RefreshKind:
+    """
+    Base class for all refresh kinds
+    """
+
+    @classmethod
+    def from_str(cls, refresh: str) -> Self:
+        raise NotImplementedError
 
 
 @dataclass(frozen=True)
-class RefreshConfig:
-    kind: RefreshKind
-    value: int | type[DooitEvent]
+class IntervalRefresh(RefreshKind):
+    seconds: int
+
+    @classmethod
+    def from_str(cls, refresh: str) -> IntervalRefresh:
+        match = re.match(r"^every\s+(\d+)\s*([smh])$", refresh.strip())
+        if not match:
+            raise ConfigValidationError(
+                f"Invalid refresh interval format: '{refresh}'. "
+                f"Expected format: 'every <amount><unit>', e.g. 'every 5m' or 'every 30s'."
+            )
+
+        amount = int(match.group(1))
+        unit = match.group(2)
+        multipliers = {"s": 1, "m": 60, "h": 3600}
+        return IntervalRefresh(amount * multipliers[unit])
+
+
+@dataclass(frozen=True)
+class EventRefresh(RefreshKind):
+    event: type[DooitEvent]
+
+    @classmethod
+    def from_str(cls, refresh: str) -> EventRefresh:
+        name = refresh.replace("on", "", 1).strip()
+        if not name:
+            raise ConfigValidationError("Event name cannot be empty in refresh config")
+
+        from dooit.ui.bridge import events as events_module
+
+        event = getattr(events_module, name, None)
+        if event is None:
+            raise ConfigValidationError(f"Event '{name}' not found for refresh config")
+
+        return EventRefresh(event)
+
+
+@dataclass(frozen=True)
+class KeyRefresh(RefreshKind):
+    key: str  # or whatever a "key" is
+
+    @classmethod
+    def from_str(cls, refresh: str) -> KeyRefresh:
+        key = refresh.replace("key", "", 1).strip()
+        if not key:
+            raise ConfigValidationError("Key name cannot be empty in refresh config")
+
+        return KeyRefresh(key)
+
+
+RefreshConfig = IntervalRefresh | EventRefresh | KeyRefresh
 
 
 ReloadTarget = Literal["bar", "dashboard", "todo", "workspace"]
@@ -94,43 +147,16 @@ class ScriptParser:
 
     @classmethod
     def parse_refresh(cls, refresh: str) -> RefreshConfig:
-        if refresh.startswith("every"):
-            interval = cls.parse_refresh_interval(refresh)
-            return RefreshConfig(kind=RefreshKind.INTERVAL, value=interval)
-
-        if refresh.startswith("on"):
-            event_cls = cls.parse_event(refresh)
-            return RefreshConfig(kind=RefreshKind.EVENT, value=event_cls)
-
-        raise ConfigValidationError(f"Invalid refresh config: '{refresh}'. ")
-
-    @classmethod
-    def parse_refresh_interval(cls, refresh: str) -> int:
-        match = re.match(r"^every\s+(\d+)\s*([smh])$", refresh.strip())
-        if not match:
-            raise ConfigValidationError(
-                f"Invalid refresh interval format: '{refresh}'. "
-                f"Expected format: 'every <amount><unit>', e.g. 'every 5m' or 'every 30s'."
-            )
-
-        amount = int(match.group(1))
-        unit = match.group(2)
-        multipliers = {"s": 1, "m": 60, "h": 3600}
-        return amount * multipliers[unit]
-
-    @classmethod
-    def parse_event(cls, refresh: str) -> type["DooitEvent"]:
-        name = refresh.replace("on", "", 1).strip()
-        if not name:
-            raise ConfigValidationError("Event name cannot be empty in refresh config")
-
-        from dooit.ui.bridge import events as events_module
-
-        event = getattr(events_module, name, None)
-        if event is None:
-            raise ConfigValidationError(f"Event '{name}' not found for refresh config")
-
-        return event
+        kind, _, _ = refresh.partition(" ")
+        match kind:
+            case "every":
+                return IntervalRefresh.from_str(refresh)
+            case "on":
+                return EventRefresh.from_str(refresh)
+            case "key":
+                return KeyRefresh.from_str(refresh)
+            case _:
+                raise ConfigValidationError(f"Invalid refresh config: '{refresh}'.")
 
     @classmethod
     def parse_reload_targets(cls, reload_value: Optional[str]) -> set[ReloadTarget]:
