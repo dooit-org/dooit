@@ -1,5 +1,4 @@
 from collections import defaultdict
-from multiprocessing import Value
 from typing import Callable
 
 from dooit.config.config import ScriptField

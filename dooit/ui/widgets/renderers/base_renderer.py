@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Generic, List, TypeVar, Union
+from typing import TYPE_CHECKING, Generic, TypeVar, Union
 
 from rich.console import RenderableType
 from rich.table import Table
