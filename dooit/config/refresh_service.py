@@ -1,4 +1,5 @@
 from collections import defaultdict
+from multiprocessing import Value
 from typing import Callable
 
 from dooit.config.config import ScriptField
@@ -8,6 +9,7 @@ from dooit.config.script_parser import (
     KeyRefresh,
 )
 from dooit.ui.bridge.events import DooitEvent, TimerEvent
+from dooit.ui.bridge.events.events import KeyEvent
 
 
 class EventDict(dict[type[DooitEvent], list[ScriptField]]):
@@ -62,13 +64,16 @@ class RefreshService:
     def trigger_event(self, event: DooitEvent) -> None:
         """Trigger scripts registered to an event."""
 
-        if isinstance(event, TimerEvent):
-            entries = []
-            for interval in self._time_triggers.keys():
-                if event.second % interval == 0:
-                    entries.extend(self._time_triggers[interval])
-        else:
-            entries = self._event_triggers[type(event)]
+        entries = []
+        match event:
+            case TimerEvent(second=seconds):
+                for interval in self._time_triggers.keys():
+                    if seconds % interval == 0:
+                        entries.extend(self._time_triggers[interval])
+            case KeyEvent(key=key):
+                entries.extend(self._key_triggers[key])
+            case _:
+                entries.extend(self._event_triggers[type(event)])
 
         for entry in entries:
             entry.update(event=event)

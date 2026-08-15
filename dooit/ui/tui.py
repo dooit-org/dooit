@@ -5,9 +5,11 @@ from typing import Optional
 from textual import on
 from textual.app import App
 from textual.binding import Binding
+from textual.events import Key
 
 from dooit.ui.bridge.events import (
     DooitEvent,
+    KeyEvent,
     ModeChanged,
     ModeType,
     QuitApp,
@@ -137,6 +139,10 @@ class Dooit(App):
     @on(QuitApp)
     async def quit_app(self):
         await self.action_quit()
+
+    @on(Key)
+    async def trigger_key_events(self, e: Key):
+        self.post_message(KeyEvent(e.key))
 
     async def action_open_url(self, url: str) -> None:  # pragma: no cover
         self.open_url(url)
