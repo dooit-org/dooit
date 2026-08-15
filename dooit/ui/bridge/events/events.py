@@ -31,6 +31,18 @@ class TimerEvent(DooitEvent):
         self.second = second
 
 
+class KeyEvent(DooitEvent):
+    """
+    Emitted when key a pressed
+    """
+
+    def __init__(self, key: str) -> None:
+        super().__init__()
+        if len(key) > 1:
+            key = f"<{key}>"
+        self.key = key
+
+
 # Base events
 
 

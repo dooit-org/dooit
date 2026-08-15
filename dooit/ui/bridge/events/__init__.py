@@ -1,6 +1,7 @@
 from .events import (
     BarNotification,
     DooitEvent,
+    KeyEvent,
     ModeChanged,
     ModeType,
     NotificationType,
@@ -31,6 +32,7 @@ from .events import (
 __all__ = [
     "DooitEvent",
     "TimerEvent",
+    "KeyEvent",
     "Startup",
     "StartSearch",
     "StartSort",
