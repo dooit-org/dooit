@@ -13,7 +13,7 @@ from dooit.ui.api.events import (
     StartSort,
     BarNotification,
 )
-from dooit.ui.widgets.renderers import BaseRenderer
+from dooit.ui.widgets.renderers import BaseRenderer, COLUMN_PADDING
 from .base_tree import BaseTree
 from ._render_dict import RenderDict
 from ._decorators import (
@@ -75,7 +75,7 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         Renders the column names, aligned with the columns of the nodes
         """
 
-        table = Table.grid(expand=True, padding=(0, 1), pad_edge=True)
+        table = Table.grid(expand=True, padding=(0, COLUMN_PADDING), pad_edge=True)
         row = []
 
         style = f"bold {self.api.vars.theme.primary}"
@@ -90,7 +90,7 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
 
                 # the leftmost column has to hold the table edge padding as well
                 if index == 0:
-                    width += 1
+                    width += COLUMN_PADDING
 
                 table.add_column(attr, width=width)
 

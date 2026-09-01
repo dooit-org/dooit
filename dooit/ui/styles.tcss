@@ -19,7 +19,7 @@ ModelTree {
     background-tint: white 0%;
     color: $foreground3;
     border: $border_type $background3;
-    padding: 1;
+    padding: 1 0;
 
     border-title-color: $foreground1;
     border-title-background: $background3;

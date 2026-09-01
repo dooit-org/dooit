@@ -6,6 +6,10 @@ from ..inputs.simple_input import SimpleInput
 
 ModelType = TypeVar("ModelType", bound=Union[Todo, Workspace])
 
+# space kept on either side of a column, so that neighbouring columns are
+# separated by twice as much as the table edges get
+COLUMN_PADDING = 2
+
 if TYPE_CHECKING:  # pragma: no cover
     from dooit.ui.widgets.trees.model_tree import ModelTree
 
@@ -58,7 +62,7 @@ class BaseRenderer(Generic[ModelType]):
     def make_renderable(self) -> Table:
         layout = self.table_layout
 
-        table = Table.grid(expand=True, padding=(0, 1), pad_edge=True)
+        table = Table.grid(expand=True, padding=(0, COLUMN_PADDING), pad_edge=True)
         row = []
 
         nest = self.model.nest_level
@@ -88,7 +92,7 @@ class BaseRenderer(Generic[ModelType]):
 
                 # the leftmost column has to hold the table edge padding as well
                 if index == 0 and not nest:
-                    width += 1
+                    width += COLUMN_PADDING
 
                 table.add_column(attr, width=width)
 
