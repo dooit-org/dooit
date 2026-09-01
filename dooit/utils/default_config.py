@@ -1,9 +1,10 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 import os
 from typing import Optional
 from rich.style import Style
 from dooit.api import Todo
-from dooit.ui.api import DooitAPI, subscribe, timer
+from dooit_extras.formatters import due_casual_format, due_icon
+from dooit.ui.api import DooitAPI, extra_formatter, subscribe, timer
 from dooit.ui.api.widgets import TodoWidget, WorkspaceWidget
 from dooit.ui.api.events import ModeChanged, Startup
 from dooit.ui.screens import HelpScreen
@@ -83,16 +84,54 @@ def todo_status_formatter(status: str, _: Todo, api: DooitAPI):
     return Text(text, style=Style(color=color, bold=True))
 
 
-def todo_due_formatter(due, _):
+# A "week" of lead time means five Austrian working days: Sat and Sun don't
+# count (public holidays are ignored).
+WORKING_DAYS_PER_WEEK = 5
+
+_due_casual_format = due_casual_format()
+
+
+def _add_working_days(start: date, days: int) -> date:
+    current = start
+
+    while days:
+        current += timedelta(days=1)
+        if current.weekday() < 5:
+            days -= 1
+
+    return current
+
+
+def todo_due_formatter(due, todo: Todo) -> str:
     if due is None:
         return ""
 
-    text = due.strftime("%Y-%m-%d")
+    return _due_casual_format(due, todo)
 
-    if due.hour:
-        text += f" ({due.strftime('%H:%M')})"
 
-    return text
+# Runs after the calendar icon has been prepended, so icon and date get one
+# shared lead-time color. The icon arrives carrying its own status color, which
+# is dropped here; the result has to be handed back as a markup string, since a
+# Text would get escaped by the formatter store.
+@extra_formatter
+def todo_due_color_formatter(due: str, todo: Todo, api: DooitAPI) -> str:
+    if not todo.due:
+        return due
+
+    theme = api.vars.theme
+    now = datetime.now()
+
+    if todo.is_completed:
+        # Nothing is urgent about a done todo
+        color = theme.green
+    elif todo.due < now:
+        color = theme.red
+    elif todo.due.date() <= _add_working_days(now.date(), WORKING_DAYS_PER_WEEK):
+        color = theme.yellow
+    else:
+        color = theme.green
+
+    return f"[{color}]{Text.from_markup(due).plain}[/{color}]"
 
 
 def todo_urgency_formatter(urgency, _, api: DooitAPI):
@@ -225,6 +264,8 @@ def layout_setup(api: DooitAPI, _):
 def formatter_setup(api: DooitAPI, _):
     api.formatter.todos.status.add(todo_status_formatter)
     api.formatter.todos.due.add(todo_due_formatter)
+    api.formatter.todos.due.add(todo_due_color_formatter)
+    api.formatter.todos.due.add(due_icon())  # added last => runs first
     api.formatter.todos.urgency.add(todo_urgency_formatter)
     api.formatter.todos.effort.add(todo_effort_formatter)
     api.formatter.todos.recurrence.add(todo_recurrence_formatter)
