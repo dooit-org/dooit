@@ -45,6 +45,16 @@ class BaseTree(OptionList, can_focus=True, inherit_bindings=False):
 
         return super().action_cursor_up()
 
+    def highlight_first_node(self) -> None:
+        """Highlight the topmost node if nothing is highlighted yet"""
+
+        if self.highlighted is None and self._options:
+            self.action_first()
+
+    @on(events.Focus)
+    def highlight_on_focus(self, _: events.Focus) -> None:
+        self.highlight_first_node()
+
     @on(events.Click)
     def on_click(self, event: events.Click) -> None:
         event.prevent_default()

@@ -125,8 +125,14 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
     def empty_message(self) -> Label:
         return self.query_one("#empty_message", expect_type=Label)
 
-    @fix_highlight
     def force_refresh(self) -> None:
+        self._refresh_and_restore_highlight()
+
+        if self.has_focus:
+            self.highlight_first_node()
+
+    @fix_highlight
+    def _refresh_and_restore_highlight(self) -> None:
         self._force_refresh()
         self.get_column_width.cache_clear()
 

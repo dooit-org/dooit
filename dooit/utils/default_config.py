@@ -6,6 +6,7 @@ from dooit.api import Todo
 from dooit.ui.api import DooitAPI, subscribe, timer
 from dooit.ui.api.widgets import TodoWidget, WorkspaceWidget
 from dooit.ui.api.events import ModeChanged, Startup
+from dooit.ui.screens import HelpScreen
 from dooit.ui.widgets.bars import StatusBarWidget
 from dooit.ui.widgets.inputs.model_inputs import Recurrence
 from rich.text import Text
@@ -119,14 +120,57 @@ def todo_recurrence_formatter(recurrence: Optional[timedelta], _):
     return Recurrence.timedelta_to_simple_string(recurrence)
 
 
+# Hold-to-show help
+
+
+# Terminals don't report key releases, so a held "?" is detected through the
+# terminal's own key auto-repeat: every repeat pushes the close back.
+#
+# The wait for the *first* repeat has to cover the OS repeat delay (Windows:
+# up to 1s), or the menu blinks shut before the hold is noticed. Once repeats
+# are streaming in (every ~30ms) a much shorter wait spots the release, so the
+# menu closes snappily the moment "?" is let go.
+HELP_FIRST_REPEAT_TIMEOUT = 1.0
+HELP_HOLD_TIMEOUT = 0.1
+
+_help_close_timer = None
+
+
+def _close_help(api: DooitAPI):
+    global _help_close_timer
+
+    _help_close_timer = None
+    if isinstance(api.app.screen, HelpScreen):
+        api.app.pop_screen()
+
+
+def _keep_help_open(api: DooitAPI, timeout: float = HELP_HOLD_TIMEOUT):
+    global _help_close_timer
+
+    if _help_close_timer is not None:
+        _help_close_timer.stop()
+
+    _help_close_timer = api.app.set_timer(timeout, lambda: _close_help(api))
+
+
+def show_help_while_held(api: DooitAPI):
+    api.show_help()
+    _keep_help_open(api, HELP_FIRST_REPEAT_TIMEOUT)
+
+
+# Each auto-repeat of "?" reaches the help screen itself, not the tree
+HelpScreen.key_question_mark = lambda self: _keep_help_open(self.api)
+
+
 # Workspace formatters
 
 
 @subscribe(Startup)
 def key_setup(api: DooitAPI, _):
-    api.keys.set("<tab>", api.switch_focus)
-    api.keys.set("j", api.move_down)
+    api.keys.set("j", api.focus_workspaces)
+    api.keys.set("ö", api.focus_todos)
     api.keys.set("k", api.move_up)
+    api.keys.set("l", api.move_down)
     api.keys.set("i", api.edit_description)
     api.keys.set("d", api.edit_due)
     api.keys.set("r", api.edit_recurrence)
@@ -150,7 +194,11 @@ def key_setup(api: DooitAPI, _):
     api.keys.set("/", api.start_search)
     api.keys.set("<ctrl+s>", api.start_sort)
     api.keys.set("<ctrl+q>", api.quit)
-    api.keys.set("?", api.show_help)
+    api.keys.set(
+        "?",
+        lambda: show_help_while_held(api),
+        description="Show the help screen (while held)",
+    )
 
 
 @subscribe(Startup)

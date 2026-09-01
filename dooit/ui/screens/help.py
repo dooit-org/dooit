@@ -139,8 +139,8 @@ class HelpScreen(BaseScreen):
     def key_up(self):
         self.scroll_up()
 
-    def key_j(self):
-        self.scroll_down()
-
     def key_k(self):
         self.scroll_up()
+
+    def key_l(self):
+        self.scroll_down()

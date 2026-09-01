@@ -105,6 +105,23 @@ class DooitAPI:
         if w := self.app.focused:
             w.post_message(SwitchTab())
 
+    def focus_workspaces(self):
+        """Move focus to the workspaces pane"""
+
+        if self.app.bar_switcher.is_focused:
+            return
+
+        self.app.workspace_tree.focus()
+
+    def focus_todos(self):
+        """Move focus to the todos pane"""
+
+        if self.app.bar_switcher.is_focused:
+            return
+
+        if todos_tree := self.vars.todos_tree:
+            todos_tree.focus()
+
     def move_down(self):
         """Move the cursor down in the focused list"""
 
