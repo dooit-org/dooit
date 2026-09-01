@@ -61,11 +61,12 @@ class BaseRenderer(Generic[ModelType]):
         table = Table.grid(expand=True, padding=(0, 1), pad_edge=True)
         row = []
 
-        if nest := self.model.nest_level:
+        nest = self.model.nest_level
+        if nest:
             table.add_column("padding", width=2 * nest)
             row.append("")
 
-        for item in layout:
+        for index, item in enumerate(layout):
             attr = item.value
             component = self._get_component(attr)
 
@@ -83,7 +84,13 @@ class BaseRenderer(Generic[ModelType]):
             if attr == "description":
                 table.add_column(attr, ratio=1)
             else:
-                table.add_column(attr, width=self._get_max_width(attr))
+                width = self._get_max_width(attr)
+
+                # the leftmost column has to hold the table edge padding as well
+                if index == 0 and not nest:
+                    width += 1
+
+                table.add_column(attr, width=width)
 
             row.append(rendered)
 

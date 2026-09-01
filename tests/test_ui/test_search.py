@@ -1,5 +1,5 @@
 from dooit.ui.widgets.trees.todos_tree import TodosTree
-from tests.test_ui.ui_base import run_pilot, create_and_move_to_todo
+from tests.test_ui.ui_base import run_pilot, create_and_move_to_todo, todo_options
 from dooit.ui.tui import Dooit
 
 
@@ -18,7 +18,7 @@ async def test_search():
         for item in items:
             await create_todo(tree, item)
 
-        assert len(tree._options) == 4
+        assert len(todo_options(tree)) == 4
 
         tree.start_search()
         await pilot.pause()
@@ -26,19 +26,19 @@ async def test_search():
         assert app.bar_switcher.search_bar
 
         await pilot.press("a")
-        assert sum(i.disabled for i in tree._options) == 0
+        assert sum(i.disabled for i in todo_options(tree)) == 0
 
         await pilot.press("p", "p")
-        assert sum(i.disabled for i in tree._options) == 1
+        assert sum(i.disabled for i in todo_options(tree)) == 1
 
         await pilot.press("l")
-        assert sum(i.disabled for i in tree._options) == 2
+        assert sum(i.disabled for i in todo_options(tree)) == 2
 
         await pilot.press(*(["backspace"] * 4))
-        assert sum(i.disabled for i in tree._options) == 0
+        assert sum(i.disabled for i in todo_options(tree)) == 0
 
         await pilot.press(*list("applet"))
-        assert sum(i.disabled for i in tree._options) == 3
+        assert sum(i.disabled for i in todo_options(tree)) == 3
 
         # confirm search
         await pilot.press("enter")
@@ -46,7 +46,7 @@ async def test_search():
 
         await pilot.press("escape")
         await pilot.pause()
-        assert sum(i.disabled for i in tree._options) == 0
+        assert sum(i.disabled for i in todo_options(tree)) == 0
 
         # cancel search
         tree.start_search()
@@ -56,4 +56,4 @@ async def test_search():
         assert app.bar_switcher.current == "status_bar"
 
         await pilot.pause()
-        assert sum(i.disabled for i in tree._options) == 0
+        assert sum(i.disabled for i in todo_options(tree)) == 0

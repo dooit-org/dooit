@@ -39,8 +39,21 @@ class BaseTree(OptionList, can_focus=True, inherit_bindings=False):
 
         return super().action_cursor_down()
 
+    @property
+    def first_selectable_index(self) -> int:
+        """Index of the topmost option that can be highlighted (skips the header)"""
+
+        for index, option in enumerate(self._options):
+            if not option.disabled:
+                return index
+
+        return 0
+
     def action_cursor_up(self) -> None:
-        if self.highlighted == 0:
+        if (
+            self.highlighted is not None
+            and self.highlighted <= self.first_selectable_index
+        ):
             return
 
         return super().action_cursor_up()

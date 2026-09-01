@@ -4,7 +4,12 @@ from dooit.api.exceptions import NoNodeError
 from dooit.api import Todo
 from dooit.ui.api.widgets import TodoWidget
 from dooit.ui.widgets.renderers.base_renderer import BaseRenderer
-from tests.test_ui.ui_base import run_pilot, create_and_move_to_todo
+from tests.test_ui.ui_base import (
+    run_pilot,
+    create_and_move_to_todo,
+    todo_options,
+    highlighted_index,
+)
 from dooit.ui.tui import Dooit
 
 
@@ -104,12 +109,12 @@ async def test_remove_todo():
         tree.remove_node()
         await pilot.pause()
 
-        assert len(tree._options) == 1
-        assert tree.highlighted == 0
+        assert len(todo_options(tree)) == 1
+        assert highlighted_index(tree) == 0
         assert tree.current_model.description == "nixos"
 
         await pilot.press("y")
-        assert len(tree._options) == 0
+        assert len(todo_options(tree)) == 0
         assert tree.highlighted is None
 
 
@@ -201,7 +206,9 @@ async def test_effort_change():
         assert isinstance(todo, Todo)
 
         assert todo.effort == 0
-        assert not tree.start_edit("effort")
+
+        app.api.layouts.todo_layout = [TodoWidget.description]
+        assert not tree.start_edit("effort")  # column is not in the layout
 
         app.api.layouts.todo_layout = [
             TodoWidget.effort

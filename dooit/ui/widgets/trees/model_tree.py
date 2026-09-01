@@ -2,6 +2,8 @@ from collections import defaultdict
 from functools import cache
 from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, Union
 from textual.app import ComposeResult
+from rich.table import Table
+from rich.text import Text
 from textual.widgets import Label
 from textual.widgets.option_list import Option
 from dooit.api import Todo, Workspace
@@ -43,6 +45,9 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
     }
     """
 
+    HEADER_ID = "dooit-column-header"
+    show_header: bool = False
+
     def __init__(self, model: ModelType, render_dict: RenderDictType) -> None:
         tree = self.__class__.__name__
         super().__init__(id=f"{tree}_{model.uuid}")
@@ -54,7 +59,45 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
 
     @cache
     def get_column_width(self, attr: str) -> int:
-        return max(i._get_attr_width(attr) for i in self._renderers.values())
+        width = max(i._get_attr_width(attr) for i in self._renderers.values())
+
+        if self.show_header:
+            width = max(width, len(self.column_title(attr)))
+
+        return width
+
+    @staticmethod
+    def column_title(attr: str) -> str:
+        return attr.replace("_", " ").title()
+
+    def make_header(self) -> Table:
+        """
+        Renders the column names, aligned with the columns of the nodes
+        """
+
+        table = Table.grid(expand=True, padding=(0, 1), pad_edge=True)
+        row = []
+
+        style = f"bold {self.api.vars.theme.primary}"
+
+        for index, item in enumerate(self.render_layout):
+            attr = item.value
+
+            if attr == "description":
+                table.add_column(attr, ratio=1)
+            else:
+                width = self.get_column_width(attr)
+
+                # the leftmost column has to hold the table edge padding as well
+                if index == 0:
+                    width += 1
+
+                table.add_column(attr, width=width)
+
+            row.append(Text(self.column_title(attr), style=style))
+
+        table.add_row(*row)
+        return table
 
     @property
     def formatter(self) -> "ModelFormatterBase":
@@ -107,6 +150,10 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
 
         for option in self._options:
             assert option.id
+
+            if option.id == self.HEADER_ID:
+                continue
+
             matches = self._renderers[option.id].matches_filter(filter)
             if matches:
                 self.enable_option(option.id)
@@ -157,10 +204,18 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
                     add_children_recurse(child)
 
         add_children_recurse(self.model)
+        has_options = bool(options)
+
+        if has_options and self.show_header:
+            options.insert(0, Option("", id=self.HEADER_ID, disabled=True))
+
         self.add_options(options)
+
+        if highlighted is not None:
+            highlighted = max(highlighted, self.first_selectable_index)
+
         self.highlighted = highlighted
 
-        has_options = bool(options)
         self.empty_message.display = not has_options
         self.refresh_options()
 
@@ -227,7 +282,12 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
     def refresh_options(self) -> None:
         for i in self._options:
             assert i.id is not None
-            new_prompt = self._renderers[i.id].prompt
+
+            if i.id == self.HEADER_ID:
+                new_prompt = self.make_header()
+            else:
+                new_prompt = self._renderers[i.id].prompt
+
             self.replace_option_prompt(i.id, new_prompt)
 
     def _get_parent(self, id: str) -> Optional[ModelType]:

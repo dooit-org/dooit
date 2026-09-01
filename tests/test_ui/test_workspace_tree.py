@@ -2,7 +2,7 @@ from pytest import raises
 from textual.widgets import ContentSwitcher
 from dooit.api.exceptions import NoNodeError
 from dooit.ui.widgets.trees.todos_tree import TodosTree
-from tests.test_ui.ui_base import run_pilot
+from tests.test_ui.ui_base import run_pilot, todo_options
 from dooit.ui.tui import Dooit
 
 
@@ -286,7 +286,7 @@ async def test_yank_and_paste_workspace():
         tree.add_sibling()
         await pilot.press(*list("todo in workspace"))
         await pilot.press("escape")
-        assert tree.option_count == 1
+        assert len(todo_options(tree)) == 1
 
         # Switch back to workspace tree
         app.api.switch_focus()
@@ -317,4 +317,4 @@ async def test_yank_and_paste_workspace():
         ).visible_content
         assert isinstance(tree, TodosTree)
 
-        assert tree.option_count == 1
+        assert len(todo_options(tree)) == 1

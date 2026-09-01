@@ -1,4 +1,6 @@
+from typing import List, Optional
 from textual.pilot import Pilot
+from textual.widgets.option_list import Option
 from textual.widgets import ContentSwitcher
 from dooit.ui.tui import Dooit
 from dooit.ui.widgets.trees.todos_tree import TodosTree
@@ -30,3 +32,19 @@ async def create_and_move_to_todo(pilot: Pilot) -> TodosTree:
     assert isinstance(tree, TodosTree)
 
     return tree
+
+
+def todo_options(tree: TodosTree) -> List[Option]:
+    """Options of a todos tree, without the column header row"""
+
+    return [option for option in tree._options if option.id != tree.HEADER_ID]
+
+
+def highlighted_index(tree: TodosTree) -> Optional[int]:
+    """Index of the highlighted node, ignoring the column header row"""
+
+    if tree.highlighted is None:
+        return None
+
+    header_rows = len(tree._options) - len(todo_options(tree))
+    return tree.highlighted - header_rows
