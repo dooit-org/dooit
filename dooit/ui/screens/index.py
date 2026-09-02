@@ -34,7 +34,7 @@ class DualSplit(Container):
     DualSplit {
         layout: grid;
         grid-size: 2 1;
-        grid-columns: 2fr 8fr;
+        grid-columns: 1fr 3fr;
 
         & > #workspace_switcher {
             margin-left: 1;

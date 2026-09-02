@@ -2,6 +2,9 @@ from collections import defaultdict
 from functools import cache
 from typing import TYPE_CHECKING, Any, Dict, Generic, Optional, TypeVar, Union
 from textual.app import ComposeResult
+from rich.console import Console, ConsoleOptions, Group, RenderableType, RenderResult
+from rich.measure import Measurement
+from rich.segment import Segment
 from rich.table import Table
 from rich.text import Text
 from textual.widgets import Label
@@ -27,6 +30,31 @@ if TYPE_CHECKING:  # pragma: no cover
     from dooit.ui.api.api_components.formatters._model_formatter_base import (
         ModelFormatterBase,
     )
+
+class ColumnRule:
+    """
+    A hairline drawn the full width of the pane, under the column titles
+
+    It takes whatever width it is handed and asks for none of its own, so the
+    columns keep sizing themselves off the titles and the nodes alone.
+    """
+
+    CHARACTER = "─"
+
+    def __init__(self, style: str) -> None:
+        self.style = style
+
+    def __rich_console__(
+        self, console: Console, options: ConsoleOptions
+    ) -> RenderResult:
+        yield Segment(self.CHARACTER * options.max_width, console.get_style(self.style))
+        yield Segment.line()
+
+    def __rich_measure__(
+        self, console: Console, options: ConsoleOptions
+    ) -> Measurement:
+        return Measurement(0, 0)
+
 
 ModelType = TypeVar("ModelType", bound=Union[Todo, Workspace])
 RenderDictType = TypeVar("RenderDictType", bound=RenderDict)
@@ -78,9 +106,10 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
     def column_title(cls, attr: str) -> str:
         return cls.COLUMN_TITLES.get(attr, attr.replace("_", " ").title())
 
-    def make_header(self) -> Table:
+    def make_header(self) -> RenderableType:
         """
-        Renders the column names, aligned with the columns of the nodes
+        Renders the column names, aligned with the columns of the nodes, over a
+        rule that sets them off from the nodes below
         """
 
         table = Table.grid(expand=True, padding=(0, COLUMN_PADDING), pad_edge=True)
@@ -105,7 +134,7 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
             row.append(Text(self.column_title(attr), style=style))
 
         table.add_row(*row)
-        return table
+        return Group(table, ColumnRule(self.api.vars.theme.background3))
 
     @property
     def formatter(self) -> "ModelFormatterBase":
