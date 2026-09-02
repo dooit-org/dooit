@@ -21,6 +21,9 @@ class WorkspacesTree(ModelTree[Workspace, WorkspaceRenderDict]):
     BORDER_TITLE = "WORKSPACES"
     show_header = True
 
+    # A workspace's description is just what it's called
+    COLUMN_TITLES = {"description": "Name"}
+
     def __init__(self, model: Workspace) -> None:
         render_dict = WorkspaceRenderDict(self)
         super().__init__(model, render_dict)

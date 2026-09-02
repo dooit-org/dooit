@@ -292,6 +292,20 @@ def workspace_tasks_formatter(count: int, _: Workspace, api: DooitAPI) -> str:
     return f"[{count_color(api)}]{count}[/]"
 
 
+# How many workspaces hang below this one, at any depth. Nesting is invisible
+# while a workspace is collapsed, so the count rides along with the name, in the
+# same dimmed accent as the task tally beside it.
+def workspace_description_formatter(
+    description: str, workspace: Workspace, api: DooitAPI
+) -> str:
+    count = workspace.total_workspaces
+
+    if not count:
+        return description
+
+    return f"{description} [{count_color(api)}]({count})[/]"
+
+
 @subscribe(Startup)
 def key_setup(api: DooitAPI, _):
     api.keys.set("j", api.focus_workspaces)
@@ -373,6 +387,7 @@ def formatter_setup(api: DooitAPI, _):
     api.formatter.todos.effort.add(todo_effort_formatter)
     api.formatter.todos.recurrence.add(todo_recurrence_formatter)
 
+    api.formatter.workspaces.description.add(workspace_description_formatter)
     api.formatter.workspaces.tasks.add(workspace_tasks_formatter)
 
 

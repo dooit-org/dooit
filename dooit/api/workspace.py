@@ -82,6 +82,14 @@ class Workspace(DooitModel):
         )
 
     @property
+    def total_workspaces(self) -> int:
+        """
+        Every workspace nested under this one, counted at every level
+        """
+
+        return sum(1 + workspace.total_workspaces for workspace in self.workspaces)
+
+    @property
     def siblings(self) -> List["Workspace"]:
         if not self.parent_workspace:
             return []

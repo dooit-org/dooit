@@ -1,6 +1,6 @@
 from collections import defaultdict
 from functools import cache
-from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Dict, Generic, Optional, TypeVar, Union
 from textual.app import ComposeResult
 from rich.table import Table
 from rich.text import Text
@@ -71,9 +71,12 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
 
         return width
 
-    @staticmethod
-    def column_title(attr: str) -> str:
-        return attr.replace("_", " ").title()
+    # Column headers that shouldn't just be the attribute name spelled out
+    COLUMN_TITLES: Dict[str, str] = {}
+
+    @classmethod
+    def column_title(cls, attr: str) -> str:
+        return cls.COLUMN_TITLES.get(attr, attr.replace("_", " ").title())
 
     def make_header(self) -> Table:
         """
