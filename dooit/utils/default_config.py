@@ -4,7 +4,7 @@ import os
 from typing import Optional
 from rich.style import Style
 from dooit.api import Todo
-from dooit_extras.formatters import due_casual_format, due_icon
+from dooit_extras.formatters import due_icon
 from dooit.ui.api import DooitAPI, extra_formatter, subscribe, timer
 from dooit.ui.api.widgets import TodoWidget, WorkspaceWidget
 from dooit.ui.api.events import ModeChanged, Startup
@@ -120,8 +120,6 @@ def todo_status_formatter(status: str, todo: Todo, api: DooitAPI):
 # count (public holidays are ignored).
 WORKING_DAYS_PER_WEEK = 5
 
-_due_casual_format = due_casual_format()
-
 
 def _add_working_days(start: date, days: int) -> date:
     current = start
@@ -134,11 +132,19 @@ def _add_working_days(start: date, days: int) -> date:
     return current
 
 
-def todo_due_formatter(due, todo: Todo) -> str:
+# German date convention: day first, dot separated, and the year always spelled
+# out as its last two digits. The time only shows up when it is something other
+# than midnight.
+def todo_due_formatter(due: Optional[datetime], _: Todo) -> str:
     if due is None:
         return ""
 
-    return _due_casual_format(due, todo)
+    dt_format = "%d.%m.%y"
+
+    if due.hour or due.minute:
+        dt_format += " (%H:%M)"
+
+    return due.strftime(dt_format)
 
 
 # Runs after the calendar icon has been prepended, so icon and date get one
