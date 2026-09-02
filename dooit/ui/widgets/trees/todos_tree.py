@@ -22,7 +22,7 @@ Model = Union[Todo, Workspace]
 
 
 class TodosTree(ModelTree[Model, TodoRenderDict]):
-    BORDER_TITLE = "TODOS"
+    BORDER_TITLE = "TASKS"
     show_header = True
 
     # How far every other row is pulled from the pane background towards the
