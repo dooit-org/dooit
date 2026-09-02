@@ -19,6 +19,7 @@ from dooit.ui.api.events import (
     TodoStatusChanged,
     TodoPriorityChanged,
     WorkspaceDescriptionChanged,
+    WorkspaceRemoved,
     WorkspaceSelected,
     SwitchTab,
     SpawnHelp,
@@ -116,6 +117,28 @@ class MainScreen(BaseScreen):
     def show_confirm(self, event: ShowConfirm):
         self.app.bar_switcher.switch_to_confirm(event.callback)
         self.post_message(ModeChanged("CONFIRM"))
+
+    @on(WorkspaceRemoved)
+    async def workspace_removed(self, event: WorkspaceRemoved):
+        """
+        Drops the pane of a workspace that is gone
+
+        Nothing highlights the pane back into place when the workspace it
+        belongs to was the last one, so it is swapped for the dashboard rather
+        than left showing (and collecting todos for) a deleted workspace.
+        """
+
+        switcher = self.query_one("#todo_switcher", expect_type=ContentSwitcher)
+        panes = switcher.query(f"#TodosTree_{event.workspace.uuid}")
+
+        if not panes:
+            return
+
+        pane = panes.first()
+        if switcher.current == pane.id:
+            switcher.current = "dooit-dashboard"
+
+        await pane.remove()
 
     @on(WorkspaceSelected)
     async def workspace_selected(self, event: WorkspaceSelected):

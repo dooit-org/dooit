@@ -313,6 +313,8 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         return res
 
     def stop_edit(self):
+        edited = self.current.editing
+
         try:
             self.current.stop_edit()
         except Exception as e:  # pragma: no cover
@@ -320,6 +322,19 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
 
         self.app.post_message(ModeChanged("NORMAL"))
         self.get_column_width.cache_clear()
+
+        # An item without a description is nothing at all: one that is left
+        # blank (or all whitespace) is dropped instead of being kept around.
+        # An item that carries children is worth a confirmation first, since
+        # dropping it takes everything under it along
+        if edited == "description" and not self.current_model.description.strip():
+            if self._current_has_children:
+                self._remove_node()
+            else:
+                self._discard_node()
+
+            return
+
         self.update_current_prompt()
 
     def reset_state(self):
@@ -445,14 +460,28 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         self.highlight_id(node.uuid)
         self.start_edit("description")
 
-    @require_confirmation
-    @refresh_tree
-    def _remove_node(self):
+    @property
+    def _current_has_children(self) -> bool:
+        model = self.current_model
+        return bool(getattr(model, "workspaces", None) or getattr(model, "todos", None))
+
+    def _delete_current_model(self) -> None:
         model = self.current_model
 
         self._renderers.pop(model.uuid)
         self.expanded_nodes.pop(model.uuid)
         model.drop()
+
+    @require_confirmation
+    @refresh_tree
+    def _remove_node(self):
+        self._delete_current_model()
+
+    @refresh_tree
+    def _discard_node(self) -> None:
+        """Drop the highlighted node without asking to confirm"""
+
+        self._delete_current_model()
 
     @require_highlighted_node
     def copy_model_to_clipboard(self):

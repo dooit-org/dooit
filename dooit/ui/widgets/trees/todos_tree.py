@@ -109,11 +109,11 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
     def _create_child_node(self) -> Todo:
         return self.current_model.add_todo()
 
-    def _remove_node(self) -> None:
+    def _delete_current_model(self) -> None:
         assert isinstance(self.current_model, Todo)
         self.post_message(TodoRemoved(self.current_model))
 
-        return super()._remove_node()
+        return super()._delete_current_model()
 
     def toggle_complete(self):
         assert isinstance(self.current_model, Todo)

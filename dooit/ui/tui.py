@@ -12,7 +12,7 @@ from dooit.ui.screens import MainScreen, HelpScreen
 from dooit.ui.widgets.trees.model_tree import ModelTree
 from dooit.utils import CssManager
 from .api import DooitAPI
-from ..api import manager
+from ..api import manager, drop_blank_models
 
 PRINTABLE = (
     "0123456789"
@@ -45,6 +45,7 @@ class Dooit(App):
         manager.connect(db_path)
 
     async def base_setup(self):
+        drop_blank_models()
         self.api = DooitAPI(self)
         self.api.plugin_manager.scan()
         self.post_message(Startup())
@@ -59,6 +60,7 @@ class Dooit(App):
         await self.setup_poller()
 
     async def action_quit(self) -> None:
+        drop_blank_models()
         self.post_message(ShutDown())
         return await super().action_quit()
 
