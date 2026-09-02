@@ -117,9 +117,15 @@ def _add_working_days(start: date, days: int) -> date:
     return current
 
 
-# German date convention: day first, dot separated, and the year always spelled
-# out as its last two digits. The time only shows up when it is something other
-# than midnight.
+# Austrian German weekday abbreviations, indexed by `date.weekday()`. Spelled
+# out here rather than left to `%a`, which follows the process locale and would
+# give English names on a default install.
+WEEKDAY_NAMES = ("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So")
+
+
+# German date convention: weekday first, then day, dot separated, and the year
+# always spelled out as its last two digits. The time only shows up when it is
+# something other than midnight.
 def todo_due_formatter(due: Optional[datetime], _: Todo) -> str:
     if due is None:
         return ""
@@ -129,7 +135,7 @@ def todo_due_formatter(due: Optional[datetime], _: Todo) -> str:
     if due.hour or due.minute:
         dt_format += " (%H:%M)"
 
-    return due.strftime(dt_format)
+    return f"{WEEKDAY_NAMES[due.weekday()]}, {due.strftime(dt_format)}"
 
 
 # `due_icon` appends the value it is given to a Text as plain text, which
