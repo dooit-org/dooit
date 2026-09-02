@@ -170,6 +170,28 @@ def todo_recurrence_formatter(recurrence: Optional[timedelta], _):
     return Recurrence.timedelta_to_simple_string(recurrence)
 
 
+# A completed todo is done with: its whole line is grayed out, and its
+# description struck through on top of that. The status column is left alone,
+# so the check mark stays the one bright thing left on the row.
+def gray_out_completed(strike: bool = False):
+    @extra_formatter
+    def wrapper(value: str, todo: Todo, api: DooitAPI):
+        if not todo.is_completed:
+            return
+
+        # The colors handed out by the formatters above sit on inner spans,
+        # which a base style can't override, so the value is flattened back to
+        # plain text before the gray goes on.
+        plain = Text.from_markup(value).plain
+
+        return Text(
+            plain,
+            style=Style(color=api.vars.theme.foreground1, dim=True, strike=strike),
+        ).markup
+
+    return wrapper
+
+
 # Hold-to-show help
 
 
@@ -279,6 +301,14 @@ def layout_setup(api: DooitAPI, _):
 
 @subscribe(Startup)
 def formatter_setup(api: DooitAPI, _):
+    # Added first => runs last, so the graying has the final say over every
+    # color the formatters below hand out
+    api.formatter.todos.description.add(gray_out_completed(strike=True))
+    api.formatter.todos.due.add(gray_out_completed())
+    api.formatter.todos.priority.add(gray_out_completed())
+    api.formatter.todos.effort.add(gray_out_completed())
+    api.formatter.todos.recurrence.add(gray_out_completed())
+
     api.formatter.todos.status.add(todo_status_formatter)
     api.formatter.todos.due.add(todo_due_formatter)
     api.formatter.todos.due.add(todo_due_color_formatter)
