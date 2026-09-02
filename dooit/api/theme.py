@@ -49,3 +49,42 @@ $secondary: {cls.secondary};
 """
 
         return css
+
+
+class TokyoNight(DooitThemeBase):
+    """
+    The "night" variant of Tokyo Night: a deep blue-black ground, text in a
+    washed periwinkle, and a palette that leans blue/purple, with the warm
+    colors held back for the things that carry a meaning (due dates, priority).
+
+    The three backgrounds are the ground itself, the raised bar, and the step
+    above it that borders and the highlighted row are drawn in; the three
+    foregrounds run from the gray that dim text fades towards up to the color
+    the rows themselves are written in.
+    """
+
+    _name = "tokyo-night"
+
+    # background colors
+    background1: str = "#1A1B26"  # Darkest
+    background2: str = "#1F2335"  # Lighter
+    background3: str = "#2F334D"  # Lightest
+
+    # foreground colors
+    foreground1: str = "#A9B1D6"  # Darkest
+    foreground2: str = "#C0CAF5"  # Lighter
+    foreground3: str = "#D0D7F7"  # Lightest
+
+    # other colors
+    red: str = "#F7768E"
+    orange: str = "#FF9E64"
+    yellow: str = "#E0AF68"
+    green: str = "#9ECE6A"
+    blue: str = "#7AA2F7"
+    purple: str = "#9D7CD8"
+    magenta: str = "#BB9AF7"
+    cyan: str = "#7DCFFF"
+
+    # accent colors
+    primary: str = blue
+    secondary: str = magenta

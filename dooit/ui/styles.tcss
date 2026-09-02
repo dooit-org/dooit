@@ -90,7 +90,7 @@ DooitKeyTable {
   }
 
   .table-title {
-    color: $background3;
+    color: $background1;
     background: $primary;
   }
 }
