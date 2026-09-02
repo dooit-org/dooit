@@ -93,6 +93,14 @@ class Todo(DooitModel):
         return "pending"
 
     @property
+    def total_children(self) -> int:
+        """
+        Every todo nested under this one, counted at every level
+        """
+
+        return sum(1 + todo.total_children for todo in self.todos)
+
+    @property
     def siblings(self) -> List["Todo"]:
         if self.parent_workspace:
             return self.parent_workspace.todos

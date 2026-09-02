@@ -7,7 +7,7 @@ from dooit.ui.widgets.renderers.base_renderer import BaseRenderer
 from tests.test_ui.ui_base import (
     run_pilot,
     create_and_move_to_todo,
-    todo_options,
+    tree_options,
     highlighted_index,
 )
 from dooit.ui.tui import Dooit
@@ -109,12 +109,12 @@ async def test_remove_todo():
         tree.remove_node()
         await pilot.pause()
 
-        assert len(todo_options(tree)) == 1
+        assert len(tree_options(tree)) == 1
         assert highlighted_index(tree) == 0
         assert tree.current_model.description == "nixos"
 
         await pilot.press("y")
-        assert len(todo_options(tree)) == 0
+        assert len(tree_options(tree)) == 0
         assert tree.highlighted is None
 
 

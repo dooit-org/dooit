@@ -11,6 +11,9 @@ class Input:
     highlight_pattern = ""
     is_editing = False
 
+    # Inputs that only show a derived value refuse to be edited
+    editable: bool = True
+
     def __init__(self, value="") -> None:
         self._value = value
         self._cursor_position = len(self._value)

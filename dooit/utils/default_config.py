@@ -3,7 +3,7 @@ from functools import partial
 import os
 from typing import Optional
 from rich.style import Style
-from dooit.api import Todo
+from dooit.api import Todo, Workspace
 from dooit_extras.formatters import due_icon
 from dooit.ui.api import DooitAPI, extra_formatter, subscribe, timer
 from dooit.ui.api.widgets import TodoWidget, WorkspaceWidget
@@ -77,6 +77,17 @@ def blend(color: str, other: str, factor: float) -> str:
     return "#" + "".join(
         f"{round(a + (b - a) * factor):02x}" for a, b in zip(src, dest)
     )
+
+
+# The task tally on a workspace and the child count trailing a todo description
+# share one color: the accent the column headers are drawn in, pulled towards the
+# background so the numbers annotate the rows they sit on instead of competing
+# with them.
+COUNT_FADE = 0.4
+
+
+def count_color(api: DooitAPI) -> str:
+    return blend(api.vars.theme.primary, api.vars.theme.background1, COUNT_FADE)
 
 
 # Priority 1 is the most urgent one; 0 means no priority was set
@@ -170,6 +181,18 @@ def todo_due_color_formatter(due: str, todo: Todo, api: DooitAPI) -> str:
         color = theme.green
 
     return f"[{color}]{Text.from_markup(due).plain}[/{color}]"
+
+
+# How many todos hang below this one, at any depth. Nesting is invisible while a
+# todo is collapsed, so the count rides along with the description, in the same
+# dimmed accent as the workspace pane's task tally.
+def todo_description_formatter(description: str, todo: Todo, api: DooitAPI) -> str:
+    count = todo.total_children
+
+    if not count:
+        return description
+
+    return f"{description} [{count_color(api)}]({count})[/]"
 
 
 def todo_effort_formatter(effort, _):
@@ -267,6 +290,18 @@ HelpScreen.key_question_mark = lambda self: _keep_help_open(self.api)
 # Workspace formatters
 
 
+# Every todo nested under the workspace, counted at every level; sub workspaces
+# are walked into but not counted themselves. It gets a column of its own, so
+# nothing but the number is needed. The column header is drawn in the accent
+# color, and the numbers under it in a dimmer shade of the same, so the pair
+# reads as one unit without competing with the descriptions beside it.
+def workspace_tasks_formatter(count: int, _: Workspace, api: DooitAPI) -> str:
+    if not count:
+        return ""
+
+    return f"[{count_color(api)}]{count}[/]"
+
+
 @subscribe(Startup)
 def key_setup(api: DooitAPI, _):
     api.keys.set("j", api.focus_workspaces)
@@ -318,7 +353,10 @@ def key_setup(api: DooitAPI, _):
 
 @subscribe(Startup)
 def layout_setup(api: DooitAPI, _):
-    api.layouts.workspace_layout = [WorkspaceWidget.description]
+    api.layouts.workspace_layout = [
+        WorkspaceWidget.description,
+        WorkspaceWidget.tasks,
+    ]
     api.layouts.todo_layout = [
         TodoWidget.status,
         TodoWidget.description,
@@ -338,11 +376,14 @@ def formatter_setup(api: DooitAPI, _):
     api.formatter.todos.recurrence.add(gray_out_completed())
 
     api.formatter.todos.status.add(todo_status_formatter)
+    api.formatter.todos.description.add(todo_description_formatter)
     api.formatter.todos.due.add(todo_due_formatter)
     api.formatter.todos.due.add(todo_due_color_formatter)
     api.formatter.todos.due.add(due_icon())  # added last => runs first
     api.formatter.todos.effort.add(todo_effort_formatter)
     api.formatter.todos.recurrence.add(todo_recurrence_formatter)
+
+    api.formatter.workspaces.tasks.add(workspace_tasks_formatter)
 
 
 @subscribe(Startup)

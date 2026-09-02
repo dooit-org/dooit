@@ -105,7 +105,11 @@ class BaseRenderer(Generic[ModelType]):
         if not hasattr(self, param):
             return False
 
-        getattr(self, param).start_edit()
+        component = self._get_component(param)
+        if not component.editable:
+            return False
+
+        component.start_edit()
         self.editing = param
         return True
 

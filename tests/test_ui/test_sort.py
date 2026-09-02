@@ -7,7 +7,7 @@ from dooit.ui.widgets.bars.status_bar.bar import StatusBar
 from tests.test_ui.ui_base import (
     run_pilot,
     create_and_move_to_todo,
-    todo_options,
+    tree_options,
     highlighted_index,
 )
 from dooit.ui.tui import Dooit
@@ -102,7 +102,7 @@ async def test_reverse_sort():
         await pilot.press(*list("abcd"))
         await pilot.press("escape")
 
-        current_options = [node.id for node in todo_options(tree)]
+        current_options = [node.id for node in tree_options(tree)]
 
         api.start_sort()
         await pilot.pause()
@@ -116,7 +116,7 @@ async def test_reverse_sort():
         current_bar = app.bar_switcher.visible_content
         assert isinstance(current_bar, StatusBar)
 
-        new_options = [node.id for node in todo_options(tree)]
+        new_options = [node.id for node in tree_options(tree)]
         assert current_options != new_options
         await sleep(0.2)
         await pilot.pause()
@@ -139,7 +139,7 @@ async def test_sort_cancelled():
         await pilot.press(*list("abcd"))
         await pilot.press("escape")
 
-        current_options = [node.id for node in todo_options(tree)]
+        current_options = [node.id for node in tree_options(tree)]
 
         api.start_sort()
         await pilot.pause()
@@ -153,7 +153,7 @@ async def test_sort_cancelled():
         current_bar = app.bar_switcher.visible_content
         assert isinstance(current_bar, StatusBar)
 
-        new_options = [node.id for node in todo_options(tree)]
+        new_options = [node.id for node in tree_options(tree)]
         assert current_options == new_options
 
 
@@ -179,7 +179,7 @@ async def test_description_sort():
         sort_bar = app.bar_switcher.visible_content
         assert isinstance(sort_bar, SortBar)
         assert highlighted_index(tree) == 1  # sorted in reverse
-        current_options = [node.id for node in todo_options(tree)]
+        current_options = [node.id for node in tree_options(tree)]
 
         sort_bar.selected = 1
         await pilot.press("enter")
@@ -187,7 +187,7 @@ async def test_description_sort():
         current_bar = app.bar_switcher.visible_content
         assert isinstance(current_bar, StatusBar)
 
-        new_options = [node.id for node in todo_options(tree)]
+        new_options = [node.id for node in tree_options(tree)]
         assert current_options == new_options[::-1]
         await sleep(0.2)
         await pilot.pause()

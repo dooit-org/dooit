@@ -19,6 +19,28 @@ class WorkspaceDescription(SimpleInput[Workspace, str]):
         return "description"
 
 
+class WorkspaceTasks(SimpleInput[Workspace, int]):
+    """
+    How many todos are nested under the workspace; derived, so never editable
+    """
+
+    editable = False
+
+    @property
+    def _property(self) -> str:
+        return "total_todos"
+
+    @property
+    def value(self) -> str:
+        # Counted on every render: todos come and go while the renderer stays
+        count = self.model_value
+
+        if not count:
+            return ""
+
+        return str(count)
+
+
 class Due(SimpleInput[Todo, datetime]):
     def _get_default_value(self) -> str:
         value = self.model_value

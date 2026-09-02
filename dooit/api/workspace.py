@@ -69,6 +69,19 @@ class Workspace(DooitModel):
         return self.parent is not None
 
     @property
+    def total_todos(self) -> int:
+        """
+        Every todo nested under this workspace, counted at every level.
+
+        Sub workspaces are walked into but never counted themselves: the number
+        says how much work sits in here, not how it is filed away.
+        """
+
+        return sum(workspace.total_todos for workspace in self.workspaces) + sum(
+            1 + todo.total_children for todo in self.todos
+        )
+
+    @property
     def siblings(self) -> List["Workspace"]:
         if not self.parent_workspace:
             return []
