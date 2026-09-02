@@ -20,6 +20,17 @@ class VarManager(ApiComponent):
         self._show_confirm = True
         self._always_expand_workspaces = False
         self._always_expand_todos = False
+        self._row_shading = False
+
+    @property
+    def row_shading(self) -> bool:
+        """Whether every other todo row is tinted to help the eye track it"""
+
+        return self._row_shading
+
+    @row_shading.setter
+    def row_shading(self, value: bool):
+        self._row_shading = value
 
     @property
     def always_expand_workspaces(self) -> bool:

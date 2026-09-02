@@ -331,6 +331,7 @@ def key_setup(api: DooitAPI, _):
     api.keys.set("v", api.paste_model_below)
     api.keys.set("V", api.paste_model_above)
     api.keys.set("c", api.toggle_complete)
+    api.keys.set("q", api.toggle_row_shading)
 
     for priority in PRIORITIES:
         api.keys.set(

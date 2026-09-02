@@ -207,6 +207,15 @@ class DooitAPI:
         if isinstance(self.focused, TodosTree):
             self.focused.set_priority(priority)
 
+    def toggle_row_shading(self):
+        """Toggle the shading of alternate rows in the todos pane"""
+
+        self.vars.row_shading = not self.vars.row_shading
+
+        # Every todos pane redraws, not just the focused one: the switcher
+        # keeps one per workspace, and they all share the setting
+        self.app.screen.query(TodosTree).refresh()
+
     def show_help(self):
         """Show the help screen"""
         self.focused.show_help()
