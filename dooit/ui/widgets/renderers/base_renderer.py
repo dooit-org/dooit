@@ -64,6 +64,9 @@ class BaseRenderer(Generic[ModelType]):
     def model(self) -> ModelType:
         raise NotImplementedError  # pragma: no cover
 
+    def _cell_len(self, rendered) -> int:
+        return rendered.cell_len if isinstance(rendered, Text) else len(rendered)
+
     def _get_attr_width(self, attr: str) -> int:
         component = self._get_component(attr)
         formatter = self.tree.formatter
@@ -71,14 +74,25 @@ class BaseRenderer(Generic[ModelType]):
             component.model_value, component.model
         )
 
-        return max(len(component.value) + 1, len(rendered))
+        # An editing field draws its buffer plus whatever hint it appends to it,
+        # which is wider than the buffer alone: measure what actually gets drawn
+        if component.is_editing:
+            editing_width = self._cell_len(component.render_editing(self.theme))
+        else:
+            editing_width = len(component.value) + 1
+
+        return max(editing_width, len(rendered))
 
     def _get_max_width(self, attr: str) -> int:
         return self.tree.get_column_width(attr)
 
     @property
+    def theme(self):
+        return self.tree.api.vars.theme
+
+    @property
     def guide_style(self) -> Style:
-        theme = self.tree.api.vars.theme
+        theme = self.theme
         return Style(color=blend(theme.foreground1, theme.background1, GUIDE_FADE))
 
     @property
@@ -123,16 +137,18 @@ class BaseRenderer(Generic[ModelType]):
             attr = item.value
             component = self._get_component(attr)
 
-            if len(component.render()) > self._get_max_width(attr):
-                self.tree.get_column_width.cache_clear()
-
             if component.is_editing:
-                rendered = component.render()
+                rendered = component.render_editing(self.theme)
             else:
                 formatter = self.tree.formatter
                 rendered = getattr(formatter, attr).format_value(
                     component.model_value, component.model
                 )
+
+            # Measured on what is about to be drawn, so that a field which grows
+            # while it is edited gets the column widened for it
+            if self._cell_len(rendered) > self._get_max_width(attr):
+                self.tree.get_column_width.cache_clear()
 
             # The guides ride along inside the first cell rather than in a
             # column of their own, so that nothing separates the line from the
@@ -171,9 +187,15 @@ class BaseRenderer(Generic[ModelType]):
         return True
 
     def stop_edit(self):
-        getattr(self, self.editing).stop_edit()
-        self.tree.get_column_width.cache_clear()
-        self.editing = ""
+        # A field that rejects what was typed raises out of here, and the tree
+        # turns that into a notification. The edit still has to be torn down on
+        # the way out, or the tree keeps routing keystrokes into the buffer
+        # while the bar claims to be back in NORMAL mode
+        try:
+            getattr(self, self.editing).stop_edit()
+        finally:
+            self.tree.get_column_width.cache_clear()
+            self.editing = ""
 
     def handle_keypress(self, key: str) -> bool:
         getattr(self, self.editing).keypress(key)

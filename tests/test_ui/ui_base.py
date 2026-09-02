@@ -21,6 +21,9 @@ async def create_and_move_to_todo(pilot: Pilot) -> TodosTree:
     wtree.add_sibling()
     await pilot.pause()
 
+    # A workspace left without a description is discarded rather than kept, so
+    # it has to be named before the edit is committed
+    await pilot.press(*list("workspace"))
     await pilot.press("escape")
     await pilot.pause()
 

@@ -1,5 +1,7 @@
 import pyperclip
-from typing import Optional
+from typing import Optional, Union
+
+from rich.text import Text
 
 
 class Input:
@@ -32,6 +34,17 @@ class Input:
 
     def render(self) -> str:
         return self.draw().strip()
+
+    def render_editing(self, theme) -> Union[str, Text]:
+        """
+        What to draw while this field is being edited
+
+        Formatters are bypassed during an edit, so a field that can say
+        something useful about the half-typed buffer -- what a due date
+        expression resolves to, say -- overrides this to add it.
+        """
+
+        return self.render()
 
     def _render_text_with_cursor(self) -> str:
         """

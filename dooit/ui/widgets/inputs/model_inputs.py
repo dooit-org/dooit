@@ -2,8 +2,12 @@ import re
 from datetime import datetime, timedelta
 from typing import Any, Optional, Tuple
 
+from rich.style import Style
+from rich.text import Text
+
 from .simple_input import SimpleInput
 from dooit.api import Todo, Workspace
+from dooit.api.theme import DooitThemeBase
 from dooit.api.todo import MAX_EFFORT
 from dooit.utils import parse
 
@@ -43,26 +47,59 @@ class WorkspaceTasks(SimpleInput[Workspace, int]):
 
 
 class Due(SimpleInput[Todo, datetime]):
+    # Day first, to match both the column's German rendering and the way the
+    # parser reads an ambiguous `5.9`, so what is shown can be typed back in
+    EDIT_FORMAT = "%d.%m.%Y"
+
+    @classmethod
+    def _format(cls, value: datetime) -> str:
+        dt_format = cls.EDIT_FORMAT
+
+        if value.hour or value.minute:
+            dt_format += " %H:%M"
+
+        return value.strftime(dt_format)
+
     def _get_default_value(self) -> str:
         value = self.model_value
 
         if value is None:
             return ""
 
-        if value.hour or value.minute:
-            return self.model_value.strftime("%Y-%m-%d %H:%M")
-
-        return value.strftime("%Y-%m-%d")
+        return self._format(value)
 
     def _typecast_value(self, value: str) -> Any:
-        if not value:
+        if not value.strip():
             return None
 
         due, ok = parse(value)
         if not ok:
-            return self.model_value
+            # Raised rather than swallowed, so that the tree turns it into a
+            # notification instead of silently dropping what was typed
+            raise ValueError(f'Could not understand due date: "{value}"')
 
         return due
+
+    def render_editing(self, theme: DooitThemeBase) -> Text:
+        """
+        The buffer, plus what the text currently in it resolves to
+        """
+
+        text = Text(self.draw().strip())
+
+        if not self.value.strip():
+            return text
+
+        due, ok = parse(self.value)
+
+        if not ok:
+            hint, color = "?", theme.red
+        elif due is None:
+            hint, color = "no date", theme.green
+        else:
+            hint, color = self._format(due), theme.green
+
+        return text + Text(f" → {hint}", style=Style(color=color, dim=True))
 
 
 class Priority(SimpleInput[Todo, int]):

@@ -139,6 +139,88 @@ async def test_due():
         assert todo.due == datetime(2022, 1, 1)
 
 
+async def test_due_natural_language():
+    async with run_pilot() as pilot:
+        app = pilot.app
+        assert isinstance(app, Dooit)
+
+        tree = await create_and_move_to_todo(pilot)
+
+        tree.add_sibling()
+        await pilot.press(*list("nixos"))
+        await pilot.press("escape")
+
+        app.api.edit_due()
+        await pilot.press(*list("tom 16:00"))
+        await pilot.press("escape")
+
+        todo = tree.current_model
+        assert isinstance(todo, Todo)
+
+        expected = datetime.now().replace(
+            hour=16, minute=0, second=0, microsecond=0
+        ) + timedelta(days=1)
+        assert todo.due == expected
+
+
+async def test_due_preview_while_editing():
+    async with run_pilot() as pilot:
+        app = pilot.app
+        assert isinstance(app, Dooit)
+
+        tree = await create_and_move_to_todo(pilot)
+
+        tree.add_sibling()
+        await pilot.press(*list("nixos"))
+        await pilot.press("escape")
+
+        app.api.edit_due()
+        await pilot.press(*list("tom"))
+
+        component = tree.current._get_component("due")
+        preview = component.render_editing(tree.current.theme).plain
+
+        tomorrow = datetime.now() + timedelta(days=1)
+        assert preview.endswith(f"→ {tomorrow.strftime('%d.%m.%Y')}")
+
+        # and an expression that means nothing says so, rather than guessing
+        await pilot.press("ctrl+l")
+        await pilot.press(*list("asdfgh"))
+        assert component.render_editing(tree.current.theme).plain.endswith("→ ?")
+
+        await pilot.press("escape")
+
+
+async def test_due_invalid_keeps_previous_value():
+    async with run_pilot() as pilot:
+        app = pilot.app
+        assert isinstance(app, Dooit)
+
+        tree = await create_and_move_to_todo(pilot)
+
+        tree.add_sibling()
+        await pilot.press(*list("nixos"))
+        await pilot.press("escape")
+
+        app.api.edit_due()
+        await pilot.press(*list("2022-01-01"))
+        await pilot.press("escape")
+
+        todo = tree.current_model
+        assert isinstance(todo, Todo)
+        assert todo.due == datetime(2022, 1, 1)
+
+        app.api.edit_due()
+        await pilot.press(*list("asdfgh"))
+        await pilot.press("escape")
+
+        # the garbage is dropped and the date that was there survives
+        assert todo.due == datetime(2022, 1, 1)
+
+        # and the tree is genuinely out of the edit, not still eating keystrokes
+        assert not tree.is_editing
+
+
 async def test_priority():
     async with run_pilot() as pilot:
         app = pilot.app
