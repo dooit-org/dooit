@@ -322,8 +322,8 @@ def layout_setup(api: DooitAPI, _):
     api.layouts.todo_layout = [
         TodoWidget.status,
         TodoWidget.description,
-        TodoWidget.due,
         TodoWidget.effort,
+        TodoWidget.due,
         TodoWidget.recurrence,
     ]
 
