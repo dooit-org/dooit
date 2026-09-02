@@ -4,7 +4,13 @@ import os
 from typing import Optional
 from rich.style import Style
 from dooit.api import Todo, Workspace
-from dooit_extras.formatters import due_icon
+from dooit_extras.formatters import (
+    description_highlight_link,
+    description_highlight_tags,
+    due_danger_today,
+    due_icon,
+    recurrence_icon,
+)
 from dooit.ui.api import DooitAPI, extra_formatter, subscribe, timer
 from dooit.ui.api.widgets import TodoWidget, WorkspaceWidget
 from dooit.ui.api.events import ModeChanged, Startup
@@ -148,10 +154,19 @@ def todo_due_formatter(due: Optional[datetime], _: Todo) -> str:
     return due.strftime(dt_format)
 
 
+# `due_icon` appends the value it is given to a Text as plain text, which
+# escapes whatever markup the value already carried, so one `from_markup` pass
+# hands that markup back as literal text rather than dropping it. A second pass
+# is what actually strips it.
+def _strip_markup(value: str) -> str:
+    return Text.from_markup(Text.from_markup(value).plain).plain
+
+
 # Runs after the calendar icon has been prepended, so icon and date get one
-# shared lead-time color. The icon arrives carrying its own status color, which
-# is dropped here; the result has to be handed back as a markup string, since a
-# Text would get escaped by the formatter store.
+# shared lead-time color. The icon arrives carrying its own status color, and
+# "Today" its own bold red, both of which are dropped here in favor of one
+# style over the whole column; the result has to be handed back as a markup
+# string, since a Text would get escaped by the formatter store.
 @extra_formatter
 def todo_due_color_formatter(due: str, todo: Todo, api: DooitAPI) -> str:
     if not todo.due:
@@ -159,10 +174,18 @@ def todo_due_color_formatter(due: str, todo: Todo, api: DooitAPI) -> str:
 
     theme = api.vars.theme
     now = datetime.now()
+    bold = False
 
     if todo.is_completed:
         # Nothing is urgent about a done todo
         color = theme.green
+    elif todo.due.date() == now.date():
+        # Checked ahead of the overdue branch so a todo due today reads the
+        # same whether its time has passed or is still to come: this is the
+        # color for the "Today" that `due_danger_today` put in place of the
+        # date, and the bold is what sets it apart from merely overdue.
+        color = theme.red
+        bold = True
     elif todo.due < now:
         color = theme.red
     elif todo.due.date() <= _add_working_days(now.date(), WORKING_DAYS_PER_WEEK):
@@ -170,7 +193,8 @@ def todo_due_color_formatter(due: str, todo: Todo, api: DooitAPI) -> str:
     else:
         color = theme.green
 
-    return f"[{color}]{Text.from_markup(due).plain}[/{color}]"
+    style = f"bold {color}" if bold else color
+    return f"[{style}]{_strip_markup(due)}[/]"
 
 
 # How many todos hang below this one, at any depth. Nesting is invisible while a
@@ -382,11 +406,26 @@ def formatter_setup(api: DooitAPI, _):
 
     api.formatter.todos.status.add(todo_status_formatter)
     api.formatter.todos.description.add(todo_description_formatter)
+
+    # Tags and URLs are picked out of the raw description, so they have to run
+    # before the child count appends its own markup: added last => runs first.
+    # The link goes on ahead of the tags, so an "@" inside a URL is already
+    # sealed inside the link span by the time the tag regex comes past.
+    api.formatter.todos.description.add(description_highlight_tags())
+    api.formatter.todos.description.add(description_highlight_link())
+
     api.formatter.todos.due.add(todo_due_formatter)
+    # Value formatters stop at the first one that returns something, so this
+    # has to sit after the date formatter to get the first look: on the day a
+    # todo is due it swallows the date and puts a plain "Today" there instead,
+    # and on any other day it declines and lets the date through.
+    api.formatter.todos.due.add(due_danger_today())
     api.formatter.todos.due.add(todo_due_color_formatter)
     api.formatter.todos.due.add(due_icon())  # added last => runs first
     api.formatter.todos.effort.add(todo_effort_formatter)
     api.formatter.todos.recurrence.add(todo_recurrence_formatter)
+    # Marks the repeating todos, whose interval is easy to miss as bare text
+    api.formatter.todos.recurrence.add(recurrence_icon())
 
     api.formatter.workspaces.description.add(workspace_description_formatter)
     api.formatter.workspaces.tasks.add(workspace_tasks_formatter)
