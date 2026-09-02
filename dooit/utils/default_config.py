@@ -11,6 +11,7 @@ from dooit.ui.api.events import ModeChanged, Startup
 from dooit.ui.screens import HelpScreen
 from dooit.ui.widgets.bars import StatusBarWidget
 from dooit.ui.widgets.inputs.model_inputs import Recurrence
+from dooit.utils import blend
 from rich.text import Text
 
 
@@ -66,17 +67,6 @@ def get_user(api: DooitAPI, _: Startup):
 
 
 # Todo formatters
-
-
-def blend(color: str, other: str, factor: float) -> str:
-    """Mix `color` towards `other`: factor 0 keeps it, factor 1 returns `other`."""
-
-    src = [int(color[i : i + 2], 16) for i in (1, 3, 5)]
-    dest = [int(other[i : i + 2], 16) for i in (1, 3, 5)]
-
-    return "#" + "".join(
-        f"{round(a + (b - a) * factor):02x}" for a, b in zip(src, dest)
-    )
 
 
 # The task tally on a workspace and the child count trailing a todo description
