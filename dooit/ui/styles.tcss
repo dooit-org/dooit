@@ -1,6 +1,6 @@
 # Extra vars
 
-$border_type: heavy;
+$border_type: round;
 
 
 # CSS
@@ -22,12 +22,10 @@ ModelTree {
     padding: 1 0;
 
     border-title-color: $foreground1;
-    border-title-background: $background3;
+    border-title-background: $background1;
 
     &:focus {
         border: $border_type $primary;
-        border-title-color: $background1;
-        border-title-background: $primary;
 
         .option-list--option-highlighted, .option-list--option-hover-highlighted {
             background: $secondary 40%;

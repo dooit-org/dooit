@@ -48,6 +48,11 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
     HEADER_ID = "dooit-column-header"
     show_header: bool = False
 
+    # Rounded caps drawn on either side of the border title so that the title
+    # bar matches the rounded pane borders
+    TITLE_CAP_LEFT = "\ue0b6"
+    TITLE_CAP_RIGHT = "\ue0b4"
+
     def __init__(self, model: ModelType, render_dict: RenderDictType) -> None:
         tree = self.__class__.__name__
         super().__init__(id=f"{tree}_{model.uuid}")
@@ -221,6 +226,36 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
 
     def on_mount(self):
         self.force_refresh()
+        self.refresh_border_title()
+
+    def refresh_border_title(self) -> None:
+        """
+        Renders the pane title as a pill with rounded ends
+        """
+
+        if not self.is_mounted or not self.BORDER_TITLE:
+            return
+
+        theme = self.api.vars.theme
+        if self.has_focus:
+            fill, text = theme.primary, theme.background1
+        else:
+            fill, text = theme.background3, theme.foreground1
+
+        cap = f"{fill} on {theme.background1}"
+        self.border_title = (
+            f"[{cap}]{self.TITLE_CAP_LEFT}[/]"
+            f"[{text} on {fill}]{self.BORDER_TITLE}[/]"
+            f"[{cap}]{self.TITLE_CAP_RIGHT}[/]"
+        )
+
+    def watch_has_focus(self, has_focus: bool) -> None:
+        super().watch_has_focus(has_focus)
+        self.refresh_border_title()
+
+    def notify_style_update(self) -> None:
+        super().notify_style_update()
+        self.refresh_border_title()
 
     @require_highlighted_node
     def start_sort(self):
