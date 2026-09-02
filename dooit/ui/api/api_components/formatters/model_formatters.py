@@ -8,7 +8,7 @@ class TodoFormatter(ModelFormatterBase):
         self.due = self.get_formatter_store()
         self.effort = self.get_formatter_store()
         self.recurrence = self.get_formatter_store()
-        self.urgency = self.get_formatter_store()
+        self.priority = self.get_formatter_store()
         self.status = self.get_formatter_store()
 
     def trigger(self) -> None:

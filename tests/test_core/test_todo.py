@@ -85,7 +85,7 @@ def test_comparable_fields():
         "due",
         "effort",
         "recurrence",
-        "urgency",
+        "priority",
         "pending",
     ]
     assert fields == expected_fields
@@ -175,20 +175,22 @@ def test_tags(create_workspace, create_todo):
     assert t.tags == []
 
 
-def test_urgency(create_workspace, create_todo):
+def test_priority(create_workspace, create_todo):
     w = create_workspace()
     t = w.add_todo()
-    assert t.urgency == 1
+    assert t.priority == 0
 
-    t.decrease_urgency()
-    assert t.urgency == 1
+    t.set_priority(1)
+    assert t.priority == 1
 
-    t.increase_urgency()
-    t.increase_urgency()
-    t.increase_urgency()
-    t.increase_urgency()
-    t.increase_urgency()
-    assert t.urgency == 4
+    t.set_priority(3)
+    assert t.priority == 3
+
+    t.set_priority(-1)
+    assert t.priority == 0
+
+    t.set_priority(9)
+    assert t.priority == 3
 
 
 def test_recurrence_change(create_workspace, create_todo):
@@ -221,7 +223,7 @@ def test_sort_invalid(create_workspace, create_todo):
         ("description", lambda x: x.description, None, False),
         ("recurrence", lambda x: x.recurrence, lambda x: x.recurrence, False),
         ("effort", lambda x: x.effort, None, False),
-        ("urgency", lambda x: x.urgency, None, False),
+        ("priority", lambda x: x.priority, None, False),
         ("due", lambda x: x.due, lambda x: x.due, True),
     ],
 )
@@ -246,7 +248,7 @@ def test_sort(session, create_workspace, field, sort_key, filter_func, compare_i
         t.description = "Parent Todo"
         t.due = datetime.now()
         t.effort = 3
-        t.urgency = 2
+        t.priority = 2
         t.save()
 
         # Add child todos
@@ -271,7 +273,7 @@ def test_sort(session, create_workspace, field, sort_key, filter_func, compare_i
         assert cloned_todo.description == "Parent Todo"
         assert cloned_todo.due == t.due
         assert cloned_todo.effort == 3
-        assert cloned_todo.urgency == 2
+        assert cloned_todo.priority == 2
         assert cloned_todo.order_index == 10
         assert cloned_todo.parent_workspace_id == w.id
 

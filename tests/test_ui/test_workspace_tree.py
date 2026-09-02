@@ -297,7 +297,7 @@ async def test_yank_and_paste_workspace():
         await pilot.pause()
 
         # Paste it
-        await pilot.press("p")
+        await pilot.press("v")
         await pilot.pause()
 
         # Check that the workspace was cloned

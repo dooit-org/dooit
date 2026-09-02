@@ -1,4 +1,5 @@
 from datetime import date, datetime, timedelta
+from functools import partial
 import os
 from typing import Optional
 from rich.style import Style
@@ -134,21 +135,24 @@ def todo_due_color_formatter(due: str, todo: Todo, api: DooitAPI) -> str:
     return f"[{color}]{Text.from_markup(due).plain}[/{color}]"
 
 
-def todo_urgency_formatter(urgency, _, api: DooitAPI):
-    if urgency == 0:
+# Priority 1 is the most urgent one; 0 means no priority was set
+PRIORITIES = (1, 2, 3)
+
+
+def todo_priority_formatter(priority, _, api: DooitAPI):
+    if priority not in PRIORITIES:
         return ""
 
     theme = api.vars.theme
     colors = {
-        1: theme.green,
+        1: theme.red,
         2: theme.yellow,
-        3: theme.orange,
-        4: theme.red,
+        3: theme.green,
     }
 
     return Text(
-        f"!{urgency}",
-        style="bold " + colors.get(urgency, theme.primary),
+        f"p{priority}",
+        style="bold " + colors.get(priority, theme.primary),
     )
 
 
@@ -232,11 +236,24 @@ def key_setup(api: DooitAPI, _):
     api.keys.set("xx", api.remove_node)
     api.keys.set("y", api.copy_description_to_clipboard)
     api.keys.set("Y", api.copy_model)
-    api.keys.set("p", api.paste_model_below)
-    api.keys.set("P", api.paste_model_above)
+    # "p" is a prefix of the priority keys below, so paste lives on v/V
+    api.keys.set("v", api.paste_model_below)
+    api.keys.set("V", api.paste_model_above)
     api.keys.set("c", api.toggle_complete)
-    api.keys.set(["=", "+"], api.increase_urgency)
-    api.keys.set(["-", "_"], api.decrease_urgency)
+
+    for priority in PRIORITIES:
+        api.keys.set(
+            f"p{priority}",
+            partial(api.set_priority, priority),
+            description=f"Set the todo priority to p{priority}",
+        )
+
+    api.keys.set(
+        "p0",
+        partial(api.set_priority, 0),
+        description="Clear the priority of the todo",
+    )
+
     api.keys.set("/", api.start_search)
     api.keys.set("<ctrl+s>", api.start_sort)
     api.keys.set("<ctrl+q>", api.quit)
@@ -254,7 +271,7 @@ def layout_setup(api: DooitAPI, _):
         TodoWidget.status,
         TodoWidget.description,
         TodoWidget.due,
-        TodoWidget.urgency,
+        TodoWidget.priority,
         TodoWidget.effort,
         TodoWidget.recurrence,
     ]
@@ -266,7 +283,7 @@ def formatter_setup(api: DooitAPI, _):
     api.formatter.todos.due.add(todo_due_formatter)
     api.formatter.todos.due.add(todo_due_color_formatter)
     api.formatter.todos.due.add(due_icon())  # added last => runs first
-    api.formatter.todos.urgency.add(todo_urgency_formatter)
+    api.formatter.todos.priority.add(todo_priority_formatter)
     api.formatter.todos.effort.add(todo_effort_formatter)
     api.formatter.todos.recurrence.add(todo_recurrence_formatter)
 

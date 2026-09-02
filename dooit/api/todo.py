@@ -19,7 +19,7 @@ class Todo(DooitModel):
     due: Mapped[Optional[datetime]] = mapped_column(default=None)
     effort: Mapped[int] = mapped_column(default=0)
     recurrence: Mapped[Optional[timedelta]] = mapped_column(default=None)
-    urgency: Mapped[int] = mapped_column(default=1)
+    priority: Mapped[int] = mapped_column(default=0)
     pending: Mapped[bool] = mapped_column(default=True)
 
     # --------------------------------------------------------------
@@ -144,12 +144,8 @@ class Todo(DooitModel):
 
     # ----------- HELPER FUNCTIONS --------------
 
-    def increase_urgency(self) -> None:
-        self.urgency += 1
-        self.save()
-
-    def decrease_urgency(self) -> None:
-        self.urgency -= 1
+    def set_priority(self, priority: int) -> None:
+        self.priority = priority
         self.save()
 
     def toggle_complete(self) -> None:
@@ -185,7 +181,7 @@ class Todo(DooitModel):
     @staticmethod
     def clone_from_id(id: int, order_index: int) -> "Todo":
         todo = Todo.from_id(str(id))
-        fields = ["description", "due", "effort", "recurrence", "urgency", "pending"]
+        fields = ["description", "due", "effort", "recurrence", "priority", "pending"]
         attrs = {field: getattr(todo, field) for field in fields}
         attrs.update(
             {
@@ -217,7 +213,7 @@ class Todo(DooitModel):
             "due",
             "effort",
             "recurrence",
-            "urgency",
+            "priority",
             "pending",
             "order_index",
         ]

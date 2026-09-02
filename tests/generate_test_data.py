@@ -16,13 +16,13 @@ def gen_todo(parent):
         description += " @" + f.word()
 
     due = f.date_between(start_date="-1y", end_date="+1y")
-    urgency = randint(2, 5) if randint(0, 10) == 5 else 1
+    priority = randint(1, 3) if randint(0, 10) == 5 else 0
 
     recurrence = timedelta(days=randint(1, 30)) if randint(0, 10) == 5 else None
     todo = Todo(
         description=description,
         due=due,
-        urgency=urgency,
+        priority=priority,
         pending=randint(1, 3) == 3 if recurrence is None else True,
         recurrence=recurrence,
         effort=randint(1, 10),

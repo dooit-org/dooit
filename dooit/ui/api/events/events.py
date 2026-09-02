@@ -223,9 +223,9 @@ class TodoRecurrenceChanged(TodoEvent):
         self.new = new
 
 
-class TodoUrgencyChanged(TodoEvent):
+class TodoPriorityChanged(TodoEvent):
     """
-    Emitted when user changes the urget of a todo
+    Emitted when user changes the priority of a todo
     """
 
     def __init__(self, old: int, new: int, todo: Todo) -> None:

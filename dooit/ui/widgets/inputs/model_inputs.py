@@ -42,15 +42,15 @@ class Due(SimpleInput[Todo, datetime]):
         return due
 
 
-class Urgency(SimpleInput[Todo, int]):
+class Priority(SimpleInput[Todo, int]):
     @property
     def value(self) -> str:
-        res = self.model.urgency
+        res = self.model.priority
 
         if res == 0:
             return ""
 
-        return str(self.model.urgency)
+        return str(self.model.priority)
 
     def _typecast_value(self, value: str) -> Any:
         if not value or value == "0":

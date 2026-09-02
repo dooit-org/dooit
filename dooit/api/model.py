@@ -7,7 +7,7 @@ from sqlalchemy import inspect
 from .manager import manager
 
 
-SortMethodType = Literal["description", "status", "due", "urgency", "effort"]
+SortMethodType = Literal["description", "status", "due", "priority", "effort"]
 T = TypeVar("T")
 
 

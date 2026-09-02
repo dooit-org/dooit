@@ -139,7 +139,7 @@ async def test_due():
         assert todo.due == datetime(2022, 1, 1)
 
 
-async def test_urgency():
+async def test_priority():
     async with run_pilot() as pilot:
         app = pilot.app
         assert isinstance(app, Dooit)
@@ -153,15 +153,15 @@ async def test_urgency():
         todo = tree.current_model
         assert isinstance(todo, Todo)
 
-        urgency = todo.urgency
-        tree.increase_urgency()
+        assert todo.priority == 0
 
+        tree.set_priority(1)
         await pilot.pause()
-        assert todo.urgency == urgency + 1
+        assert todo.priority == 1
 
-        tree.decrease_urgency()
+        tree.set_priority(0)
         await pilot.pause()
-        assert todo.urgency == urgency
+        assert todo.priority == 0
 
 
 async def test_status_change():

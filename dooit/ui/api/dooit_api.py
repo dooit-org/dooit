@@ -202,15 +202,10 @@ class DooitAPI:
         if isinstance(self.focused, TodosTree):
             self.focused.toggle_complete()
 
-    def increase_urgency(self):
-        """Increase the urgency of the todo"""
+    def set_priority(self, priority: int):
+        """Set the priority of the todo (1 is the highest, 0 clears it)"""
         if isinstance(self.focused, TodosTree):
-            self.focused.increase_urgency()
-
-    def decrease_urgency(self):
-        """Decrease the urgency of the todo"""
-        if isinstance(self.focused, TodosTree):
-            self.focused.decrease_urgency()
+            self.focused.set_priority(priority)
 
     def show_help(self):
         """Show the help screen"""

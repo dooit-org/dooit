@@ -6,7 +6,7 @@ from pathlib import Path
 from platformdirs import user_data_dir
 from dooit.api import Todo, Workspace, manager
 from dooit.utils.cli_logger import logger
-from dooit.utils.database import delete_all_data
+from dooit.utils.database import delete_all_data, urgency_to_priority
 
 manager.connect()
 BASE_PATH = Path(user_data_dir("dooit"))
@@ -118,6 +118,7 @@ class Migrator2to3:
         description = self_data.get("description")
         pending = self_data.get("status") != "COMPLETED"
         urgency = self_data.get("urgency")
+        priority = urgency_to_priority(int(urgency) if urgency else None)
         due = self_data.get("due")
         effort = self_data.get("effort")
         recurrence = self_data.get("recurrence")
@@ -127,7 +128,7 @@ class Migrator2to3:
             parent_workspace=parent_workspace,
             description=description,
             pending=pending,
-            urgency=urgency,
+            priority=priority,
             due=parse_due(due),
             effort=int(effort) if effort else None,
             recurrence=parse_recurrence(recurrence) if recurrence else None,

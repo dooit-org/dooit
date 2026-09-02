@@ -144,7 +144,7 @@ class Workspace(DooitModel):
                 "due",
                 "effort",
                 "recurrence",
-                "urgency",
+                "priority",
                 "pending",
             ]
             attrs = {field: getattr(todo, field) for field in fields}
@@ -181,7 +181,7 @@ class Workspace(DooitModel):
                 "due",
                 "effort",
                 "recurrence",
-                "urgency",
+                "priority",
                 "pending",
                 "order_index",
             ]

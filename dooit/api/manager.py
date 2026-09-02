@@ -19,13 +19,16 @@ class Manager:
         """
 
         from dooit.api import BaseModel
+        from dooit.utils.database import migrate_urgency_to_priority
 
         path = path or DATABASE_FILE
         path = os.path.expanduser(path)
         connection_string = f"sqlite:///{path}"
+
         self.engine = create_engine(connection_string)
         self.session = Session(self.engine)
 
+        migrate_urgency_to_priority(self.engine)
         BaseModel.metadata.create_all(bind=self.engine)
         self._db_last_modified = self._get_db_last_modified()
 

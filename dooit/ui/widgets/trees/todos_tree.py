@@ -62,16 +62,10 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
         self.current_model.toggle_complete()
         self.refresh_options()
 
-    def increase_urgency(self):
+    def set_priority(self, priority: int):
         assert isinstance(self.current_model, Todo)
 
-        self.current_model.increase_urgency()
-        self.update_current_prompt()
-
-    def decrease_urgency(self):
-        assert isinstance(self.current_model, Todo)
-
-        self.current_model.decrease_urgency()
+        self.current_model.set_priority(priority)
         self.update_current_prompt()
 
     @on(ModelTree.OptionHighlighted)

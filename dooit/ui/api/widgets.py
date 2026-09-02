@@ -9,7 +9,7 @@ class WorkspaceWidget(Enum):
 class TodoWidget(Enum):
     description = "description"
     due = "due"
-    urgency = "urgency"
+    priority = "priority"
     recurrence = "recurrence"
     status = "status"
     effort = "effort"
