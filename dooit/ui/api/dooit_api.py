@@ -162,6 +162,10 @@ class DooitAPI:
         """Start editing the due date of the todo"""
         return self.edit("due")
 
+    def edit_scheduled(self):
+        """Start editing the scheduled date of the todo"""
+        return self.edit("scheduled")
+
     def edit_recurrence(self):
         """Start editing the recurrence of the todo"""
         return self.edit("recurrence")

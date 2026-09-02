@@ -163,6 +163,7 @@ class Workspace(DooitModel):
             fields = [
                 "description",
                 "due",
+                "scheduled",
                 "effort",
                 "recurrence",
                 "priority",
@@ -200,6 +201,7 @@ class Workspace(DooitModel):
             fields = [
                 "description",
                 "due",
+                "scheduled",
                 "effort",
                 "recurrence",
                 "priority",

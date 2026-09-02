@@ -188,6 +188,19 @@ class TodoDueChanged(TodoEvent):
         self.old = old
 
 
+class TodoScheduledChanged(TodoEvent):
+    """
+    Emitted when user changes the scheduled date of a todo
+    """
+
+    def __init__(
+        self, old: Optional[datetime], new: Optional[datetime], todo: Todo
+    ) -> None:
+        super().__init__(todo)
+        self.new = new
+        self.old = old
+
+
 class TodoStatusChanged(TodoEvent):
     """
     Emitted when user changes the status of a todo

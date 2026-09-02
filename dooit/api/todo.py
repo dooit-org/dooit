@@ -22,6 +22,9 @@ class Todo(DooitModel):
     order_index: Mapped[int] = mapped_column(default=-1)
     description: Mapped[str] = mapped_column(default="")
     due: Mapped[Optional[datetime]] = mapped_column(default=None)
+    # The day the todo is planned to be worked on, as opposed to the deadline
+    # that `due` sets
+    scheduled: Mapped[Optional[datetime]] = mapped_column(default=None)
     effort: Mapped[int] = mapped_column(default=0)
     recurrence: Mapped[Optional[timedelta]] = mapped_column(default=None)
     priority: Mapped[int] = mapped_column(default=0)
@@ -198,7 +201,15 @@ class Todo(DooitModel):
     @staticmethod
     def clone_from_id(id: int, order_index: int) -> "Todo":
         todo = Todo.from_id(str(id))
-        fields = ["description", "due", "effort", "recurrence", "priority", "pending"]
+        fields = [
+            "description",
+            "due",
+            "scheduled",
+            "effort",
+            "recurrence",
+            "priority",
+            "pending",
+        ]
         attrs = {field: getattr(todo, field) for field in fields}
         attrs.update(
             {
@@ -228,6 +239,7 @@ class Todo(DooitModel):
         fields = [
             "description",
             "due",
+            "scheduled",
             "effort",
             "recurrence",
             "priority",

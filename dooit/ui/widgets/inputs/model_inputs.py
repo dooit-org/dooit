@@ -46,7 +46,11 @@ class WorkspaceTasks(SimpleInput[Workspace, int]):
         return str(count)
 
 
-class Due(SimpleInput[Todo, datetime]):
+class DateInput(SimpleInput[Todo, datetime]):
+    """
+    A column holding a single date: the deadline, or the day planned for it
+    """
+
     # Day first, to match both the column's German rendering and the way the
     # parser reads an ambiguous `5.9`, so what is shown can be typed back in
     EDIT_FORMAT = "%d.%m.%Y"
@@ -72,13 +76,13 @@ class Due(SimpleInput[Todo, datetime]):
         if not value.strip():
             return None
 
-        due, ok = parse(value)
+        date, ok = parse(value)
         if not ok:
             # Raised rather than swallowed, so that the tree turns it into a
             # notification instead of silently dropping what was typed
-            raise ValueError(f'Could not understand due date: "{value}"')
+            raise ValueError(f'Could not understand {self._property} date: "{value}"')
 
-        return due
+        return date
 
     def render_editing(self, theme: DooitThemeBase) -> Text:
         """
@@ -90,16 +94,28 @@ class Due(SimpleInput[Todo, datetime]):
         if not self.value.strip():
             return text
 
-        due, ok = parse(self.value)
+        date, ok = parse(self.value)
 
         if not ok:
             hint, color = "?", theme.red
-        elif due is None:
+        elif date is None:
             hint, color = "no date", theme.green
         else:
-            hint, color = self._format(due), theme.green
+            hint, color = self._format(date), theme.green
 
         return text + Text(f" → {hint}", style=Style(color=color, dim=True))
+
+
+class Due(DateInput):
+    """
+    The date the todo has to be done by
+    """
+
+
+class Scheduled(DateInput):
+    """
+    The date the todo is planned to be worked on
+    """
 
 
 class Priority(SimpleInput[Todo, int]):

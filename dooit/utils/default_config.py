@@ -7,7 +7,6 @@ from dooit_extras.formatters import (
     description_highlight_link,
     description_highlight_tags,
     due_danger_today,
-    due_icon,
     effort_icon,
     recurrence_icon,
 )
@@ -123,22 +122,26 @@ def _add_working_days(start: date, days: int) -> date:
 WEEKDAY_NAMES = ("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So")
 
 
+# A todo carries two dates: `due`, the deadline it has to be done by, and
+# `scheduled`, the day it is planned to be worked on. Both columns are rendered
+# by the formatters below, which differ only in the field they read.
+#
 # German date convention: weekday first, then day, dot separated, and the year
 # always spelled out as its last two digits. The time only shows up when it is
 # something other than midnight.
-def todo_due_formatter(due: Optional[datetime], _: Todo) -> str:
-    if due is None:
+def todo_date_formatter(value: Optional[datetime], _: Todo) -> str:
+    if value is None:
         return ""
 
     dt_format = "%d.%m.%y"
 
-    if due.hour or due.minute:
+    if value.hour or value.minute:
         dt_format += " (%H:%M)"
 
-    return f"{WEEKDAY_NAMES[due.weekday()]}, {due.strftime(dt_format)}"
+    return f"{WEEKDAY_NAMES[value.weekday()]}, {value.strftime(dt_format)}"
 
 
-# `due_icon` appends the value it is given to a Text as plain text, which
+# `date_icon` appends the value it is given to a Text as plain text, which
 # escapes whatever markup the value already carried, so one `from_markup` pass
 # hands that markup back as literal text rather than dropping it. A second pass
 # is what actually strips it.
@@ -146,39 +149,76 @@ def _strip_markup(value: str) -> str:
     return Text.from_markup(Text.from_markup(value).plain).plain
 
 
+DATE_ICON_COMPLETED = "󰃯 "
+DATE_ICON_PENDING = "󰃰 "
+DATE_ICON_OVERDUE = " "
+
+
+# The calendar in front of a date, so a date column is recognisable as one from
+# across the row. It arrives with a status color of its own, which the color
+# formatter above it then drops in favor of one style over the whole column.
+def date_icon(field: str):
+    @extra_formatter
+    def wrapper(value: str, todo: Todo, api: DooitAPI):
+        date = getattr(todo, field)
+
+        if not date:
+            return value
+
+        theme = api.vars.theme
+
+        if todo.is_completed:
+            icon, color = DATE_ICON_COMPLETED, theme.green
+        elif date < datetime.now():
+            icon, color = DATE_ICON_OVERDUE, theme.red
+        else:
+            icon, color = DATE_ICON_PENDING, theme.yellow
+
+        return Text() + Text.from_markup(icon, style=Style(color=color)) + value
+
+    return wrapper
+
+
 # Runs after the calendar icon has been prepended, so icon and date get one
 # shared lead-time color. The icon arrives carrying its own status color, and
 # "Today" its own bold red, both of which are dropped here in favor of one
 # style over the whole column; the result has to be handed back as a markup
 # string, since a Text would get escaped by the formatter store.
-@extra_formatter
-def todo_due_color_formatter(due: str, todo: Todo, api: DooitAPI) -> str:
-    if not todo.due:
-        return due
+def date_color_formatter(field: str):
+    @extra_formatter
+    def wrapper(value: str, todo: Todo, api: DooitAPI) -> str:
+        date = getattr(todo, field)
 
-    theme = api.vars.theme
-    now = datetime.now()
-    bold = False
+        if not date:
+            return value
 
-    if todo.is_completed:
-        # Nothing is urgent about a done todo
-        color = theme.green
-    elif todo.due.date() == now.date():
-        # Checked ahead of the overdue branch so a todo due today reads the
-        # same whether its time has passed or is still to come: this is the
-        # color for the "Today" that `due_danger_today` put in place of the
-        # date, and the bold is what sets it apart from merely overdue.
-        color = theme.red
-        bold = True
-    elif todo.due < now:
-        color = theme.red
-    elif todo.due.date() <= _add_working_days(now.date(), WORKING_DAYS_PER_WEEK):
-        color = theme.yellow
-    else:
-        color = theme.green
+        theme = api.vars.theme
+        now = datetime.now()
+        bold = False
 
-    style = f"bold {color}" if bold else color
-    return f"[{style}]{_strip_markup(due)}[/]"
+        if todo.is_completed:
+            # Nothing is urgent about a done todo
+            color = theme.green
+        elif date.date() == now.date():
+            # Checked ahead of the overdue branch so a todo dated today reads
+            # the same whether its time has passed or is still to come: this is
+            # the color for the "Today" that `due_danger_today` put in place of
+            # the date, and the bold is what sets it apart from merely overdue.
+            color = theme.red
+            bold = True
+        elif date < now:
+            color = theme.red
+        elif date.date() <= _add_working_days(now.date(), WORKING_DAYS_PER_WEEK):
+            color = theme.yellow
+        else:
+            # A date nobody has to think about yet gets no color of its own,
+            # only the theme's white: anything grayer would read as completed
+            color = theme.foreground3
+
+        style = f"bold {color}" if bold else color
+        return f"[{style}]{_strip_markup(value)}[/]"
+
+    return wrapper
 
 
 # How many todos hang below this one, at any depth. Nesting is invisible while a
@@ -348,6 +388,7 @@ def key_setup(api: DooitAPI, _):
 
     api.keys.set("i", api.edit_description, group=EDITING)
     api.keys.set("d", api.edit_due, group=EDITING)
+    api.keys.set("s", api.edit_scheduled, group=EDITING)
     api.keys.set("r", api.edit_recurrence, group=EDITING)
     api.keys.set("a", api.add_sibling, group=EDITING)
     api.keys.set("A", api.add_child_node, group=EDITING)
@@ -417,8 +458,12 @@ def layout_setup(api: DooitAPI, _):
     api.layouts.todo_layout = [
         TodoWidget.status,
         TodoWidget.description,
-        TodoWidget.effort,
+        # The two dates sit side by side, right after the description: the day
+        # the work is planned for, then the day it is owed by, so the plan and
+        # the deadline are read as the pair they are
+        TodoWidget.scheduled,
         TodoWidget.due,
+        TodoWidget.effort,
         TodoWidget.recurrence,
     ]
 
@@ -429,6 +474,7 @@ def formatter_setup(api: DooitAPI, _):
     # color the formatters below hand out
     api.formatter.todos.description.add(gray_out_completed(strike=True))
     api.formatter.todos.due.add(gray_out_completed())
+    api.formatter.todos.scheduled.add(gray_out_completed())
     api.formatter.todos.effort.add(gray_out_completed())
     api.formatter.todos.recurrence.add(gray_out_completed())
 
@@ -442,14 +488,20 @@ def formatter_setup(api: DooitAPI, _):
     api.formatter.todos.description.add(description_highlight_tags())
     api.formatter.todos.description.add(description_highlight_link())
 
-    api.formatter.todos.due.add(todo_due_formatter)
-    # Value formatters stop at the first one that returns something, so this
-    # has to sit after the date formatter to get the first look: on the day a
-    # todo is due it swallows the date and puts a plain "Today" there instead,
-    # and on any other day it declines and lets the date through.
-    api.formatter.todos.due.add(due_danger_today())
-    api.formatter.todos.due.add(todo_due_color_formatter)
-    api.formatter.todos.due.add(due_icon())  # added last => runs first
+    # Both date columns are built the same way, out of the same formatters
+    for column, field in (
+        (api.formatter.todos.due, "due"),
+        (api.formatter.todos.scheduled, "scheduled"),
+    ):
+        column.add(todo_date_formatter)
+        # Value formatters stop at the first one that returns something, so
+        # this has to sit after the date formatter to get the first look: on
+        # the day itself it swallows the date and puts a plain "Today" there
+        # instead, and on any other day it declines and lets the date through.
+        column.add(due_danger_today())
+        column.add(date_color_formatter(field))
+        column.add(date_icon(field))  # added last => runs first
+
     api.formatter.todos.effort.add(todo_effort_formatter)
     api.formatter.todos.effort.add(todo_effort_color_formatter)
     # The flame is what tells a lone digit in the effort column apart from the

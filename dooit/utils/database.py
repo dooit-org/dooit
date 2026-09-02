@@ -44,6 +44,26 @@ def migrate_urgency_to_priority(engine: Engine):
         )
 
 
+def add_scheduled_column(engine: Engine):
+    """
+    Add the `scheduled` column to a todo table written before it existed.
+
+    `create_all` only ever creates whole tables that are missing, so a database
+    from an older version keeps its todo table exactly as it was.
+    """
+
+    inspector = inspect(engine)
+    if "todo" not in inspector.get_table_names():
+        return
+
+    columns = {column["name"] for column in inspector.get_columns("todo")}
+    if "scheduled" in columns:
+        return
+
+    with engine.begin() as connection:
+        connection.execute(text("ALTER TABLE todo ADD COLUMN scheduled DATETIME"))
+
+
 def delete_all_data(session: Session):
     meta = MetaData()
     meta.reflect(bind=session.get_bind())

@@ -83,6 +83,7 @@ def test_comparable_fields():
     expected_fields = [
         "description",
         "due",
+        "scheduled",
         "effort",
         "recurrence",
         "priority",

@@ -2,6 +2,7 @@ from ..inputs.model_inputs import (
     Due,
     Effort,
     Recurrence,
+    Scheduled,
     Status,
     TodoDescription,
     Priority,
@@ -17,6 +18,7 @@ class TodoRender(BaseRenderer[Todo]):
     def post_init(self):
         self.description = TodoDescription(self.model)
         self.due = Due(self.model)
+        self.scheduled = Scheduled(self.model)
         self.status = Status(self.model)
         self.priority = Priority(self.model)
         self.effort = Effort(self.model)
