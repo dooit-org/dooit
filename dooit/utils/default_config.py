@@ -68,21 +68,52 @@ def get_user(api: DooitAPI, _: Startup):
 # Todo formatters
 
 
-def todo_status_formatter(status: str, _: Todo, api: DooitAPI):
-    text = "o"
+def blend(color: str, other: str, factor: float) -> str:
+    """Mix `color` towards `other`: factor 0 keeps it, factor 1 returns `other`."""
+
+    src = [int(color[i : i + 2], 16) for i in (1, 3, 5)]
+    dest = [int(other[i : i + 2], 16) for i in (1, 3, 5)]
+
+    return "#" + "".join(
+        f"{round(a + (b - a) * factor):02x}" for a, b in zip(src, dest)
+    )
+
+
+# Priority 1 is the most urgent one; 0 means no priority was set
+PRIORITIES = (1, 2, 3)
+
+
+def priority_color(priority: int, api: DooitAPI) -> str:
     theme = api.vars.theme
+    colors = {
+        1: theme.red,
+        2: theme.yellow,
+        3: theme.green,
+    }
 
-    color = theme.yellow
+    # Nothing prioritized: a gray sitting halfway between text and background
+    return colors.get(priority, blend(theme.foreground1, theme.background1, 0.5))
 
-    if status == "completed":
-        text = "x"
-        color = theme.green
 
-    if status == "overdue":
-        text = "!"
-        color = theme.red
+CHECKBOX_EMPTY = "󰄱"
+CHECKBOX_TICKED = "󰄵"
 
-    return Text(text, style=Style(color=color, bold=True))
+
+# A rounded checkbox, ticked once the todo is done. It carries the priority
+# color, so a row's urgency reads from the very first column and needs no column
+# of its own; the tick only pulls that color a notch towards the background,
+# dimming it without draining it the way the other columns get grayed out.
+def todo_status_formatter(status: str, todo: Todo, api: DooitAPI):
+    completed = status == "completed"
+    color = priority_color(todo.priority, api)
+
+    if completed:
+        color = blend(color, api.vars.theme.background1, 0.35)
+
+    return Text(
+        CHECKBOX_TICKED if completed else CHECKBOX_EMPTY,
+        style=Style(color=color, bold=True),
+    )
 
 
 # A "week" of lead time means five Austrian working days: Sat and Sun don't
@@ -133,27 +164,6 @@ def todo_due_color_formatter(due: str, todo: Todo, api: DooitAPI) -> str:
         color = theme.green
 
     return f"[{color}]{Text.from_markup(due).plain}[/{color}]"
-
-
-# Priority 1 is the most urgent one; 0 means no priority was set
-PRIORITIES = (1, 2, 3)
-
-
-def todo_priority_formatter(priority, _, api: DooitAPI):
-    if priority not in PRIORITIES:
-        return ""
-
-    theme = api.vars.theme
-    colors = {
-        1: theme.red,
-        2: theme.yellow,
-        3: theme.green,
-    }
-
-    return Text(
-        f"p{priority}",
-        style="bold " + colors.get(priority, theme.primary),
-    )
 
 
 def todo_effort_formatter(effort, _):
@@ -293,7 +303,6 @@ def layout_setup(api: DooitAPI, _):
         TodoWidget.status,
         TodoWidget.description,
         TodoWidget.due,
-        TodoWidget.priority,
         TodoWidget.effort,
         TodoWidget.recurrence,
     ]
@@ -305,7 +314,6 @@ def formatter_setup(api: DooitAPI, _):
     # color the formatters below hand out
     api.formatter.todos.description.add(gray_out_completed(strike=True))
     api.formatter.todos.due.add(gray_out_completed())
-    api.formatter.todos.priority.add(gray_out_completed())
     api.formatter.todos.effort.add(gray_out_completed())
     api.formatter.todos.recurrence.add(gray_out_completed())
 
@@ -313,7 +321,6 @@ def formatter_setup(api: DooitAPI, _):
     api.formatter.todos.due.add(todo_due_formatter)
     api.formatter.todos.due.add(todo_due_color_formatter)
     api.formatter.todos.due.add(due_icon())  # added last => runs first
-    api.formatter.todos.priority.add(todo_priority_formatter)
     api.formatter.todos.effort.add(todo_effort_formatter)
     api.formatter.todos.recurrence.add(todo_recurrence_formatter)
 
