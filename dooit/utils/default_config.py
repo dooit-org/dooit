@@ -1,7 +1,6 @@
 from datetime import date, datetime, timedelta
 from functools import partial
-import os
-from typing import Optional
+from typing import Callable, Optional
 from rich.style import Style
 from dooit.api import Todo, Workspace
 from dooit_extras.formatters import (
@@ -11,7 +10,15 @@ from dooit_extras.formatters import (
     due_icon,
     recurrence_icon,
 )
-from dooit.ui.api import DooitAPI, extra_formatter, subscribe, timer
+from dooit_extras.bar_widgets import (
+    Clock,
+    CurrentWorkspace,
+    Powerline,
+    Spacer,
+    StatusIcons,
+    WorkspaceProgress,
+)
+from dooit.ui.api import DooitAPI, extra_formatter, subscribe
 from dooit.ui.api.widgets import TodoWidget, WorkspaceWidget
 from dooit.ui.api.events import ModeChanged, Startup
 from dooit.ui.screens import HelpScreen
@@ -19,57 +26,6 @@ from dooit.ui.widgets.bars import StatusBarWidget
 from dooit.ui.widgets.inputs.model_inputs import Recurrence
 from dooit.utils import blend
 from rich.text import Text
-
-
-@subscribe(ModeChanged)
-def get_mode(api: DooitAPI, event: ModeChanged):
-    theme = api.vars.theme
-    mode = event.mode
-
-    MODES = {
-        "NORMAL": theme.primary,
-        "INSERT": theme.secondary,
-    }
-
-    return Text(
-        f" {mode} ",
-        style=Style(
-            color=theme.background1,
-            bgcolor=MODES.get(mode, theme.primary),
-        ),
-    )
-
-
-@timer(1)
-def get_clock(api: DooitAPI):
-    theme = api.vars.theme
-    time = datetime.now().strftime("%H:%M:%S")
-    return Text(
-        f" {time} ",
-        style=Style(
-            color=theme.background1,
-            bgcolor=theme.secondary,
-        ),
-    )
-
-
-@subscribe(Startup)
-def get_user(api: DooitAPI, _: Startup):
-    theme = api.vars.theme
-    try:
-        username = os.getlogin()
-    except OSError:
-        uid = os.getuid()
-        import pwd
-
-        username = pwd.getpwuid(uid).pw_name
-    return Text(
-        f" {username} ",
-        style=Style(
-            color=theme.background1,
-            bgcolor=theme.secondary,
-        ),
-    )
 
 
 # Todo formatters
@@ -431,14 +387,142 @@ def formatter_setup(api: DooitAPI, _):
     api.formatter.workspaces.tasks.add(workspace_tasks_formatter)
 
 
+# Status bar
+
+
+# The bar is a powerline: every widget paints a solid block of background, and
+# the rounded caps between them belong to the block they open — drawn in that
+# block's color, over the color of the block they leave behind.
+ROUND_OPEN = ""
+ROUND_CLOSE = ""
+
+
+# What the caps at either end of a chain sit on: the bar's own background
+def bar_background(api: DooitAPI) -> str:
+    return api.vars.theme.background2
+
+
+MODE_COLORS = {
+    "NORMAL": "primary",
+    "INSERT": "secondary",
+}
+
+
+def mode_color(api: DooitAPI, mode: str) -> str:
+    theme = api.vars.theme
+    return getattr(theme, MODE_COLORS.get(mode, "primary"))
+
+
+# The mode block takes its color from the mode itself, so the two caps around it
+# have to be repainted whenever it changes. A Powerline widget is fixed at
+# startup and can't follow along, so all three pieces are built here, each one
+# its own widget listening to the same event.
+def mode_widget(render: Callable[[DooitAPI, str], Text]) -> StatusBarWidget:
+    @subscribe(ModeChanged)
+    def wrapper(api: DooitAPI, event: ModeChanged) -> Text:
+        return render(api, event.mode)
+
+    return StatusBarWidget(wrapper)
+
+
+def mode_cap(glyph: str) -> StatusBarWidget:
+    return mode_widget(
+        lambda api, mode: Text(
+            glyph,
+            style=Style(color=mode_color(api, mode), bgcolor=bar_background(api)),
+        )
+    )
+
+
+def mode_label(api: DooitAPI, mode: str) -> Text:
+    return Text(
+        f" {mode} ",
+        style=Style(
+            color=api.vars.theme.background1,
+            bgcolor=mode_color(api, mode),
+            bold=True,
+        ),
+    )
+
+
+# Completion of the current workspace, as a meter that can be read without
+# parsing the number beside it
+PROGRESS_CELLS = 5
+PROGRESS_FILLED = "▰"
+PROGRESS_EMPTY = "▱"
+
+# How far the unfilled cells are pulled towards the background: present enough
+# to show how much meter is left, faint enough not to read as progress
+PROGRESS_EMPTY_FADE = 0.6
+
+
+class WorkspaceProgressMeter(WorkspaceProgress):
+    def __init__(self, api: DooitAPI, fg: str = "", bg: str = "") -> None:
+        # The base widget pipes its percentage through `fmt`; the meter is built
+        # from that number rather than around it, so nothing is added there.
+        super().__init__(api, fmt="{}", fg=fg, bg=bg)
+
+    @property
+    def value(self) -> str:
+        percent = super().value
+        # Empty until a workspace has been selected: show an empty meter rather
+        # than nothing, so the segment keeps its shape and its caps
+        percent = int(percent) if percent.isdigit() else 0
+
+        theme = self.theme
+        filled = round(percent * PROGRESS_CELLS / 100)
+        # A finished workspace goes green; short of that the meter stays accent
+        color = theme.green if percent == 100 else theme.primary
+        empty = blend(theme.foreground1, theme.background1, PROGRESS_EMPTY_FADE)
+
+        return (
+            f" [{color}]{PROGRESS_FILLED * filled}[/]"
+            f"[{empty}]{PROGRESS_EMPTY * (PROGRESS_CELLS - filled)}[/]"
+            f" {percent:>3}% "
+        )
+
+
 @subscribe(Startup)
 def bar_setup(api: DooitAPI, _):
+    theme = api.vars.theme
+
+    # The mode sits alone on the left as a pill, and everything about the
+    # current workspace is chained to the right edge: how far along it is, what
+    # it is called, how its todos stand, and the time. The chain alternates
+    # between a recessed and a raised background so each segment stays its own
+    # block, and ends on the accent, where the eye lands last.
     bar_widgets = [
-        StatusBarWidget(get_mode),
-        StatusBarWidget(lambda: "", width=0),
-        StatusBarWidget(get_clock),
-        StatusBarWidget(lambda: " ", width=1),
-        StatusBarWidget(get_user),
+        mode_cap(ROUND_OPEN),
+        mode_widget(mode_label),
+        mode_cap(ROUND_CLOSE),
+        Spacer(api, width=0, bg=bar_background(api)),
+        Powerline.left_rounded(api, fg=theme.background1),
+        WorkspaceProgressMeter(api, fg=theme.foreground2, bg=theme.background1),
+        Powerline.left_rounded(api, fg=theme.background3, bg=theme.background1),
+        CurrentWorkspace(
+            api,
+            fmt=" 󰉋 {} ",
+            fg=theme.foreground3,
+            bg=theme.background3,
+        ),
+        Powerline.left_rounded(api, fg=theme.background1, bg=theme.background3),
+        # The tally borrows the tree's own checkboxes, so a count in the bar
+        # and a row in the pane are recognisably the same thing
+        StatusIcons(
+            api,
+            completed_icon=f"{CHECKBOX_TICKED} ",
+            pending_icon=f"{CHECKBOX_EMPTY} ",
+            overdue_icon="󰅗 ",
+            bg=theme.background1,
+        ),
+        Powerline.left_rounded(api, fg=theme.primary, bg=theme.background1),
+        Clock(
+            api,
+            format="%H:%M:%S",
+            fmt="[bold] 󰥔 {} [/]",
+            fg=theme.background1,
+            bg=theme.primary,
+        ),
     ]
     api.bar.set(bar_widgets)
 
