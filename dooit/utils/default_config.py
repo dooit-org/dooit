@@ -180,6 +180,12 @@ def todo_recurrence_formatter(recurrence: Optional[timedelta], _):
     return Recurrence.timedelta_to_simple_string(recurrence)
 
 
+# How far a completed row's text is pulled towards the background. Far enough
+# that a done row sinks into the background at a glance, but short of the point
+# where the description stops being readable when you go looking for it.
+COMPLETED_FADE = 0.55
+
+
 # A completed todo is done with: its whole line is grayed out, and its
 # description struck through on top of that. The status column is left alone,
 # so the check mark stays the one bright thing left on the row.
@@ -189,14 +195,22 @@ def gray_out_completed(strike: bool = False):
         if not todo.is_completed:
             return
 
+        theme = api.vars.theme
+
         # The colors handed out by the formatters above sit on inner spans,
         # which a base style can't override, so the value is flattened back to
         # plain text before the gray goes on.
         plain = Text.from_markup(value).plain
 
+        # `dim` on its own is a hint that plenty of terminals ignore, so the
+        # fade is baked into the color and dim just rides along on top.
         return Text(
             plain,
-            style=Style(color=api.vars.theme.foreground1, dim=True, strike=strike),
+            style=Style(
+                color=blend(theme.foreground1, theme.background1, COMPLETED_FADE),
+                dim=True,
+                strike=strike,
+            ),
         ).markup
 
     return wrapper
