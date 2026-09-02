@@ -8,6 +8,7 @@ from dooit_extras.formatters import (
     description_highlight_tags,
     due_danger_today,
     due_icon,
+    effort_icon,
     recurrence_icon,
 )
 from dooit_extras.bar_widgets import (
@@ -58,6 +59,25 @@ def priority_color(priority: int, api: DooitAPI) -> str:
 
     # Nothing prioritized: a gray sitting halfway between text and background
     return colors.get(priority, blend(theme.foreground1, theme.background1, 0.5))
+
+
+# Effort runs the opposite way to priority: e1 is a quick job, e3 a big one.
+# 0 means no estimate was made, and shows as an empty column.
+EFFORTS = (1, 2, 3)
+
+
+# The traffic light everyone reads without being told: cheap is green, costly
+# is red. It says the same thing as the due column's colors do, which is what
+# lets both be scanned in one pass down the row.
+def effort_color(effort: int, api: DooitAPI) -> str:
+    theme = api.vars.theme
+    colors = {
+        1: theme.green,
+        2: theme.yellow,
+        3: theme.red,
+    }
+
+    return colors.get(effort, theme.foreground1)
 
 
 CHECKBOX_EMPTY = "󰄱"
@@ -167,11 +187,23 @@ def todo_description_formatter(description: str, todo: Todo, api: DooitAPI) -> s
     return f"{description} [{count_color(api)}]({count})[/]"
 
 
-def todo_effort_formatter(effort, _):
+def todo_effort_formatter(effort: int, _: Todo) -> str:
     if not effort:
         return ""
 
     return str(effort)
+
+
+# Runs after the flame icon has been prepended, so icon and number come out in
+# one shared color instead of the icon keeping the orange it arrives with. Same
+# trick the due column uses: the result goes back as a markup string, since a
+# Text would get escaped by the formatter store.
+@extra_formatter
+def todo_effort_color_formatter(effort: str, todo: Todo, api: DooitAPI) -> str:
+    if not todo.effort:
+        return effort
+
+    return f"[{effort_color(todo.effort, api)}]{_strip_markup(effort)}[/]"
 
 
 def todo_recurrence_formatter(recurrence: Optional[timedelta], _):
@@ -294,6 +326,7 @@ def key_setup(api: DooitAPI, _):
     NAVIGATION = "Navigation"
     EDITING = "Editing"
     PRIORITY = "Priority"
+    EFFORT = "Effort"
     MOVING = "Moving & Clipboard"
     VIEW = "Search & View"
     APP = "App"
@@ -310,7 +343,6 @@ def key_setup(api: DooitAPI, _):
     api.keys.set("i", api.edit_description, group=EDITING)
     api.keys.set("d", api.edit_due, group=EDITING)
     api.keys.set("r", api.edit_recurrence, group=EDITING)
-    api.keys.set("e", api.edit_effort, group=EDITING)
     api.keys.set("a", api.add_sibling, group=EDITING)
     api.keys.set("A", api.add_child_node, group=EDITING)
     api.keys.set("c", api.toggle_complete, group=EDITING)
@@ -329,6 +361,24 @@ def key_setup(api: DooitAPI, _):
         partial(api.set_priority, 0),
         description="Clear the priority of the todo",
         group=PRIORITY,
+    )
+
+    # Effort is picked off a fixed scale the same way priority is, so it is
+    # typed the same way: a chord, not a text field. "e" on its own is only a
+    # prefix of these, so it stays unbound and waits for the digit.
+    for effort in EFFORTS:
+        api.keys.set(
+            f"e{effort}",
+            partial(api.set_effort, effort),
+            description=f"Set the todo effort to e{effort}",
+            group=EFFORT,
+        )
+
+    api.keys.set(
+        "e0",
+        partial(api.set_effort, 0),
+        description="Clear the effort of the todo",
+        group=EFFORT,
     )
 
     api.keys.set("J", api.shift_down, group=MOVING)
@@ -395,6 +445,12 @@ def formatter_setup(api: DooitAPI, _):
     api.formatter.todos.due.add(todo_due_color_formatter)
     api.formatter.todos.due.add(due_icon())  # added last => runs first
     api.formatter.todos.effort.add(todo_effort_formatter)
+    api.formatter.todos.effort.add(todo_effort_color_formatter)
+    # The flame is what tells a lone digit in the effort column apart from the
+    # numbers elsewhere on the row; added last => runs first, so the color
+    # formatter above gets to paint it in the same shade as the number.
+    # Effort 0 is left as an empty column rather than a flame with nothing on it.
+    api.formatter.todos.effort.add(effort_icon(show_on_zero=False))
     api.formatter.todos.recurrence.add(todo_recurrence_formatter)
     # Marks the repeating todos, whose interval is easy to miss as bare text
     api.formatter.todos.recurrence.add(recurrence_icon())

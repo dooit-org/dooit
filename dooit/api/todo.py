@@ -11,6 +11,11 @@ if TYPE_CHECKING:  # pragma: no cover
     from dooit.api.workspace import Workspace
 
 
+# Effort is a rough estimate of how much work a todo is, on a 1-3 scale;
+# 0 means no estimate was made
+MAX_EFFORT = 3
+
+
 class Todo(DooitModel):
     # id: Mapped[int] = mapped_column(primary_key=True, default=generate_unique_id)
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -154,6 +159,10 @@ class Todo(DooitModel):
 
     def set_priority(self, priority: int) -> None:
         self.priority = priority
+        self.save()
+
+    def set_effort(self, effort: int) -> None:
+        self.effort = max(0, min(effort, MAX_EFFORT))
         self.save()
 
     def toggle_complete(self) -> None:

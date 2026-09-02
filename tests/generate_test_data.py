@@ -25,7 +25,7 @@ def gen_todo(parent):
         priority=priority,
         pending=randint(1, 3) == 3 if recurrence is None else True,
         recurrence=recurrence,
-        effort=randint(1, 10),
+        effort=randint(0, 3),
     )
 
     if isinstance(parent, Todo):

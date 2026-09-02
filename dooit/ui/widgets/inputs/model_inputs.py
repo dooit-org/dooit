@@ -4,6 +4,7 @@ from typing import Any, Optional, Tuple
 
 from .simple_input import SimpleInput
 from dooit.api import Todo, Workspace
+from dooit.api.todo import MAX_EFFORT
 from dooit.utils import parse
 
 
@@ -83,10 +84,12 @@ class Priority(SimpleInput[Todo, int]):
 
 class Effort(SimpleInput[Todo, int]):
     def _typecast_value(self, value: str) -> Any:
-        if not value or value == "0":
+        # Anything that isn't a number on the scale clears the effort, rather
+        # than throwing out of the edit and leaving the todo half-updated
+        if not value.isdigit():
             return 0
 
-        return int(value)
+        return min(int(value), MAX_EFFORT)
 
 
 class Status(SimpleInput[Todo, str]):

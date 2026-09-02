@@ -127,6 +127,12 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
         self.current_model.set_priority(priority)
         self.update_current_prompt()
 
+    def set_effort(self, effort: int):
+        assert isinstance(self.current_model, Todo)
+
+        self.current_model.set_effort(effort)
+        self.update_current_prompt()
+
     @on(ModelTree.OptionHighlighted)
     def todo_highlighted(self, event: ModelTree.OptionHighlighted):
         assert event.option_id

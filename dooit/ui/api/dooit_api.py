@@ -208,6 +208,11 @@ class DooitAPI:
         if isinstance(self.focused, TodosTree):
             self.focused.set_priority(priority)
 
+    def set_effort(self, effort: int):
+        """Set the effort of the todo (1 is the lightest, 0 clears it)"""
+        if isinstance(self.focused, TodosTree):
+            self.focused.set_effort(effort)
+
     def toggle_row_shading(self):
         """Toggle the shading of alternate rows in the todos pane"""
 
