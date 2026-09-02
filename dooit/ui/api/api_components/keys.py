@@ -15,6 +15,10 @@ class DooitFunction:
     callback: Callable
     description: str = ""
     group: str = ""
+    # Bindings obvious enough that a row in the help screen is just noise.
+    # They still work; they are only left out of the listing, and a group
+    # whose every binding is hidden drops out of the help screen entirely.
+    hidden: bool = False
 
     def __post_init__(self):
         self.description = self.description.strip("\n")
@@ -56,7 +60,7 @@ class KeyManager(ApiComponent):
         # groups in the order the config defines them
         groups = []
         for func in self.keybinds["NORMAL"].values():
-            if func and func.group not in groups:
+            if func and not func.hidden and func.group not in groups:
                 groups.append(func.group)
 
         return groups
@@ -65,7 +69,7 @@ class KeyManager(ApiComponent):
         return [
             (key, func)
             for key, func in self.keybinds["NORMAL"].items()
-            if func and func.group == group
+            if func and not func.hidden and func.group == group
         ]
 
     def __set_key(
@@ -75,9 +79,10 @@ class KeyManager(ApiComponent):
         callback: Callable,
         description: Optional[str],
         group: str,
+        hidden: bool,
     ) -> None:
         self.keybinds[mode][key] = DooitFunction(
-            callback, description or callback.__doc__ or "", group
+            callback, description or callback.__doc__ or "", group, hidden
         )
 
     def set(
@@ -86,12 +91,13 @@ class KeyManager(ApiComponent):
         callback: Callable,
         description: Optional[str] = None,
         group: str = "",
+        hidden: bool = False,
     ) -> None:
         if isinstance(keys, str):
             keys = [keys]
 
         for key in keys:
-            self.__set_key("NORMAL", key, callback, description, group)
+            self.__set_key("NORMAL", key, callback, description, group, hidden)
 
     @property
     def input(self) -> str:

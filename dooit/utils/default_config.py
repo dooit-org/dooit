@@ -325,10 +325,11 @@ def key_setup(api: DooitAPI, _):
     # Groups show up as sections in the help screen, in this order
     NAVIGATION = "Navigation"
     EDITING = "Editing"
-    PRIORITY = "Priority"
-    EFFORT = "Effort"
+    PRIORITY_EFFORT = "Priority & Effort"
     MOVING = "Moving & Clipboard"
     VIEW = "Search & View"
+    # Quitting and the help key itself need no explaining, so this group is
+    # bound but hidden: it never gets a section in the help screen
     APP = "App"
 
     api.keys.set("j", api.focus_workspaces, group=NAVIGATION)
@@ -338,7 +339,6 @@ def key_setup(api: DooitAPI, _):
     api.keys.set("gg", api.go_to_top, group=NAVIGATION)
     api.keys.set("G", api.go_to_bottom, group=NAVIGATION)
     api.keys.set("h", api.toggle_expand, group=NAVIGATION)
-    api.keys.set("H", api.toggle_expand_parent, group=NAVIGATION)
 
     api.keys.set("i", api.edit_description, group=EDITING)
     api.keys.set("d", api.edit_due, group=EDITING)
@@ -353,14 +353,14 @@ def key_setup(api: DooitAPI, _):
             f"p{priority}",
             partial(api.set_priority, priority),
             description=f"Set the todo priority to p{priority}",
-            group=PRIORITY,
+            group=PRIORITY_EFFORT,
         )
 
     api.keys.set(
         "p0",
         partial(api.set_priority, 0),
         description="Clear the priority of the todo",
-        group=PRIORITY,
+        group=PRIORITY_EFFORT,
     )
 
     # Effort is picked off a fixed scale the same way priority is, so it is
@@ -371,14 +371,14 @@ def key_setup(api: DooitAPI, _):
             f"e{effort}",
             partial(api.set_effort, effort),
             description=f"Set the todo effort to e{effort}",
-            group=EFFORT,
+            group=PRIORITY_EFFORT,
         )
 
     api.keys.set(
         "e0",
         partial(api.set_effort, 0),
         description="Clear the effort of the todo",
-        group=EFFORT,
+        group=PRIORITY_EFFORT,
     )
 
     api.keys.set("J", api.shift_down, group=MOVING)
@@ -390,7 +390,6 @@ def key_setup(api: DooitAPI, _):
     api.keys.set("V", api.paste_model_above, group=MOVING)
 
     api.keys.set("/", api.start_search, group=VIEW)
-    api.keys.set("<ctrl+s>", api.start_sort, group=VIEW)
     api.keys.set("q", api.toggle_row_shading, group=VIEW)
 
     api.keys.set(
@@ -398,8 +397,9 @@ def key_setup(api: DooitAPI, _):
         lambda: show_help_while_held(api),
         description="Show the help screen (while held)",
         group=APP,
+        hidden=True,
     )
-    api.keys.set("<ctrl+q>", api.quit, group=APP)
+    api.keys.set("<ctrl+q>", api.quit, group=APP, hidden=True)
 
 
 @subscribe(Startup)
