@@ -18,7 +18,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 class WorkspacesTree(ModelTree[Workspace, WorkspaceRenderDict]):
-    BORDER_TITLE = "Workspaces"
+    BORDER_TITLE = "WORKSPACES"
 
     def __init__(self, model: Workspace) -> None:
         render_dict = WorkspaceRenderDict(self)
