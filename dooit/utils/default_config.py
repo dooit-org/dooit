@@ -290,52 +290,66 @@ def workspace_description_formatter(
 
 @subscribe(Startup)
 def key_setup(api: DooitAPI, _):
-    api.keys.set("j", api.focus_workspaces)
-    api.keys.set("ö", api.focus_todos)
-    api.keys.set("k", api.move_up)
-    api.keys.set("l", api.move_down)
-    api.keys.set("i", api.edit_description)
-    api.keys.set("d", api.edit_due)
-    api.keys.set("r", api.edit_recurrence)
-    api.keys.set("e", api.edit_effort)
-    api.keys.set("a", api.add_sibling)
-    api.keys.set("h", api.toggle_expand)
-    api.keys.set("H", api.toggle_expand_parent)
-    api.keys.set("gg", api.go_to_top)
-    api.keys.set("G", api.go_to_bottom)
-    api.keys.set("A", api.add_child_node)
-    api.keys.set("J", api.shift_down)
-    api.keys.set("K", api.shift_up)
-    api.keys.set("xx", api.remove_node)
-    api.keys.set("y", api.copy_description_to_clipboard)
-    api.keys.set("Y", api.copy_model)
-    # "p" is a prefix of the priority keys below, so paste lives on v/V
-    api.keys.set("v", api.paste_model_below)
-    api.keys.set("V", api.paste_model_above)
-    api.keys.set("c", api.toggle_complete)
-    api.keys.set("q", api.toggle_row_shading)
+    # Groups show up as sections in the help screen, in this order
+    NAVIGATION = "Navigation"
+    EDITING = "Editing"
+    PRIORITY = "Priority"
+    MOVING = "Moving & Clipboard"
+    VIEW = "Search & View"
+    APP = "App"
+
+    api.keys.set("j", api.focus_workspaces, group=NAVIGATION)
+    api.keys.set("ö", api.focus_todos, group=NAVIGATION)
+    api.keys.set("k", api.move_up, group=NAVIGATION)
+    api.keys.set("l", api.move_down, group=NAVIGATION)
+    api.keys.set("gg", api.go_to_top, group=NAVIGATION)
+    api.keys.set("G", api.go_to_bottom, group=NAVIGATION)
+    api.keys.set("h", api.toggle_expand, group=NAVIGATION)
+    api.keys.set("H", api.toggle_expand_parent, group=NAVIGATION)
+
+    api.keys.set("i", api.edit_description, group=EDITING)
+    api.keys.set("d", api.edit_due, group=EDITING)
+    api.keys.set("r", api.edit_recurrence, group=EDITING)
+    api.keys.set("e", api.edit_effort, group=EDITING)
+    api.keys.set("a", api.add_sibling, group=EDITING)
+    api.keys.set("A", api.add_child_node, group=EDITING)
+    api.keys.set("c", api.toggle_complete, group=EDITING)
+    api.keys.set("xx", api.remove_node, group=EDITING)
 
     for priority in PRIORITIES:
         api.keys.set(
             f"p{priority}",
             partial(api.set_priority, priority),
             description=f"Set the todo priority to p{priority}",
+            group=PRIORITY,
         )
 
     api.keys.set(
         "p0",
         partial(api.set_priority, 0),
         description="Clear the priority of the todo",
+        group=PRIORITY,
     )
 
-    api.keys.set("/", api.start_search)
-    api.keys.set("<ctrl+s>", api.start_sort)
-    api.keys.set("<ctrl+q>", api.quit)
+    api.keys.set("J", api.shift_down, group=MOVING)
+    api.keys.set("K", api.shift_up, group=MOVING)
+    api.keys.set("y", api.copy_description_to_clipboard, group=MOVING)
+    api.keys.set("Y", api.copy_model, group=MOVING)
+    # "p" is a prefix of the priority keys above, so paste lives on v/V
+    api.keys.set("v", api.paste_model_below, group=MOVING)
+    api.keys.set("V", api.paste_model_above, group=MOVING)
+
+    api.keys.set("/", api.start_search, group=VIEW)
+    api.keys.set("<ctrl+s>", api.start_sort, group=VIEW)
+    api.keys.set("q", api.toggle_row_shading, group=VIEW)
+
     api.keys.set(
         "?",
         lambda: show_help_while_held(api),
         description="Show the help screen (while held)",
+        group=APP,
     )
+    api.keys.set("<ctrl+q>", api.quit, group=APP)
 
 
 @subscribe(Startup)

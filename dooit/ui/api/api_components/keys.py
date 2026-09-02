@@ -52,9 +52,14 @@ class KeyManager(ApiComponent):
 
     @property
     def groups(self) -> List[str]:
-        return list(
-            sorted(set(func.group for func in self.keybinds["NORMAL"].values() if func))
-        )
+        # Registration order, not alphabetical: the help screen shows the
+        # groups in the order the config defines them
+        groups = []
+        for func in self.keybinds["NORMAL"].values():
+            if func and func.group not in groups:
+                groups.append(func.group)
+
+        return groups
 
     def get_keybinds_by_group(self, group: str) -> List[Tuple[str, DooitFunction]]:
         return [

@@ -49,26 +49,6 @@ ModelTree {
     }
 }
 
-Header {
-  border: tall $background3;
-}
-
-Outro {
-  .thanks {
-    color: $purple;
-  }
-  
-  .github {
-    color: $primary;
-  }
-
-  .exit {
-    background: $primary;
-    color: $background1;
-  }
-
-}
-
 DooitKeyTable {
   background: $background2;
   border: blank $secondary;
@@ -92,6 +72,10 @@ DooitKeyTable {
   .table-title {
     color: $background1;
     background: $primary;
+  }
+
+  .separator {
+    color: $foreground1 30%;
   }
 }
 
