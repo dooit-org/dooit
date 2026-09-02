@@ -46,6 +46,21 @@ class WorkspaceTasks(SimpleInput[Workspace, int]):
         return str(count)
 
 
+class Note(SimpleInput[Todo, str]):
+    """
+    The free text hanging off a todo
+
+    It is edited in a window of its own, never in the row, so the column is
+    read-only and its buffer is kept empty: `_get_attr_width` measures that
+    buffer, and a real note would stretch the column to its longest line.
+    """
+
+    editable = False
+
+    def _get_default_value(self) -> str:
+        return ""
+
+
 class DateInput(SimpleInput[Todo, datetime]):
     """
     A column holding a single date: the deadline, or the day planned for it

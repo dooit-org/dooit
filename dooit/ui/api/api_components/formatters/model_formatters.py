@@ -11,6 +11,7 @@ class TodoFormatter(ModelFormatterBase):
         self.recurrence = self.get_formatter_store()
         self.priority = self.get_formatter_store()
         self.status = self.get_formatter_store()
+        self.note = self.get_formatter_store()
 
     def trigger(self) -> None:
         for widget in self.api.app.screen.query(TodosTree):

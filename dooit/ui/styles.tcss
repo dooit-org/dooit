@@ -79,6 +79,20 @@ DooitKeyTable {
   }
 }
 
+NoteEditor {
+  background: $background2;
+  border: $border_type $secondary;
+  border-title-background: $primary;
+  border-title-color: $background1;
+  border-title-align: center;
+  padding: 0 1;
+}
+
+#note-hint {
+  color: $foreground1 60%;
+  text-align: center;
+}
+
 # Bars
 
 

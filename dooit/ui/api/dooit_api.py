@@ -226,6 +226,11 @@ class DooitAPI:
         # keeps one per workspace, and they all share the setting
         self.app.screen.query(TodosTree).refresh()
 
+    def show_note(self):
+        """Show and edit the note of the todo"""
+        if isinstance(self.focused, TodosTree):
+            self.focused.show_note()
+
     def show_help(self):
         """Show the help screen"""
         self.focused.show_help()

@@ -15,6 +15,7 @@ class TodoWidget(Enum):
     recurrence = "recurrence"
     status = "status"
     effort = "effort"
+    note = "note"
 
 
 WorkspaceLayout = List[WorkspaceWidget]

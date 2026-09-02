@@ -8,7 +8,7 @@ from .manager import manager
 
 
 SortMethodType = Literal[
-    "description", "status", "due", "scheduled", "priority", "effort"
+    "description", "status", "due", "scheduled", "priority", "effort", "note"
 ]
 T = TypeVar("T")
 

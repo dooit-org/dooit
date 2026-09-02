@@ -24,11 +24,13 @@ from dooit.ui.api.events import (
     WorkspaceSelected,
     SwitchTab,
     SpawnHelp,
+    SpawnNote,
     BarNotification,
 )
 from dooit.ui.widgets.trees import WorkspacesTree, TodosTree
 from dooit.ui.widgets import BarSwitcher, Dashboard
 from .base import BaseScreen
+from .note import NoteScreen
 
 
 class DualSplit(Container):
@@ -103,6 +105,18 @@ class MainScreen(BaseScreen):
     @on(SpawnHelp)
     async def spawn_help(self, _: SpawnHelp) -> None:
         self.app.push_screen("help")
+
+    @on(SpawnNote)
+    def spawn_note(self, event: SpawnNote) -> None:
+        def refresh_row(_) -> None:
+            # Only the row that was open needs redrawing, and only its note
+            # column can have changed. A full refresh would re-highlight the
+            # first node and throw the cursor back to the top of the pane.
+            todos_tree = self.api.vars.todos_tree
+            if todos_tree:
+                todos_tree.update_current_prompt()
+
+        self.app.push_screen(NoteScreen(event.todo), refresh_row)
 
     @on(StartSearch)
     def start_search(self, event: StartSearch):

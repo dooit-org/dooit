@@ -6,7 +6,7 @@ from textual.style import Style
 from textual.widgets.option_list import Option
 
 from dooit.api import Todo, Workspace
-from dooit.ui.api.events import TodoRemoved
+from dooit.ui.api.events import SpawnNote, TodoRemoved
 from dooit.ui.api.events.events import TodoSelected
 from dooit.utils import blend
 from .model_tree import ModelTree
@@ -132,6 +132,13 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
 
         self.current_model.set_effort(effort)
         self.update_current_prompt()
+
+    def show_note(self):
+        assert isinstance(self.current_model, Todo)
+
+        # Posted rather than pushed from here: the screen package imports the
+        # trees, so reaching the other way would close the circle
+        self.post_message(SpawnNote(self.current_model))
 
     @on(ModelTree.OptionHighlighted)
     def todo_highlighted(self, event: ModelTree.OptionHighlighted):

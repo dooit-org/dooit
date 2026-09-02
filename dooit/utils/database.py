@@ -64,6 +64,28 @@ def add_scheduled_column(engine: Engine):
         connection.execute(text("ALTER TABLE todo ADD COLUMN scheduled DATETIME"))
 
 
+def add_note_column(engine: Engine):
+    """
+    Add the `note` column to a todo table written before it existed.
+
+    Same story as `add_scheduled_column`: `create_all` never touches a table it
+    already found, so the column has to be bolted on by hand.
+    """
+
+    inspector = inspect(engine)
+    if "todo" not in inspector.get_table_names():
+        return
+
+    columns = {column["name"] for column in inspector.get_columns("todo")}
+    if "note" in columns:
+        return
+
+    with engine.begin() as connection:
+        connection.execute(
+            text("ALTER TABLE todo ADD COLUMN note TEXT NOT NULL DEFAULT ''")
+        )
+
+
 def delete_all_data(session: Session):
     meta = MetaData()
     meta.reflect(bind=session.get_bind())

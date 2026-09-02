@@ -29,6 +29,9 @@ class Todo(DooitModel):
     recurrence: Mapped[Optional[timedelta]] = mapped_column(default=None)
     priority: Mapped[int] = mapped_column(default=0)
     pending: Mapped[bool] = mapped_column(default=True)
+    # Free text hanging off the todo, edited in a window of its own rather than
+    # in the row: the phone number to call, the steps, the reason it is blocked
+    note: Mapped[str] = mapped_column(default="")
 
     # --------------------------------------------------------------
     # ------------------- Relationships ----------------------------
@@ -209,6 +212,7 @@ class Todo(DooitModel):
             "recurrence",
             "priority",
             "pending",
+            "note",
         ]
         attrs = {field: getattr(todo, field) for field in fields}
         attrs.update(
@@ -244,6 +248,7 @@ class Todo(DooitModel):
             "recurrence",
             "priority",
             "pending",
+            "note",
             "order_index",
         ]
         attrs = {field: getattr(source_todo, field) for field in fields}

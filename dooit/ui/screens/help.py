@@ -34,6 +34,13 @@ class DooitKeyTable(Static):
         self.keybinds = keybinds
         self.no_op = no_op
 
+    # Keys that arrive as a character nobody can see, and so have to be named
+    KEY_LABELS = {" ": "space"}
+
+    @classmethod
+    def key_label(cls, keybind: str) -> str:
+        return cls.KEY_LABELS.get(keybind, keybind)
+
     def _render_group(self, group: str, key_width: int) -> RenderableType:
         t = Table.grid(expand=True, padding=(0, 1))
         # A fixed key column keeps the arrows lined up across every section;
@@ -47,7 +54,10 @@ class DooitKeyTable(Static):
                 continue
 
             t.add_row(
-                Text(keybind, style=self.get_component_rich_style("keybind")),
+                Text(
+                    self.key_label(keybind),
+                    style=self.get_component_rich_style("keybind"),
+                ),
                 Text("->", style=self.get_component_rich_style("arrow")),
                 Text(
                     func.description,
@@ -65,7 +75,7 @@ class DooitKeyTable(Static):
 
         key_width = max(
             (
-                len(keybind)
+                len(self.key_label(keybind))
                 for group in self.keybinds.groups
                 for keybind, func in self.keybinds.get_keybinds_by_group(group)
                 if func.description != "<NOP>"

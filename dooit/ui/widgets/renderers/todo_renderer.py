@@ -1,6 +1,7 @@
 from ..inputs.model_inputs import (
     Due,
     Effort,
+    Note,
     Recurrence,
     Scheduled,
     Status,
@@ -23,3 +24,4 @@ class TodoRender(BaseRenderer[Todo]):
         self.priority = Priority(self.model)
         self.effort = Effort(self.model)
         self.recurrence = Recurrence(self.model)
+        self.note = Note(self.model)

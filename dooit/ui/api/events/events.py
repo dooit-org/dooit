@@ -70,6 +70,16 @@ class SpawnHelp(DooitEvent):
     """
 
 
+class SpawnNote(DooitEvent):
+    """
+    Emitted when user wants to see and edit the note of a todo
+    """
+
+    def __init__(self, todo: Todo) -> None:
+        super().__init__()
+        self.todo = todo
+
+
 class ModeChanged(DooitEvent):
     """
     Emitted when there is a change in the `status`

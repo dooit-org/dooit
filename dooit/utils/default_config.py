@@ -240,6 +240,21 @@ def todo_effort_formatter(effort: int, _: Todo) -> str:
     return str(effort)
 
 
+# A sheet of paper on the rows that carry a note, and nothing at all on the
+# ones that do not. The column is never wider than its own header, so the icon
+# marks the row without taking any room from the description.
+NOTE_ICON = ""
+
+
+def todo_note_formatter(note: str, _: Todo, api: DooitAPI) -> str:
+    # A space rather than an empty string: the formatter store turns anything
+    # falsy into a dim, centered "-", which is not the same as nothing
+    if not (note or "").strip():
+        return " "
+
+    return f"[{api.vars.theme.foreground3}]{NOTE_ICON}[/]"
+
+
 # Runs after the flame icon has been prepended, so icon and number come out in
 # one shared color instead of the icon keeping the orange it arrives with. Same
 # trick the due column uses: the result goes back as a markup string, since a
@@ -392,6 +407,7 @@ def key_setup(api: DooitAPI, _):
     api.keys.set("r", api.edit_recurrence, group=EDITING)
     api.keys.set("a", api.add_sibling, group=EDITING)
     api.keys.set("A", api.add_child_node, group=EDITING)
+    api.keys.set(" ", api.show_note, group=EDITING)
     api.keys.set("c", api.toggle_complete, group=EDITING)
     api.keys.set("xx", api.remove_node, group=EDITING)
 
@@ -465,6 +481,9 @@ def layout_setup(api: DooitAPI, _):
         TodoWidget.due,
         TodoWidget.effort,
         TodoWidget.recurrence,
+        # Last on the row: a note is something a todo either has or has not,
+        # read in one glance and never scanned against the columns beside it
+        TodoWidget.note,
     ]
 
 
@@ -477,6 +496,7 @@ def formatter_setup(api: DooitAPI, _):
     api.formatter.todos.scheduled.add(gray_out_completed())
     api.formatter.todos.effort.add(gray_out_completed())
     api.formatter.todos.recurrence.add(gray_out_completed())
+    api.formatter.todos.note.add(gray_out_completed())
 
     api.formatter.todos.status.add(todo_status_formatter)
     api.formatter.todos.description.add(todo_description_formatter)
@@ -509,6 +529,7 @@ def formatter_setup(api: DooitAPI, _):
     # formatter above gets to paint it in the same shade as the number.
     # Effort 0 is left as an empty column rather than a flame with nothing on it.
     api.formatter.todos.effort.add(effort_icon(show_on_zero=False))
+    api.formatter.todos.note.add(todo_note_formatter)
     api.formatter.todos.recurrence.add(todo_recurrence_formatter)
     # Marks the repeating todos, whose interval is easy to miss as bare text
     api.formatter.todos.recurrence.add(recurrence_icon())
