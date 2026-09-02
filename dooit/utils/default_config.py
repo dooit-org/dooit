@@ -51,7 +51,9 @@ def priority_color(priority: int, api: DooitAPI) -> str:
     colors = {
         1: theme.red,
         2: theme.yellow,
-        3: theme.green,
+        # p3 is the calm end of the scale, so it takes the theme's light blue
+        # rather than a green that reads as "done" beside the due-date colors
+        3: theme.cyan,
     }
 
     # Nothing prioritized: a gray sitting halfway between text and background
