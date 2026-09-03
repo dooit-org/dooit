@@ -90,6 +90,12 @@ class MainScreen(BaseScreen):
         if self.app.screen != self:
             return True
 
+        # Every key on this screen is dooit's own. Stopping it here is what
+        # keeps it away from the bindings textual keeps at the app level --
+        # ctrl+c among them, which is bound to a "press ctrl+q to quit" notice
+        # that would otherwise turn up on top of the copy it just did
+        event.stop()
+
         key = self.resolve_key(event)
 
         # Resolved on the way in rather than per bar: a bar that is typed into

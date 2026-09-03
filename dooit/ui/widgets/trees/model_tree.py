@@ -28,6 +28,7 @@ from dooit.ui.api.events import (
     BarNotification,
 )
 from dooit.ui.widgets.renderers import BaseRenderer, COLUMN_PADDING
+from dooit.utils import copy_text, paste_text
 from .base_tree import BaseTree
 from ._render_dict import RenderDict
 from ._decorators import (
@@ -160,7 +161,6 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         self.expaned = defaultdict(bool)
         self._renderers: RenderDictType = render_dict
         self._filter_refresh = False
-        self._model_clipboard = None
         self._static_rows: Dict[str, Callable[[], RenderableType]] = {}
 
     @cache
@@ -573,7 +573,7 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
 
     @require_highlighted_node
     def copy_description_to_clipboard(self):
-        self.app.copy_to_clipboard(self.current_model.description)
+        copy_text(self.app, self.current_model.description)
 
     @refresh_tree
     def _expand_node(self, _id: str) -> None:
@@ -644,17 +644,59 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
     def _add_first_item(self) -> ModelType:
         raise NotImplementedError  # pragma: no cover
 
-    def add_sibling(self):
+    def _new_sibling(self) -> Optional[ModelType]:
+        """
+        The empty node a new sibling starts out as, or None if there is none
+
+        Whether a new node can be put here at all is answered once, rather
+        than by each of the callers: a pane that has nowhere to keep one - or
+        a tree that is in the middle of an edit - turns a paste away for the
+        same reason it turns an `add_sibling` away.
+        """
+
         if self.is_editing:
-            return
+            return None
 
         if not self._options:
-            node = self.add_first_item()
-        else:
-            node = self._add_sibling_node()
+            return self.add_first_item()
+
+        return self._add_sibling_node()
+
+    def add_sibling(self):
+        node = self._new_sibling()
+
+        if node is None:
+            return
 
         self.highlight_id(node.uuid)
         self.start_edit("description")
+
+    @refresh_tree
+    def _describe_node(self, node: ModelType, description: str) -> None:
+        node.description = description
+        node.save()
+
+    def paste_as_sibling(self):
+        """
+        Add a node beside the highlighted one, described by the clipboard
+
+        A description is one line, so the pasted text is squeezed onto one:
+        anything else would leave a row drawn over the ones beneath it.
+        """
+
+        description = " ".join(paste_text(self.app).split())
+
+        if not description:
+            self.post_message(BarNotification("Clipboard is empty", "warning"))
+            return
+
+        node = self._new_sibling()
+
+        if node is None:
+            return
+
+        self._describe_node(node, description)
+        self.highlight_id(node.uuid)
 
     @property
     def _current_has_children(self) -> bool:
@@ -678,45 +720,6 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         """Drop the highlighted node without asking to confirm"""
 
         self._delete_current_model()
-
-    @require_highlighted_node
-    def copy_model_to_clipboard(self):
-        node_type = self.current_model.__class__.__name__
-        self.api.notify(f"{node_type} was copied to clipboard")
-        self._model_clipboard = self.current_model.id
-
-    def paste_model_from_clipboard(
-        self, position: str = "below"
-    ) -> Optional[ModelType]:
-        @refresh_tree
-        def add_node(self):
-            if not self._model_clipboard:
-                self.post_message(BarNotification("No model in clipboard", "error"))
-                return None
-
-            if position not in ["below", "above"]:
-                self.post_message(
-                    BarNotification("Invalid position, use 'below' or 'above'", "error")
-                )
-                return None
-
-            if not self.highlighted:
-                order_index = len(self._options)
-            else:
-                order_index = self.current_model.order_index
-                if position == "below":
-                    order_index += 1
-
-            if isinstance(self.current_model, Todo):
-                new_model = Todo.clone_from_id(self._model_clipboard, order_index)
-            else:
-                new_model = Project.clone_from_id(self._model_clipboard, order_index)
-
-            return new_model
-
-        model = add_node(self)
-        self.highlight_id(model.uuid)
-        return model
 
     @require_highlighted_node
     def remove_node(self):

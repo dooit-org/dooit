@@ -11,7 +11,7 @@ from textual.widgets.text_area import TextAreaTheme
 
 from dooit.api import Todo
 from dooit.api.theme import DooitThemeBase
-from dooit.utils import blend
+from dooit.utils import blend, copy_text, paste_text
 
 from .base import BaseScreen
 
@@ -185,6 +185,37 @@ class NoteEditor(TextArea):
         indent = len(line) - len(line.lstrip(" \t"))
         self.insert(BULLET, (row, indent))
         self.move_cursor((row, column + len(BULLET)))
+
+    def action_copy(self) -> None:
+        """
+        Copy what is picked out - or, when nothing is, the whole note
+
+        Overrides the TextArea binding, which copies a selection and does
+        nothing at all without one; a note is short enough that the whole of
+        it is the obvious thing to mean by an unqualified copy.
+        """
+
+        copy_text(self.app, self.selected_text or self.text)
+
+    def action_paste(self) -> None:
+        """
+        Drop the clipboard in at the cursor
+
+        Overrides the TextArea binding, which pastes textual's own clipboard:
+        that only ever holds what was copied inside dooit, and the point of
+        the key here is to bring text in from somewhere else.
+        """
+
+        if self.read_only:
+            return
+
+        text = paste_text(self.app)
+
+        if not text:
+            return
+
+        if result := self._replace_via_keyboard(text, *self.selection):
+            self.move_cursor(result.end_location)
 
     @property
     def note_screen(self) -> "NoteScreen":

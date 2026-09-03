@@ -1,4 +1,5 @@
 from typing import List, Optional
+from unittest.mock import patch
 from textual.pilot import Pilot
 from textual.widgets.option_list import Option
 from textual.widgets import ContentSwitcher
@@ -8,6 +9,20 @@ from dooit.ui.widgets.trees.model_tree import ModelTree
 from dooit.ui.widgets.trees.todos_tree import TodosTree
 
 TEMP_DB_PATH = ":memory:"
+
+# The host's clipboard, which a test can neither be handed nor allowed to
+# write over. Patched once, for the whole run: what dooit reads back is what a
+# test last put here, and nothing else on the machine can change it underneath
+_clipboard = ""
+
+
+def set_clipboard(text: str) -> None:
+    global _clipboard
+    _clipboard = text
+
+
+patch("dooit.utils.clipboard.pyperclip.paste", lambda: _clipboard).start()
+patch("dooit.utils.clipboard.pyperclip.copy", lambda text: None).start()
 
 
 def run_pilot():

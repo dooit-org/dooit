@@ -439,8 +439,6 @@ def key_setup(api: DooitAPI, _):
     PRIORITY_EFFORT = "Priority & Effort"
     MOVING = "Moving & Clipboard"
     VIEW = "Search & View"
-    # Quitting and the help key itself need no explaining, so this group is
-    # bound but hidden: it never gets a section in the help screen
     APP = "App"
 
     api.keys.set("j", api.focus_projects, group=NAVIGATION)
@@ -497,13 +495,12 @@ def key_setup(api: DooitAPI, _):
         group=PRIORITY_EFFORT,
     )
 
-    api.keys.set("J", api.shift_down, group=MOVING)
+    api.keys.set("L", api.shift_down, group=MOVING)
     api.keys.set("K", api.shift_up, group=MOVING)
-    api.keys.set("y", api.copy_description_to_clipboard, group=MOVING)
-    api.keys.set("Y", api.copy_model, group=MOVING)
-    # "p" is a prefix of the priority keys above, so paste lives on v/V
-    api.keys.set("v", api.paste_model_below, group=MOVING)
-    api.keys.set("V", api.paste_model_above, group=MOVING)
+    # The clipboard is the system one, so it is worked with the keys the rest
+    # of the desktop uses rather than vim's
+    api.keys.set("<ctrl+c>", api.copy_description_to_clipboard, group=MOVING)
+    api.keys.set("<ctrl+v>", api.paste_as_sibling, group=MOVING)
 
     api.keys.set("/", api.start_search, group=VIEW)
     api.keys.set("q", api.toggle_row_shading, group=VIEW)
@@ -515,7 +512,9 @@ def key_setup(api: DooitAPI, _):
         group=APP,
         hidden=True,
     )
-    api.keys.set("<ctrl+q>", api.quit, group=APP, hidden=True)
+    # The one way out of dooit: ctrl+c is a copy here, as it is everywhere
+    # else, and nothing else quits
+    api.keys.set("<ctrl+q>", api.quit, group=APP)
 
 
 @subscribe(Startup)

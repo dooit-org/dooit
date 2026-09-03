@@ -2,7 +2,12 @@ from pytest import raises
 from textual.widgets import ContentSwitcher
 from dooit.api.exceptions import NoNodeError
 from dooit.ui.widgets.trees.todos_tree import TodosTree
-from tests.test_ui.ui_base import run_pilot, tree_options, highlighted_index
+from tests.test_ui.ui_base import (
+    run_pilot,
+    set_clipboard,
+    tree_options,
+    highlighted_index,
+)
 from dooit.ui.tui import Dooit
 
 
@@ -268,67 +273,68 @@ async def test_add_sibling_while_editing():
         assert highlighted_index(ptree) == 0
 
 
-async def test_yank_and_paste_project():
+async def test_paste_as_sibling():
     async with run_pilot() as pilot:
         app = pilot.app
         assert isinstance(app, Dooit)
         ptree = app.project_tree
 
-        # Create first project
-        ptree.add_sibling()
-        await pilot.press(*list("project 1"))
+        # The app opens itself on the Today pane, on a message of its own, so
+        # the focus is only where a test can rely on it once that has been
+        # through and the projects pane has been asked for back
+        await pilot.pause()
+        app.api.focus_projects()
+        await pilot.pause()
+
+        set_clipboard(" pasted   project \n")
+
+        # The first paste has nothing to sit beside, so it starts the tree
+        await pilot.press("ctrl+v")
+        await pilot.pause()
+
+        assert len(tree_options(ptree)) == 1
+
+        # A description is one line, whatever the clipboard was
+        assert ptree.current_model.description == "pasted project"
+
+        # And it is a description like any other: `i` opens the edit on the
+        # pasted text rather than on the empty string the node was made as
+        await pilot.press("i")
+        await pilot.pause()
+        assert ptree.current.description.value == "pasted project"
+
         await pilot.press("escape")
+        await pilot.pause()
+        assert ptree.current_model.description == "pasted project"
 
-        # Create child project to test nested cloning
-        ptree.add_child_node()
-        await pilot.press(*list("child project"))
-        await pilot.press("escape")
-
-        # Go back to parent
-        ptree.action_cursor_up()
+        await pilot.press("ctrl+v")
         await pilot.pause()
 
-        # Add a todo to the project
-        app.api.switch_focus()
+        assert len(tree_options(ptree)) == 2
+        assert highlighted_index(ptree) == 1
+
+        # Nothing on the clipboard is nothing to add
+        set_clipboard("   ")
+        await pilot.press("ctrl+v")
         await pilot.pause()
 
-        tree = app.screen.query_one(
-            "#todo_switcher", expect_type=ContentSwitcher
-        ).visible_content
-        assert isinstance(tree, TodosTree)
+        assert len(tree_options(ptree)) == 2
 
-        tree.add_sibling()
-        await pilot.press(*list("todo in project"))
-        await pilot.press("escape")
-        assert len(tree_options(tree)) == 1
 
-        # Switch back to project tree
-        app.api.switch_focus()
+async def test_copy_description():
+    async with run_pilot() as pilot:
+        app = pilot.app
+        assert isinstance(app, Dooit)
+
+        await pilot.pause()
+        app.api.focus_projects()
         await pilot.pause()
 
-        # Yank the project
-        await pilot.press("Y")
+        set_clipboard("nixos")
+        await pilot.press("ctrl+v")
         await pilot.pause()
 
-        # Paste it
-        await pilot.press("v")
+        await pilot.press("ctrl+c")
         await pilot.pause()
 
-        # Check that the project was cloned
-        assert len(tree_options(ptree)) == 3
-
-        # Verify child project was cloned
-        ptree.toggle_expand()
-        await pilot.pause()
-        assert len(tree_options(ptree)) == 4
-
-        # Check that todo was cloned by switching to todo tree
-        app.api.switch_focus()
-        await pilot.pause()
-
-        tree = app.screen.query_one(
-            "#todo_switcher", expect_type=ContentSwitcher
-        ).visible_content
-        assert isinstance(tree, TodosTree)
-
-        assert len(tree_options(tree)) == 1
+        assert app.clipboard == "nixos"

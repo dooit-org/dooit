@@ -226,8 +226,9 @@ class FixedTodosTree(TodosTree):
             BarNotification(f"{what} in [b]{self.model.title}[/b]", "warning")
         )
 
-    def add_sibling(self):
+    def _new_sibling(self) -> None:
         self._not_here("Tasks can't be added")
+        return None
 
     def add_child_node(self):
         self._not_here("Tasks can't be added")
@@ -240,6 +241,3 @@ class FixedTodosTree(TodosTree):
 
     def start_sort(self):
         self._not_here("Tasks can't be sorted")
-
-    def paste_model_from_clipboard(self, position: str = "below"):
-        self._not_here("Tasks can't be pasted")

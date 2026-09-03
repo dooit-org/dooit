@@ -179,17 +179,9 @@ class ProjectsTree(ModelTree[Project, ProjectRenderDict]):
     def start_sort(self):
         return super().start_sort()
 
-    @reject_fixed_node(FIXED_MESSAGE)
-    def copy_model_to_clipboard(self):
-        return super().copy_model_to_clipboard()
-
-    @reject_fixed_node(FIXED_MESSAGE)
-    def paste_model_from_clipboard(self, position: str = "below"):
-        return super().paste_model_from_clipboard(position)
-
-    def add_sibling(self):
+    def _new_sibling(self) -> Optional[Project]:
         """
-        Adds a project beside the highlighted one
+        The empty project a new sibling starts out as
 
         A fixed project has no siblings to be added to, so from there the new
         project goes to the top level, which is where the stored ones begin.
@@ -197,14 +189,11 @@ class ProjectsTree(ModelTree[Project, ProjectRenderDict]):
 
         if self.is_fixed_node:
             if self.is_editing:
-                return
+                return None
 
-            node = self.add_first_item()
-            self.highlight_id(node.uuid)
-            self.start_edit("description")
-            return
+            return self.add_first_item()
 
-        return super().add_sibling()
+        return super()._new_sibling()
 
     @on(ModelTree.OptionHighlighted)
     def project_highlighted(self, event: ModelTree.OptionHighlighted):

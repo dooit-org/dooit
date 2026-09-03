@@ -45,6 +45,20 @@ class SimpleInput(Input, Generic[ModelType, ModelValue]):
         self._cursor_pos = len(self.value)
         return self.value
 
+    def start_edit(self) -> None:
+        """
+        Begin an edit on what the model holds now, not what it held then
+
+        A row is drawn straight off the model, so a field that was changed
+        without being typed into - pasted in, say - shows the new value while
+        this buffer still holds the one the renderer was built with. Filling
+        it here is what keeps the two the same thing.
+        """
+
+        self._value = self._get_default_value()
+        super().start_edit()
+        self.move_cursor_to_end()
+
     def stop_edit(self) -> None:
         self._value = self.value.strip()
         try:

@@ -39,7 +39,16 @@ class DooitKeyTable(Static):
 
     @classmethod
     def key_label(cls, keybind: str) -> str:
-        return cls.KEY_LABELS.get(keybind, keybind)
+        if keybind in cls.KEY_LABELS:
+            return cls.KEY_LABELS[keybind]
+
+        # A named key is written `<ctrl+q>` so that it can be told apart from
+        # the four characters it would otherwise be, which is a distinction
+        # only the key input cares about: the table reads it as a key
+        if keybind.startswith("<") and keybind.endswith(">"):
+            return keybind[1:-1]
+
+        return keybind
 
     def _render_group(self, group: str, key_width: int) -> RenderableType:
         t = Table.grid(expand=True, padding=(0, 1))

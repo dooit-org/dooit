@@ -2,7 +2,6 @@ from pathlib import Path
 from typing import Optional
 from textual import on
 from textual.app import App
-from textual.binding import Binding
 from dooit.ui.api.events import ModeChanged, DooitEvent, ModeType, Startup, QuitApp
 from dooit.ui.api.events.events import ShutDown
 from dooit.ui.widgets import BarSwitcher
@@ -29,10 +28,6 @@ class Dooit(App):
         "help": HelpScreen,
         "main": MainScreen,
     }
-
-    BINDINGS = [
-        Binding("ctrl+c", "quit", "Quit", show=False, priority=True),
-    ]
 
     def __init__(
         self,
