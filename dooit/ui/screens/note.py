@@ -115,6 +115,9 @@ class NoteEditor(TextArea):
         Binding("ctrl+i", "wrap('*')", "Italic", show=False),
         Binding("tab", "wrap('*')", "Italic", show=False),
         Binding("ctrl+l", "toggle_bullet", "Bullet", show=False),
+        # Takes the key off TextArea, where it deletes the character to the
+        # right of the cursor; here the whole note goes, after a y/N
+        Binding("ctrl+d", "clear_note", "Clear the note", show=False),
     ]
 
     def __init__(self, text: str) -> None:
@@ -183,10 +186,33 @@ class NoteEditor(TextArea):
         self.insert(BULLET, (row, indent))
         self.move_cursor((row, column + len(BULLET)))
 
+    @property
+    def note_screen(self) -> "NoteScreen":
+        screen = self.screen
+
+        assert isinstance(screen, NoteScreen)
+        return screen
+
+    def action_clear_note(self) -> None:
+        """
+        Offer to throw the whole note away; the screen puts the question
+        """
+
+        self.note_screen.request_clear()
+
     async def _on_key(self, event: events.Key) -> None:
         """
         Carry a bullet list on to the next line, the way a list gets written
         """
+
+        if self.note_screen.awaiting_clear:
+            # The editor keeps the keyboard while the question stands, so the
+            # answer arrives here rather than at a binding on the screen - and
+            # is swallowed either way, so a `y` is an answer and not a letter
+            event.stop()
+            event.prevent_default()
+            self.note_screen.answer_clear(event.key)
+            return
 
         if event.key == "enter" and not self.read_only:
             row, _ = self.cursor_location
@@ -238,16 +264,32 @@ class NoteScreen(BaseScreen):
         ("escape", "close", "Close the note"),
     ]
 
-    HINT = "ctrl+b bold    ctrl+i italic    ctrl+l bullet    esc close"
+    HINT = (
+        "ctrl+b bold    ctrl+i italic    ctrl+l bullet    "
+        "ctrl+d clear    esc close"
+    )
+
+    # Worded and escaped the way the confirm bar words a deletion elsewhere in
+    # dooit, so the answer is the one the user already knows
+    CLEAR_PROMPT = r"Clear the whole note? \[y/N]"
 
     def __init__(self, todo: Todo) -> None:
         super().__init__()
         self.todo = todo
         self._save_timer: Optional[Timer] = None
+        self._awaiting_clear = False
 
     @property
     def editor(self) -> NoteEditor:
         return self.query_one(NoteEditor)
+
+    @property
+    def hint(self) -> Static:
+        return self.query_one("#note-hint", Static)
+
+    @property
+    def awaiting_clear(self) -> bool:
+        return self._awaiting_clear
 
     @property
     def title_text(self) -> str:
@@ -293,6 +335,37 @@ class NoteScreen(BaseScreen):
 
         self.todo.note = self.editor.text
         self.todo.save()
+
+    def request_clear(self) -> None:
+        """
+        Put the question up, in place of the hint line
+        """
+
+        # Nothing to lose, nothing to ask about
+        if not self.editor.text or self._awaiting_clear:
+            return
+
+        self._awaiting_clear = True
+        self.hint.update(self.CLEAR_PROMPT)
+        self.hint.add_class("confirming")
+
+    def answer_clear(self, key: str) -> None:
+        """
+        Anything but a `y` leaves the note exactly where it is
+        """
+
+        self._awaiting_clear = False
+        self.hint.update(self.HINT)
+        self.hint.remove_class("confirming")
+
+        if key.lower() != "y":
+            return
+
+        self.editor.clear()
+
+        # The debounce would get here on its own; writing it out now means the
+        # row behind the window is right the moment the window closes
+        self.save()
 
     def action_close(self) -> None:
         if self._save_timer is not None:

@@ -91,6 +91,13 @@ NoteEditor {
 #note-hint {
   color: $foreground1 60%;
   text-align: center;
+
+  /* The hint line doubles as the y/N prompt; red the way the confirm bar is,
+     so a question that throws text away does not read like a hint */
+  &.confirming {
+    color: $red;
+    text-style: bold;
+  }
 }
 
 # Bars
