@@ -8,7 +8,7 @@ from .manager import manager
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from dooit.api.workspace import Workspace
+    from dooit.api.project import Project
 
 
 # Effort is a rough estimate of how much work a todo is, on a 1-3 scale;
@@ -37,11 +37,11 @@ class Todo(DooitModel):
     # ------------------- Relationships ----------------------------
     # --------------------------------------------------------------
 
-    parent_workspace_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("workspace.id")
+    parent_project_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("project.id")
     )
-    parent_workspace: Mapped[Optional["Workspace"]] = relationship(
-        "Workspace",
+    parent_project: Mapped[Optional["Project"]] = relationship(
+        "Project",
         back_populates="todos",
     )
 
@@ -75,11 +75,11 @@ class Todo(DooitModel):
         return res
 
     @property
-    def parent(self) -> Union["Workspace", "Todo"]:
-        assert self.parent_workspace or self.parent_todo
+    def parent(self) -> Union["Project", "Todo"]:
+        assert self.parent_project or self.parent_todo
 
-        if self.parent_workspace:
-            return self.parent_workspace
+        if self.parent_project:
+            return self.parent_project
 
         assert self.parent_todo is not None
 
@@ -113,8 +113,8 @@ class Todo(DooitModel):
 
     @property
     def siblings(self) -> List["Todo"]:
-        if self.parent_workspace:
-            return self.parent_workspace.todos
+        if self.parent_project:
+            return self.parent_project.todos
 
         if self.parent_todo:
             return self.parent_todo.todos
@@ -126,7 +126,7 @@ class Todo(DooitModel):
             items = (
                 self.session.query(Todo)
                 .filter_by(
-                    parent_workspace=self.parent_workspace,
+                    parent_project=self.parent_project,
                     parent_todo=self.parent_todo,
                 )
                 .order_by(nulls_last(getattr(Todo, field).asc()))
@@ -155,7 +155,7 @@ class Todo(DooitModel):
     def _add_sibling(self) -> "Todo":
         todo = Todo(
             parent_todo=self.parent_todo,
-            parent_workspace=self.parent_workspace,
+            parent_project=self.parent_project,
             order_index=self.order_index + 1,
         )
         todo.save()
@@ -217,7 +217,7 @@ class Todo(DooitModel):
         attrs = {field: getattr(todo, field) for field in fields}
         attrs.update(
             {
-                "parent_workspace": todo.parent_workspace,
+                "parent_project": todo.parent_project,
                 "parent_todo": todo.parent_todo,
                 "order_index": order_index,
             }

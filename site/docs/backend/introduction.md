@@ -2,12 +2,12 @@
 
 Dooit uses [sqlalchemy](https://www.sqlalchemy.org/) to store its data
 
-For backend, **there are two tables**: `Workspace` and  `Todo`
+For backend, **there are two tables**: `Project` and  `Todo`
 
 You can easily import them from `dooit.api`
 
 ```py
-from dooit.api import Workspace, Todo, manager
+from dooit.api import Project, Todo, manager
 manager.connect() # this sets up connection to the database
 
 # from here on, you can perform any operations
@@ -15,28 +15,28 @@ manager.connect() # this sets up connection to the database
 
 An overview code below will show you the relationship between these two models
 
-## Workspace
+## Project
 
 ```python
-class Workspace(DooitModel):
-    parent_workspace_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("workspace.id"), default=None
+class Project(DooitModel):
+    parent_project_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("project.id"), default=None
     )
-    parent_workspace: Mapped[Optional["Workspace"]] = relationship(
-        "Workspace",
-        back_populates="workspaces",
+    parent_project: Mapped[Optional["Project"]] = relationship(
+        "Project",
+        back_populates="projects",
         remote_side=[id],
     )
 
-    workspaces: Mapped[List["Workspace"]] = relationship(
-        "Workspace",
-        back_populates="parent_workspace",
+    projects: Mapped[List["Project"]] = relationship(
+        "Project",
+        back_populates="parent_project",
         cascade="all",
-        order_by="Workspace.order_index",
+        order_by="Project.order_index",
     )
     todos: Mapped[List["Todo"]] = relationship(
         "Todo",
-        back_populates="parent_workspace",
+        back_populates="parent_project",
         cascade="all, delete-orphan",
         order_by="Todo.order_index",
     )
@@ -47,11 +47,11 @@ class Workspace(DooitModel):
 ```python
 
 class Todo(DooitModel):
-    parent_workspace_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("workspace.id")
+    parent_project_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("project.id")
     )
-    parent_workspace: Mapped[Optional["Workspace"]] = relationship(
-        "Workspace",
+    parent_project: Mapped[Optional["Project"]] = relationship(
+        "Project",
         back_populates="todos",
     )
     parent_todo_id: Mapped[Optional[int]] = mapped_column(ForeignKey("todo.id"))

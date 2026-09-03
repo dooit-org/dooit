@@ -6,26 +6,26 @@ from tests.test_ui.ui_base import run_pilot, tree_options, highlighted_index
 from dooit.ui.tui import Dooit
 
 
-async def test_workspaces_tree():
+async def test_projects_tree():
     async with run_pilot() as pilot:
         app = pilot.app
         assert isinstance(app, Dooit)
 
-        wtree = app.workspace_tree
+        ptree = app.project_tree
 
-        assert len(tree_options(wtree)) == 0
+        assert len(tree_options(ptree)) == 0
 
         # basic addition
-        wtree.add_workspace()
-        wtree.add_workspace()
-        wtree.add_workspace()
-        w = wtree.add_workspace()
+        ptree.add_project()
+        ptree.add_project()
+        ptree.add_project()
+        p = ptree.add_project()
 
-        assert len(tree_options(wtree)) == 4
+        assert len(tree_options(ptree)) == 4
 
         # highlights
-        wtree.highlight_id(w)
-        assert highlighted_index(wtree) == 3  # n-1
+        ptree.highlight_id(p)
+        assert highlighted_index(ptree) == 3  # n-1
 
         await pilot.pause()
 
@@ -33,25 +33,25 @@ async def test_workspaces_tree():
             "#todo_switcher", expect_type=ContentSwitcher
         ).visible_content
         assert current is not None
-        assert current.id == TodosTree(wtree.current_model).id
+        assert current.id == TodosTree(ptree.current_model).id
 
-        wtree.toggle_expand_parent()
-        assert highlighted_index(wtree) == 3  # no change
+        ptree.toggle_expand_parent()
+        assert highlighted_index(ptree) == 3  # no change
 
         # child nodes
-        w = wtree.add_child_node()
-        assert len(tree_options(wtree)) == 5
-        assert highlighted_index(wtree) == 4
+        p = ptree.add_child_node()
+        assert len(tree_options(ptree)) == 5
+        assert highlighted_index(ptree) == 4
 
         # nested nodes
-        wtree.toggle_expand()
-        assert len(tree_options(wtree)) == 5
+        ptree.toggle_expand()
+        assert len(tree_options(ptree)) == 5
 
-        wtree.toggle_expand_parent()
-        assert len(tree_options(wtree)) == 4
+        ptree.toggle_expand_parent()
+        assert len(tree_options(ptree)) == 4
 
-        wtree.toggle_expand()
-        assert len(tree_options(wtree)) == 5
+        ptree.toggle_expand()
+        assert len(tree_options(ptree)) == 5
 
 
 async def test_base_addition():
@@ -59,222 +59,222 @@ async def test_base_addition():
         app = pilot.app
         assert isinstance(app, Dooit)
 
-        wtree = app.workspace_tree
+        ptree = app.project_tree
 
-        wtree.add_sibling()
-        assert highlighted_index(wtree) == 0
+        ptree.add_sibling()
+        assert highlighted_index(ptree) == 0
         await pilot.press("escape")
         await pilot.pause()
 
-        wtree.add_sibling()
-        assert highlighted_index(wtree) == 1
+        ptree.add_sibling()
+        assert highlighted_index(ptree) == 1
 
 
-async def test_workspace_remove_cancelled():
+async def test_project_remove_cancelled():
     async with run_pilot() as pilot:
         app = pilot.app
         assert isinstance(app, Dooit)
-        wtree = app.workspace_tree
+        ptree = app.project_tree
 
-        wtree.add_sibling()
+        ptree.add_sibling()
         await pilot.press("escape")
-        wtree.add_sibling()
+        ptree.add_sibling()
         await pilot.press("escape")
 
-        w1 = wtree.current_model
+        p1 = ptree.current_model
 
         current = app.screen.query_one(
             "#todo_switcher", expect_type=ContentSwitcher
         ).visible_content
         assert current is not None
-        assert current.id == TodosTree(w1).id
+        assert current.id == TodosTree(p1).id
 
-        wtree.remove_node()
+        ptree.remove_node()
         await pilot.pause()
         await pilot.press("n")
         await pilot.pause()
 
-        w2 = wtree.current_model
+        p2 = ptree.current_model
         current = app.screen.query_one(
             "#todo_switcher", expect_type=ContentSwitcher
         ).visible_content
         assert current is not None
-        assert current.id == TodosTree(w2).id
+        assert current.id == TodosTree(p2).id
 
-        assert w1.id == w2.id
+        assert p1.id == p2.id
 
 
-async def test_workspace_remove():
+async def test_project_remove():
     async with run_pilot() as pilot:
         app = pilot.app
         assert isinstance(app, Dooit)
-        wtree = app.workspace_tree
+        ptree = app.project_tree
 
-        wtree.add_sibling()
+        ptree.add_sibling()
         await pilot.press("escape")
-        wtree.add_sibling()
+        ptree.add_sibling()
         await pilot.press("escape")
 
-        w1 = wtree.current_model
+        p1 = ptree.current_model
 
         current = app.screen.query_one(
             "#todo_switcher", expect_type=ContentSwitcher
         ).visible_content
         assert current is not None
-        assert current.id == TodosTree(w1).id
+        assert current.id == TodosTree(p1).id
 
-        wtree.remove_node()
+        ptree.remove_node()
         await pilot.pause()
         await pilot.press("y")
         await pilot.pause()
 
-        w2 = wtree.current_model
+        p2 = ptree.current_model
         current = app.screen.query_one(
             "#todo_switcher", expect_type=ContentSwitcher
         ).visible_content
         assert current is not None
-        assert current.id == TodosTree(w2).id
+        assert current.id == TodosTree(p2).id
 
-        assert w1.id != w2.id
+        assert p1.id != p2.id
 
 
 async def test_no_node_error():
     async with run_pilot() as pilot:
         app = pilot.app
         assert isinstance(app, Dooit)
-        wtree = app.workspace_tree
+        ptree = app.project_tree
 
         with raises(NoNodeError):
-            wtree.remove_node()
+            ptree.remove_node()
 
 
 async def test_shifts_single_item():
     async with run_pilot() as pilot:
         app = pilot.app
         assert isinstance(app, Dooit)
-        wtree = app.workspace_tree
+        ptree = app.project_tree
 
-        wtree.add_sibling()
+        ptree.add_sibling()
         await pilot.press("escape")
 
-        wtree.shift_up()
+        ptree.shift_up()
         await pilot.pause()
 
-        assert highlighted_index(wtree) == 0
+        assert highlighted_index(ptree) == 0
 
-        wtree.shift_down()
+        ptree.shift_down()
         await pilot.pause()
 
-        assert highlighted_index(wtree) == 0
+        assert highlighted_index(ptree) == 0
 
 
 async def test_shifts():
     async with run_pilot() as pilot:
         app = pilot.app
         assert isinstance(app, Dooit)
-        wtree = app.workspace_tree
+        ptree = app.project_tree
 
-        wtree.add_sibling()
+        ptree.add_sibling()
         await pilot.press("escape")
-        wtree.add_sibling()
+        ptree.add_sibling()
         await pilot.press("escape")
-        wtree.highlighted = wtree.first_selectable_index
+        ptree.highlighted = ptree.first_selectable_index
 
         # shift up with first index
-        wtree.shift_up()
+        ptree.shift_up()
         await pilot.pause()
 
-        assert highlighted_index(wtree) == 0
+        assert highlighted_index(ptree) == 0
 
         # shift down with first index
-        wtree.shift_down()
+        ptree.shift_down()
         await pilot.pause()
 
-        assert highlighted_index(wtree) == 1
+        assert highlighted_index(ptree) == 1
 
         # shift down with last index
-        wtree.shift_down()
+        ptree.shift_down()
         await pilot.pause()
 
-        assert highlighted_index(wtree) == 1
+        assert highlighted_index(ptree) == 1
 
         # shift down with last index
-        wtree.shift_up()
+        ptree.shift_up()
         await pilot.pause()
 
-        assert highlighted_index(wtree) == 0
+        assert highlighted_index(ptree) == 0
 
 
 async def test_cursor_movements():
     async with run_pilot() as pilot:
         app = pilot.app
         assert isinstance(app, Dooit)
-        wtree = app.workspace_tree
+        ptree = app.project_tree
 
-        wtree.add_sibling()
+        ptree.add_sibling()
         await pilot.press("escape")
 
-        wtree.add_sibling()
+        ptree.add_sibling()
         await pilot.press("escape")
 
-        assert highlighted_index(wtree) == 1
+        assert highlighted_index(ptree) == 1
 
-        wtree.action_cursor_down()
-        assert highlighted_index(wtree) == 1
+        ptree.action_cursor_down()
+        assert highlighted_index(ptree) == 1
 
-        wtree.action_cursor_up()
-        assert highlighted_index(wtree) == 0
+        ptree.action_cursor_up()
+        assert highlighted_index(ptree) == 0
 
-        wtree.action_cursor_up()
-        assert highlighted_index(wtree) == 0
+        ptree.action_cursor_up()
+        assert highlighted_index(ptree) == 0
 
-        wtree.action_cursor_down()
-        assert highlighted_index(wtree) == 1
+        ptree.action_cursor_down()
+        assert highlighted_index(ptree) == 1
 
         # clicking should not affect the highlight
         for x in range(5):
             for y in range(5):
-                await pilot.click(wtree, offset=(x, y))
-                assert highlighted_index(wtree) == 1
+                await pilot.click(ptree, offset=(x, y))
+                assert highlighted_index(ptree) == 1
 
 
 async def test_add_sibling_while_editing():
     async with run_pilot() as pilot:
         app = pilot.app
         assert isinstance(app, Dooit)
-        wtree = app.workspace_tree
+        ptree = app.project_tree
 
-        wtree.add_sibling()
+        ptree.add_sibling()
         # await pilot.press("escape") # Dont stop editing
 
-        wtree.add_sibling()
+        ptree.add_sibling()
         await pilot.press("escape")
-        assert highlighted_index(wtree) == 0
+        assert highlighted_index(ptree) == 0
 
-        assert len(tree_options(wtree)) == 1
+        assert len(tree_options(ptree)) == 1
 
 
-async def test_yank_and_paste_workspace():
+async def test_yank_and_paste_project():
     async with run_pilot() as pilot:
         app = pilot.app
         assert isinstance(app, Dooit)
-        wtree = app.workspace_tree
+        ptree = app.project_tree
 
-        # Create first workspace
-        wtree.add_sibling()
-        await pilot.press(*list("workspace 1"))
+        # Create first project
+        ptree.add_sibling()
+        await pilot.press(*list("project 1"))
         await pilot.press("escape")
 
-        # Create child workspace to test nested cloning
-        wtree.add_child_node()
-        await pilot.press(*list("child workspace"))
+        # Create child project to test nested cloning
+        ptree.add_child_node()
+        await pilot.press(*list("child project"))
         await pilot.press("escape")
 
         # Go back to parent
-        wtree.action_cursor_up()
+        ptree.action_cursor_up()
         await pilot.pause()
 
-        # Add a todo to the workspace
+        # Add a todo to the project
         app.api.switch_focus()
         await pilot.pause()
 
@@ -284,15 +284,15 @@ async def test_yank_and_paste_workspace():
         assert isinstance(tree, TodosTree)
 
         tree.add_sibling()
-        await pilot.press(*list("todo in workspace"))
+        await pilot.press(*list("todo in project"))
         await pilot.press("escape")
         assert len(tree_options(tree)) == 1
 
-        # Switch back to workspace tree
+        # Switch back to project tree
         app.api.switch_focus()
         await pilot.pause()
 
-        # Yank the workspace
+        # Yank the project
         await pilot.press("Y")
         await pilot.pause()
 
@@ -300,13 +300,13 @@ async def test_yank_and_paste_workspace():
         await pilot.press("v")
         await pilot.pause()
 
-        # Check that the workspace was cloned
-        assert len(tree_options(wtree)) == 3
+        # Check that the project was cloned
+        assert len(tree_options(ptree)) == 3
 
-        # Verify child workspace was cloned
-        wtree.toggle_expand()
+        # Verify child project was cloned
+        ptree.toggle_expand()
         await pilot.pause()
-        assert len(tree_options(wtree)) == 4
+        assert len(tree_options(ptree)) == 4
 
         # Check that todo was cloned by switching to todo tree
         app.api.switch_focus()

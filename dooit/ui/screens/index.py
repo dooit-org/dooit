@@ -4,7 +4,7 @@ from sqlalchemy.orm.attributes import get_history
 from textual import events, on
 from textual.containers import Container
 from textual.widgets import ContentSwitcher
-from dooit.api import Todo, Workspace
+from dooit.api import Todo, Project
 from dooit.api.model import DooitModel
 from dooit.ui.api.events import (
     DooitEvent,
@@ -19,15 +19,15 @@ from dooit.ui.api.events import (
     TodoRecurrenceChanged,
     TodoStatusChanged,
     TodoPriorityChanged,
-    WorkspaceDescriptionChanged,
-    WorkspaceRemoved,
-    WorkspaceSelected,
+    ProjectDescriptionChanged,
+    ProjectRemoved,
+    ProjectSelected,
     SwitchTab,
     SpawnHelp,
     SpawnNote,
     BarNotification,
 )
-from dooit.ui.widgets.trees import WorkspacesTree, TodosTree
+from dooit.ui.widgets.trees import ProjectsTree, TodosTree
 from dooit.ui.widgets import BarSwitcher, Dashboard
 from .base import BaseScreen
 from .note import NoteScreen
@@ -40,7 +40,7 @@ class DualSplit(Container):
         grid-size: 2 1;
         grid-columns: 1fr 3fr;
 
-        & > #workspace_switcher {
+        & > #project_switcher {
             margin-left: 1;
         }
 
@@ -69,11 +69,11 @@ class MainScreen(BaseScreen):
     """
 
     def compose(self):
-        workspaces_tree = WorkspacesTree(Workspace._get_or_create_root())
+        projects_tree = ProjectsTree(Project._get_or_create_root())
 
         with DualSplit():
-            with ContentSwitcher(id="workspace_switcher", initial=workspaces_tree.id):
-                yield workspaces_tree
+            with ContentSwitcher(id="project_switcher", initial=projects_tree.id):
+                yield projects_tree
 
             with ContentSwitcher(initial="dooit-dashboard", id="todo_switcher"):
                 yield Dashboard(id="dooit-dashboard")
@@ -133,18 +133,18 @@ class MainScreen(BaseScreen):
         self.app.bar_switcher.switch_to_confirm(event.callback)
         self.post_message(ModeChanged("CONFIRM"))
 
-    @on(WorkspaceRemoved)
-    async def workspace_removed(self, event: WorkspaceRemoved):
+    @on(ProjectRemoved)
+    async def project_removed(self, event: ProjectRemoved):
         """
-        Drops the pane of a workspace that is gone
+        Drops the pane of a project that is gone
 
-        Nothing highlights the pane back into place when the workspace it
+        Nothing highlights the pane back into place when the project it
         belongs to was the last one, so it is swapped for the dashboard rather
-        than left showing (and collecting todos for) a deleted workspace.
+        than left showing (and collecting todos for) a deleted project.
         """
 
         switcher = self.query_one("#todo_switcher", expect_type=ContentSwitcher)
-        panes = switcher.query(f"#TodosTree_{event.workspace.uuid}")
+        panes = switcher.query(f"#TodosTree_{event.project.uuid}")
 
         if not panes:
             return
@@ -155,10 +155,10 @@ class MainScreen(BaseScreen):
 
         await pane.remove()
 
-    @on(WorkspaceSelected)
-    async def workspace_selected(self, event: WorkspaceSelected):
+    @on(ProjectSelected)
+    async def project_selected(self, event: ProjectSelected):
         switcher = self.query_one("#todo_switcher", expect_type=ContentSwitcher)
-        tree = TodosTree(event.workspace)
+        tree = TodosTree(event.project)
 
         if not switcher.query(f"#{tree.id}"):
             await switcher.add_content(tree, set_current=True)
@@ -185,7 +185,7 @@ class MainScreen(BaseScreen):
 
     def on_mount(self):
         listeners = (
-            (Workspace, "description", WorkspaceDescriptionChanged),
+            (Project, "description", ProjectDescriptionChanged),
             (Todo, "description", TodoDescriptionChanged),
             (Todo, "due", TodoDueChanged),
             (Todo, "scheduled", TodoScheduledChanged),

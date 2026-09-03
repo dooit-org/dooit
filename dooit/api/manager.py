@@ -23,6 +23,7 @@ class Manager:
             add_note_column,
             add_scheduled_column,
             migrate_urgency_to_priority,
+            rename_workspace_to_project,
         )
 
         path = path or DATABASE_FILE
@@ -33,6 +34,7 @@ class Manager:
         self.session = Session(self.engine)
 
         migrate_urgency_to_priority(self.engine)
+        rename_workspace_to_project(self.engine)
         add_scheduled_column(self.engine)
         add_note_column(self.engine)
         BaseModel.metadata.create_all(bind=self.engine)

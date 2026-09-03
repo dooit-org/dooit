@@ -3,11 +3,11 @@ from typing import Callable, Literal, Optional
 from textual.message import Message
 
 from dooit.api.model import DooitModel
-from dooit.api import Workspace, Todo
+from dooit.api import Project, Todo
 
 ModeType = Literal["NORMAL", "INSERT", "DATE", "SEARCH", "SORT", "CONFIRM"]
-EmptyWidgetType = Literal["todo", "workspace", "no_search_results"]
-PositionType = Literal["workspace", "todo"]
+EmptyWidgetType = Literal["todo", "project", "no_search_results"]
+PositionType = Literal["project", "todo"]
 NotificationType = Literal["info", "warning", "error"]
 
 
@@ -23,14 +23,14 @@ class DooitEvent(Message, bubble=True):
 # Base events
 
 
-class WorkspaceEvent(DooitEvent):
+class ProjectEvent(DooitEvent):
     """
-    Base class for all workspace events
+    Base class for all project events
     """
 
-    def __init__(self, workspace: Workspace) -> None:
+    def __init__(self, project: Project) -> None:
         super().__init__()
-        self.workspace = workspace
+        self.project = project
 
 
 class TodoEvent(DooitEvent):
@@ -121,34 +121,34 @@ class ShowConfirm(DooitEvent):
         self.callback = callback
 
 
-# Workspace events
+# Project events
 
 
-class WorkspaceSelected(WorkspaceEvent):
+class ProjectSelected(ProjectEvent):
     """
-    Emitted when user selects a workspace
-    """
-
-    def __init__(self, workspace: Workspace) -> None:
-        super().__init__(workspace)
-
-
-class WorkspaceRemoved(WorkspaceEvent):
-    """
-    Emitted when user removes a workspace
+    Emitted when user selects a project
     """
 
-    def __init__(self, workspace: Workspace) -> None:
-        super().__init__(workspace)
+    def __init__(self, project: Project) -> None:
+        super().__init__(project)
 
 
-class WorkspaceDescriptionChanged(WorkspaceEvent):
+class ProjectRemoved(ProjectEvent):
     """
-    Emitted when user changes the description of a workspace
+    Emitted when user removes a project
     """
 
-    def __init__(self, old: str, new: str, workspace: Workspace) -> None:
-        super().__init__(workspace)
+    def __init__(self, project: Project) -> None:
+        super().__init__(project)
+
+
+class ProjectDescriptionChanged(ProjectEvent):
+    """
+    Emitted when user changes the description of a project
+    """
+
+    def __init__(self, old: str, new: str, project: Project) -> None:
+        super().__init__(project)
         self.old = old
         self.new = new
 

@@ -2,10 +2,10 @@ from typing import TYPE_CHECKING, Optional
 
 from textual.widgets import ContentSwitcher
 
-from dooit.api import Workspace
+from dooit.api import Project
 from dooit.api.theme import DooitThemeBase
 from dooit.api.todo import Todo
-from dooit.ui.widgets.trees import WorkspacesTree, TodosTree
+from dooit.ui.widgets.trees import ProjectsTree, TodosTree
 from ._base import ApiComponent
 
 
@@ -18,7 +18,7 @@ class VarManager(ApiComponent):
         super().__init__()
         self.api = api
         self._show_confirm = True
-        self._always_expand_workspaces = False
+        self._always_expand_projects = False
         self._always_expand_todos = False
         self._row_shading = False
 
@@ -33,12 +33,12 @@ class VarManager(ApiComponent):
         self._row_shading = value
 
     @property
-    def always_expand_workspaces(self) -> bool:
-        return self._always_expand_workspaces
+    def always_expand_projects(self) -> bool:
+        return self._always_expand_projects
 
-    @always_expand_workspaces.setter
-    def always_expand_workspaces(self, value: bool):
-        self._always_expand_workspaces = value
+    @always_expand_projects.setter
+    def always_expand_projects(self, value: bool):
+        self._always_expand_projects = value
 
     @property
     def always_expand_todos(self) -> bool:
@@ -65,12 +65,12 @@ class VarManager(ApiComponent):
         return self.api.css.theme
 
     @property
-    def workspaces_tree(self) -> WorkspacesTree:
-        return self.api.app.screen.query_one(WorkspacesTree)
+    def projects_tree(self) -> ProjectsTree:
+        return self.api.app.screen.query_one(ProjectsTree)
 
     @property
-    def current_workspace(self) -> Optional[Workspace]:
-        tree = self.api.vars.workspaces_tree
+    def current_project(self) -> Optional[Project]:
+        tree = self.api.vars.projects_tree
         if tree.highlighted is None:
             return None
 

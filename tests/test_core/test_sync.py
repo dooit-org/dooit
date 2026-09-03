@@ -3,7 +3,7 @@
 # from time import sleep
 # from pathlib import Path
 # from dooit.api.manager import Manager
-# from dooit.api.workspace import Workspace
+# from dooit.api.project import Project
 # from tests.test_core.core_base import CoreTestBase
 # import tempfile
 #
@@ -21,8 +21,8 @@
 #         manager1.connect(TEMP_CONN)
 #         manager2.connect(TEMP_CONN)
 #
-#         w = Workspace(description="test")
-#         manager1.save(w)
+#         p = Project(description="test")
+#         manager1.save(p)
 #
 #         self.assertFalse(manager1.has_changed())
 #         sleep(1)  # ensuring the times dont match

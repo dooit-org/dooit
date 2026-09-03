@@ -1,4 +1,4 @@
 from .todos_tree import TodosTree
-from .workspaces_tree import WorkspacesTree
+from .projects_tree import ProjectsTree
 
-__all__ = ["TodosTree", "WorkspacesTree"]
+__all__ = ["TodosTree", "ProjectsTree"]

@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple
 from yaml import safe_load
 from pathlib import Path
 from platformdirs import user_data_dir
-from dooit.api import Todo, Workspace, manager
+from dooit.api import Todo, Project, manager
 from dooit.utils.cli_logger import logger
 from dooit.utils.database import delete_all_data, urgency_to_priority
 
@@ -84,8 +84,8 @@ class Migrator2to3:
                     return
 
             data = self.load_old()
-            for workspace in data:
-                self.create_workspace(workspace)
+            for project in data:
+                self.create_project(project)
 
             self.backup_old_config()
             logger.success("Successfully moved to new version. Happy todoing!")
@@ -94,21 +94,23 @@ class Migrator2to3:
 
     # ------------------------------------------------
 
-    def create_workspace(self, data, parent=None):
+    def create_project(self, data, parent=None):
         description = data.get("description")
-        child_workspaces = data.get("workspaces", [])
+        # v2 called projects "workspaces", and that is the key still sitting in
+        # the old yaml file on disk
+        child_projects = data.get("workspaces", [])
         todos = data.get("todos", [])
 
-        workspace = Workspace(description=description, parent_workspace=parent)
-        workspace.save()
+        project = Project(description=description, parent_project=parent)
+        project.save()
 
-        for child in child_workspaces:
-            self.create_workspace(child, parent=workspace)
+        for child in child_projects:
+            self.create_project(child, parent=project)
 
         for child in todos:
-            self.create_todo(child, parent_workspace=workspace)
+            self.create_todo(child, parent_project=project)
 
-    def create_todo(self, data: List, parent_todo=None, parent_workspace=None):
+    def create_todo(self, data: List, parent_todo=None, parent_project=None):
         self_data = data[0]
         if len(data) == 1:
             children_data = []
@@ -125,7 +127,7 @@ class Migrator2to3:
 
         todo = Todo(
             parent_todo=parent_todo,
-            parent_workspace=parent_workspace,
+            parent_project=parent_project,
             description=description,
             pending=pending,
             priority=priority,

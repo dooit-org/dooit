@@ -1,7 +1,7 @@
 import faker
 from datetime import timedelta
 from random import randint
-from dooit.api import Todo, Workspace
+from dooit.api import Todo, Project
 from dooit.utils.database import delete_all_data
 
 
@@ -32,7 +32,7 @@ def gen_todo(parent):
         todo.parent_todo = parent
         todo.due = None
     else:
-        todo.parent_workspace = parent
+        todo.parent_project = parent
 
     todo.save()
     return todo
@@ -42,32 +42,32 @@ def gen_todos(parent, count):
     return [gen_todo(parent) for _ in range(count)]
 
 
-def gen_workspace(parent=None):
+def gen_project(parent=None):
     words = randint(1, 2)
     description = " ".join(f.words(nb=words))
 
-    workspace = Workspace(description=description, parent_workspace=parent)
-    workspace.save()
+    project = Project(description=description, parent_project=parent)
+    project.save()
 
-    return workspace
+    return project
 
 
 def generate(session, test=True):
     delete_all_data(session)
 
-    w1 = gen_workspace()
-    w1_childs = [gen_workspace(w1) for _ in range(5)]
+    p1 = gen_project()
+    p1_childs = [gen_project(p1) for _ in range(5)]
 
-    w2 = gen_workspace()
-    w3 = gen_workspace()
+    p2 = gen_project()
+    p3 = gen_project()
 
-    t1 = gen_todos(w1, 5)
+    t1 = gen_todos(p1, 5)
     gen_todos(t1[0], 7)
     gen_todos(t1[3], 3)
 
-    _ = [gen_todos(w, randint(1, 20)) for w in w1_childs]
-    gen_todos(w2, 20)
-    gen_todos(w3, 30)
+    _ = [gen_todos(p, randint(1, 20)) for p in p1_childs]
+    gen_todos(p2, 20)
+    gen_todos(p3, 30)
 
 
 if __name__ == "__main__":  # pragma: no cover (not called in tests)

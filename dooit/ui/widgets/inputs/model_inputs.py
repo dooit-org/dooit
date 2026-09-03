@@ -6,7 +6,7 @@ from rich.style import Style
 from rich.text import Text
 
 from .simple_input import SimpleInput
-from dooit.api import Todo, Workspace
+from dooit.api import Todo, Project
 from dooit.api.theme import DooitThemeBase
 from dooit.api.todo import MAX_EFFORT
 from dooit.utils import parse
@@ -18,15 +18,15 @@ class TodoDescription(SimpleInput[Todo, str]):
         return "description"
 
 
-class WorkspaceDescription(SimpleInput[Workspace, str]):
+class ProjectDescription(SimpleInput[Project, str]):
     @property
     def _property(self) -> str:
         return "description"
 
 
-class WorkspaceTasks(SimpleInput[Workspace, int]):
+class ProjectTasks(SimpleInput[Project, int]):
     """
-    How many todos are nested under the workspace; derived, so never editable
+    How many todos are nested under the project; derived, so never editable
     """
 
     editable = False

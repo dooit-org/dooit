@@ -1,9 +1,9 @@
 from typing import TYPE_CHECKING, Dict, Generic, TypeVar
-from dooit.api import Workspace, Todo
+from dooit.api import Project, Todo
 from dooit.ui.widgets.renderers import (
     BaseRenderer,
     TodoRender,
-    WorkspaceRender,
+    ProjectRender,
 )
 
 T = TypeVar("T", bound=BaseRenderer)
@@ -14,7 +14,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 class RenderDict(Dict, Generic[T]):
     """
-    Default Dict implementation for Todo/Workspace Renderers
+    Default Dict implementation for Todo/Project Renderers
     """
 
     def __init__(self, tree: "ModelTree"):
@@ -32,14 +32,14 @@ class RenderDict(Dict, Generic[T]):
         return self[key]
 
 
-class WorkspaceRenderDict(RenderDict[WorkspaceRender]):
+class ProjectRenderDict(RenderDict[ProjectRender]):
     """
-    Default Dict implementation for Workspace Renderers
+    Default Dict implementation for Project Renderers
     """
 
-    def from_id(self, _id: str) -> WorkspaceRender:
-        w = Workspace.from_id(_id)
-        return WorkspaceRender(w, self.tree)
+    def from_id(self, _id: str) -> ProjectRender:
+        project = Project.from_id(_id)
+        return ProjectRender(project, self.tree)
 
 
 class TodoRenderDict(RenderDict[TodoRender]):

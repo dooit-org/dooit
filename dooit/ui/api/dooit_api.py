@@ -97,7 +97,7 @@ class DooitAPI:
         self.focused.paste_model_from_clipboard("below")
 
     def switch_focus(self):
-        """Switch focus between the workspace and the todo list"""
+        """Switch focus between the project and the todo list"""
 
         if self.app.bar_switcher.is_focused:
             return
@@ -105,13 +105,13 @@ class DooitAPI:
         if w := self.app.focused:
             w.post_message(SwitchTab())
 
-    def focus_workspaces(self):
-        """Move focus to the workspaces pane"""
+    def focus_projects(self):
+        """Move focus to the projects pane"""
 
         if self.app.bar_switcher.is_focused:
             return
 
-        self.app.workspace_tree.focus()
+        self.app.project_tree.focus()
 
     def focus_todos(self):
         """Move focus to the todos pane"""
@@ -223,7 +223,7 @@ class DooitAPI:
         self.vars.row_shading = not self.vars.row_shading
 
         # Every todos pane redraws, not just the focused one: the switcher
-        # keeps one per workspace, and they all share the setting
+        # keeps one per project, and they all share the setting
         self.app.screen.query(TodosTree).refresh()
 
     def show_note(self):

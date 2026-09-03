@@ -4,7 +4,7 @@ from dooit.ui.widgets.todo import TodoWidget
 
 class Clipboard:
     """
-    Clipboard to copy models (Todos and Workspaces) as a whole
+    Clipboard to copy models (Todos and Projects) as a whole
     """
 
     data = None

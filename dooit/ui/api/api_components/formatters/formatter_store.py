@@ -3,7 +3,7 @@ from uuid import uuid4
 from dataclasses import dataclass
 
 from rich.text import Text
-from dooit.api.workspace import ModelType
+from dooit.api.project import ModelType
 from dooit.ui.api.api_components.formatters._decorators import MUTLIPLE_FORMATTER_ATTR
 
 if TYPE_CHECKING:  # pragma: no cover

@@ -7,7 +7,7 @@ from dooit.ui.api.events import ModeChanged, DooitEvent, ModeType, Startup, Quit
 from dooit.ui.api.events.events import ShutDown
 from dooit.ui.widgets import BarSwitcher
 from dooit.ui.widgets.bars import StatusBar
-from dooit.ui.widgets.trees import WorkspacesTree
+from dooit.ui.widgets.trees import ProjectsTree
 from dooit.ui.screens import MainScreen, HelpScreen
 from dooit.ui.widgets.trees.model_tree import ModelTree
 from dooit.utils import CssManager
@@ -65,8 +65,8 @@ class Dooit(App):
         return await super().action_quit()
 
     @property
-    def workspace_tree(self) -> WorkspacesTree:
-        return self.screen.query_one(WorkspacesTree)
+    def project_tree(self) -> ProjectsTree:
+        return self.screen.query_one(ProjectsTree)
 
     @property
     def bar(self) -> StatusBar:
@@ -102,7 +102,7 @@ class Dooit(App):
     def change_status(self, event: ModeChanged):
         self.dooit_mode = event.mode
         if event.mode == "NORMAL":
-            self.workspace_tree.refresh_options()
+            self.project_tree.refresh_options()
             todos_tree = self.api.vars.todos_tree
             if todos_tree:
                 todos_tree.refresh_options()

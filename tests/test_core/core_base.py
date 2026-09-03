@@ -1,5 +1,5 @@
 from dooit.api import manager
-from dooit.api import Workspace, Todo
+from dooit.api import Project, Todo
 import pytest
 
 TEMP_PATH = ":memory:"
@@ -21,23 +21,23 @@ def setup_teardown(session):
 
 
 @pytest.fixture
-def create_workspace():
-    def _inner(desc=None, parent_workspace=None):
-        w = Workspace(description=desc, parent_workspace=parent_workspace)
-        w.save()
-        return w
+def create_project():
+    def _inner(desc=None, parent_project=None):
+        p = Project(description=desc, parent_project=parent_project)
+        p.save()
+        return p
 
     return _inner
 
 
 @pytest.fixture
-def create_todo(create_workspace):
-    def _inner(desc=None, parent_workspace=None, parent_todo=None):
+def create_todo(create_project):
+    def _inner(desc=None, parent_project=None, parent_todo=None):
         if not parent_todo:
-            parent_workspace = parent_workspace or create_workspace()
+            parent_project = parent_project or create_project()
 
         t = Todo(
-            description=desc, parent_workspace=parent_workspace, parent_todo=parent_todo
+            description=desc, parent_project=parent_project, parent_todo=parent_todo
         )
         t.save()
         return t
@@ -46,22 +46,22 @@ def create_todo(create_workspace):
 
 
 @pytest.fixture
-def workspace1(create_workspace, create_todo):
-    w = create_workspace("workspace 1")
+def project1(create_project, create_todo):
+    p = create_project("project 1")
 
-    for desc in ["workspace a", "workspace b", "workspace c"]:
-        create_workspace(desc, parent_workspace=w)
+    for desc in ["project a", "project b", "project c"]:
+        create_project(desc, parent_project=p)
 
     for desc in ["todo a", "todo b", "todo c"]:
-        create_todo(desc, parent_workspace=w)
+        create_todo(desc, parent_project=p)
 
-    w.save()
-    return w
+    p.save()
+    return p
 
 
 @pytest.fixture
-def todo1(workspace1, create_todo):
-    t = create_todo("todo 1", parent_workspace=workspace1)
+def todo1(project1, create_todo):
+    t = create_todo("todo 1", parent_project=project1)
 
     for desc in ["todo a", "todo b", "todo c"]:
         create_todo(desc, parent_todo=t)

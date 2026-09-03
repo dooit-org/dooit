@@ -197,11 +197,11 @@ COLUMN_ORDER = ["description", "due", "urgency"]  # order of columns
 ### New
 
 ```py
-from dooit.ui.api.widgets import TodoWidget, WorkspaceWidget
+from dooit.ui.api.widgets import TodoWidget, ProjectWidget
 
 @subscribe(Startup)
 def layout_setup(api: DooitAPI, _):
-    api.layouts.workspace_layout = [WorkspaceWidget.description]
+    api.layouts.project_layout = [ProjectWidget.description]
 
     api.layouts.todo_layout = [
         TodoWidget.status,
@@ -218,7 +218,7 @@ def layout_setup(api: DooitAPI, _):
 Check out [`Formatters`](../configuration/formatter.md) for more info
 :::
 
-Formatting for workspaces and todos is now even more customizable! \
+Formatting for projects and todos is now even more customizable! \
 You can use dooit formatters to custom format your items :D
 
 Plus, some general settings from the old config as well

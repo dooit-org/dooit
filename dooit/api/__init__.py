@@ -1,6 +1,6 @@
 from .model import DooitModel, BaseModel
 from .todo import Todo
-from .workspace import Workspace
+from .project import Project
 from .manager import manager
 from .hooks import fix_hooks, validation_hooks, update_hooks
 
@@ -17,9 +17,9 @@ def drop_blank_models() -> None:
     def is_blank(model) -> bool:
         return not (model.description or "").strip()
 
-    for workspace in Workspace.all():
-        if is_blank(workspace) and not workspace.workspaces and not workspace.todos:
-            workspace.drop()
+    for project in Project.all():
+        if is_blank(project) and not project.projects and not project.todos:
+            project.drop()
 
     for todo in Todo.all():
         if is_blank(todo) and not todo.todos:
@@ -30,7 +30,7 @@ __all__ = [
     "BaseModel",
     "DooitModel",
     "Todo",
-    "Workspace",
+    "Project",
     "manager",
     "drop_blank_models",
     "fix_hooks",

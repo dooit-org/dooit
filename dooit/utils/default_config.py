@@ -2,7 +2,7 @@ from datetime import date, datetime, timedelta
 from functools import partial
 from typing import Callable, Optional
 from rich.style import Style
-from dooit.api import Todo, Workspace
+from dooit.api import Todo, Project
 from dooit_extras.formatters import (
     description_highlight_link,
     description_highlight_tags,
@@ -12,14 +12,14 @@ from dooit_extras.formatters import (
 )
 from dooit_extras.bar_widgets import (
     Clock,
-    CurrentWorkspace,
+    CurrentProject,
     Powerline,
     Spacer,
     StatusIcons,
-    WorkspaceProgress,
+    ProjectProgress,
 )
 from dooit.ui.api import DooitAPI, extra_formatter, subscribe
-from dooit.ui.api.widgets import TodoWidget, WorkspaceWidget
+from dooit.ui.api.widgets import TodoWidget, ProjectWidget
 from dooit.ui.api.events import ModeChanged, Startup
 from dooit.ui.screens import HelpScreen
 from dooit.ui.widgets.bars import StatusBarWidget
@@ -31,7 +31,7 @@ from rich.text import Text
 # Todo formatters
 
 
-# The task tally on a workspace and the child count trailing a todo description
+# The task tally on a project and the child count trailing a todo description
 # share one color: the accent the column headers are drawn in, pulled towards the
 # background so the numbers annotate the rows they sit on instead of competing
 # with them.
@@ -223,7 +223,7 @@ def date_color_formatter(field: str):
 
 # How many todos hang below this one, at any depth. Nesting is invisible while a
 # todo is collapsed, so the count rides along with the description, in the same
-# dimmed accent as the workspace pane's task tally.
+# dimmed accent as the project pane's task tally.
 def todo_description_formatter(description: str, todo: Todo, api: DooitAPI) -> str:
     count = todo.total_children
 
@@ -352,28 +352,28 @@ def show_help_while_held(api: DooitAPI):
 HelpScreen.key_question_mark = lambda self: _keep_help_open(self.api)
 
 
-# Workspace formatters
+# Project formatters
 
 
-# Every todo nested under the workspace, counted at every level; sub workspaces
+# Every todo nested under the project, counted at every level; sub projects
 # are walked into but not counted themselves. It gets a column of its own, so
 # nothing but the number is needed. The column header is drawn in the accent
 # color, and the numbers under it in a dimmer shade of the same, so the pair
 # reads as one unit without competing with the descriptions beside it.
-def workspace_tasks_formatter(count: int, _: Workspace, api: DooitAPI) -> str:
+def project_tasks_formatter(count: int, _: Project, api: DooitAPI) -> str:
     if not count:
         return ""
 
     return f"[{count_color(api)}]{count}[/]"
 
 
-# How many workspaces hang below this one, at any depth. Nesting is invisible
-# while a workspace is collapsed, so the count rides along with the name, in the
+# How many projects hang below this one, at any depth. Nesting is invisible
+# while a project is collapsed, so the count rides along with the name, in the
 # same dimmed accent as the task tally beside it.
-def workspace_description_formatter(
-    description: str, workspace: Workspace, api: DooitAPI
+def project_description_formatter(
+    description: str, project: Project, api: DooitAPI
 ) -> str:
-    count = workspace.total_workspaces
+    count = project.total_projects
 
     if not count:
         return description
@@ -393,7 +393,7 @@ def key_setup(api: DooitAPI, _):
     # bound but hidden: it never gets a section in the help screen
     APP = "App"
 
-    api.keys.set("j", api.focus_workspaces, group=NAVIGATION)
+    api.keys.set("j", api.focus_projects, group=NAVIGATION)
     api.keys.set("ö", api.focus_todos, group=NAVIGATION)
     api.keys.set("k", api.move_up, group=NAVIGATION)
     api.keys.set("l", api.move_down, group=NAVIGATION)
@@ -467,9 +467,9 @@ def key_setup(api: DooitAPI, _):
 
 @subscribe(Startup)
 def layout_setup(api: DooitAPI, _):
-    api.layouts.workspace_layout = [
-        WorkspaceWidget.description,
-        WorkspaceWidget.tasks,
+    api.layouts.project_layout = [
+        ProjectWidget.description,
+        ProjectWidget.tasks,
     ]
     api.layouts.todo_layout = [
         TodoWidget.status,
@@ -534,8 +534,8 @@ def formatter_setup(api: DooitAPI, _):
     # Marks the repeating todos, whose interval is easy to miss as bare text
     api.formatter.todos.recurrence.add(recurrence_icon())
 
-    api.formatter.workspaces.description.add(workspace_description_formatter)
-    api.formatter.workspaces.tasks.add(workspace_tasks_formatter)
+    api.formatter.projects.description.add(project_description_formatter)
+    api.formatter.projects.tasks.add(project_tasks_formatter)
 
 
 # Status bar
@@ -596,7 +596,7 @@ def mode_label(api: DooitAPI, mode: str) -> Text:
     )
 
 
-# Completion of the current workspace, as a meter that can be read without
+# Completion of the current project, as a meter that can be read without
 # parsing the number beside it
 PROGRESS_CELLS = 5
 PROGRESS_FILLED = "▰"
@@ -607,7 +607,7 @@ PROGRESS_EMPTY = "▱"
 PROGRESS_EMPTY_FADE = 0.6
 
 
-class WorkspaceProgressMeter(WorkspaceProgress):
+class ProjectProgressMeter(ProjectProgress):
     def __init__(self, api: DooitAPI, fg: str = "", bg: str = "") -> None:
         # The base widget pipes its percentage through `fmt`; the meter is built
         # from that number rather than around it, so nothing is added there.
@@ -616,13 +616,13 @@ class WorkspaceProgressMeter(WorkspaceProgress):
     @property
     def value(self) -> str:
         percent = super().value
-        # Empty until a workspace has been selected: show an empty meter rather
+        # Empty until a project has been selected: show an empty meter rather
         # than nothing, so the segment keeps its shape and its caps
         percent = int(percent) if percent.isdigit() else 0
 
         theme = self.theme
         filled = round(percent * PROGRESS_CELLS / 100)
-        # A finished workspace goes green; short of that the meter stays accent
+        # A finished project goes green; short of that the meter stays accent
         color = theme.green if percent == 100 else theme.primary
         empty = blend(theme.foreground1, theme.background1, PROGRESS_EMPTY_FADE)
 
@@ -638,7 +638,7 @@ def bar_setup(api: DooitAPI, _):
     theme = api.vars.theme
 
     # The mode sits alone on the left as a pill, and everything about the
-    # current workspace is chained to the right edge: how far along it is, what
+    # current project is chained to the right edge: how far along it is, what
     # it is called, how its todos stand, and the time. The chain alternates
     # between a recessed and a raised background so each segment stays its own
     # block, and ends on the accent, where the eye lands last.
@@ -648,9 +648,9 @@ def bar_setup(api: DooitAPI, _):
         mode_cap(ROUND_CLOSE),
         Spacer(api, width=0, bg=bar_background(api)),
         Powerline.left_rounded(api, fg=theme.background1),
-        WorkspaceProgressMeter(api, fg=theme.foreground2, bg=theme.background1),
+        ProjectProgressMeter(api, fg=theme.foreground2, bg=theme.background1),
         Powerline.left_rounded(api, fg=theme.background3, bg=theme.background1),
-        CurrentWorkspace(
+        CurrentProject(
             api,
             fmt=" 󰉋 {} ",
             fg=theme.foreground3,

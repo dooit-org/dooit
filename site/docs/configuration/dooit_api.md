@@ -147,7 +147,7 @@ Start sorting the siblings of the highlighted item
 
 ## `method` switch_focus
 
-Switch focus between the workspace and the todo list
+Switch focus between the project and the todo list
 
 ## `method` toggle_complete
 

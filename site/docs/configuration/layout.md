@@ -4,7 +4,7 @@ In dooit, layout tells how the columns should be placed
 
 ## How to use
 
-For using you'd have to import `TodoWidget` and `WorkspaceWidget`
+For using you'd have to import `TodoWidget` and `ProjectWidget`
 and then you can use their variables to set the columns:
 
 
@@ -19,13 +19,13 @@ i.e. all the text inputs like `description` or `due`
 :::
 
 ```py
-from dooit.ui.api.widgets import TodoWidget, WorkspaceWidget
+from dooit.ui.api.widgets import TodoWidget, ProjectWidget
 from dooit.ui.api import DooitAPI, subscribe
 from dooit.ui.api.events import Startup
 
 @subscribe(Startup)
 def layout_setup(api: DooitAPI, _):
-    api.layouts.workspace_layout = [WorkspaceWidget.description]
+    api.layouts.project_layout = [ProjectWidget.description]
 
     api.layouts.todo_layout = [
         TodoWidget.status,
@@ -37,7 +37,7 @@ def layout_setup(api: DooitAPI, _):
 ```
 
 :::info :grey_exclamation: NOTE
-For `Workspace` the only available option is `description` \
+For `Project` the only available option is `description` \
 For `Todo`, the options are `description`, `due`, `effort`, `recurrence`, `status` and `urgency`
 :::
 

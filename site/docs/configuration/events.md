@@ -38,15 +38,15 @@ You can find all the available events below
 Triggered for all dooit events.
 
 
-## WorkspaceEvent
+## ProjectEvent
 
-Triggered for all workspace related events i.e. `creation`/`modification`/`deletion` etc.
+Triggered for all project related events i.e. `creation`/`modification`/`deletion` etc.
 
 **Parameters:**
 
 | Param      | <div style="width: 100px">Default</div> | Description                                        |
 |------------|:--------------------------------------:|----------------------------------------------------|
-| workspace  |                                        | The workspace object associated with the event.     |
+| project  |                                        | The project object associated with the event.     |
 
 
 ## TodoEvent
@@ -103,46 +103,46 @@ Triggered when the user initiates a sort operation.
 
 | Param | <div style="width: 100px">Default</div> | Description                                   |
 |-------|:--------------------------------------:|-----------------------------------------------|
-| model |                                        | The model (`Todo` or `Workspace`) to be sorted.        |
+| model |                                        | The model (`Todo` or `Project`) to be sorted.        |
 
 
 ## ShowConfirm
 
 Triggered when a user confirmation is required.
 
-## WorkspaceSelected
+## ProjectSelected
 
-Triggered when the user selects a workspace.
-
-**Parameters:**
-
-| Param      | <div style="width: 100px">Default</div> | Description                                        |
-|------------|:--------------------------------------:|----------------------------------------------------|
-| workspace  |                                        | The workspace object selected by the user.          |
-
-
-## WorkspaceRemoved
-
-Triggered when the user removes a workspace.
+Triggered when the user selects a project.
 
 **Parameters:**
 
 | Param      | <div style="width: 100px">Default</div> | Description                                        |
 |------------|:--------------------------------------:|----------------------------------------------------|
-| workspace  |                                        | The workspace object that was removed.             |
+| project  |                                        | The project object selected by the user.          |
 
 
-## WorkspaceDescriptionChanged
+## ProjectRemoved
 
-Triggered when the user updates the description of a workspace.
+Triggered when the user removes a project.
+
+**Parameters:**
+
+| Param      | <div style="width: 100px">Default</div> | Description                                        |
+|------------|:--------------------------------------:|----------------------------------------------------|
+| project  |                                        | The project object that was removed.             |
+
+
+## ProjectDescriptionChanged
+
+Triggered when the user updates the description of a project.
 
 **Parameters:**
 
 | Param      | <div style="width: 100px">Default</div> | Description                                                   |
 |------------|:--------------------------------------:|---------------------------------------------------------------|
-| old        |                                        | The previous description of the workspace.                     |
-| new        |                                        | The updated description of the workspace.                     |
-| workspace  |                                        | The workspace object whose description was changed.           |
+| old        |                                        | The previous description of the project.                     |
+| new        |                                        | The updated description of the project.                     |
+| project  |                                        | The project object whose description was changed.           |
 
 
 ## TodoSelected

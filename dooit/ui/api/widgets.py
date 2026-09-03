@@ -2,7 +2,7 @@ from enum import Enum
 from typing import List
 
 
-class WorkspaceWidget(Enum):
+class ProjectWidget(Enum):
     description = "description"
     tasks = "tasks"
 
@@ -18,5 +18,5 @@ class TodoWidget(Enum):
     note = "note"
 
 
-WorkspaceLayout = List[WorkspaceWidget]
+ProjectLayout = List[ProjectWidget]
 TodoLayout = List[TodoWidget]

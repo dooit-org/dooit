@@ -5,7 +5,7 @@ from textual.strip import Strip
 from textual.style import Style
 from textual.widgets.option_list import Option
 
-from dooit.api import Todo, Workspace
+from dooit.api import Todo, Project
 from dooit.ui.api.events import SpawnNote, TodoRemoved
 from dooit.ui.api.events.events import TodoSelected
 from dooit.utils import blend
@@ -18,7 +18,7 @@ if TYPE_CHECKING:  # pragma: no cover
         TodoFormatter,
     )
 
-Model = Union[Todo, Workspace]
+Model = Union[Todo, Project]
 
 
 class TodosTree(ModelTree[Model, TodoRenderDict]):
@@ -31,7 +31,7 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
     # takes, so that the cursor never reads as banding.
     #
     # Only this pane bands its rows: a todo carries columns off to the right
-    # that have to be read back to their description, where a workspace is
+    # that have to be read back to their description, where a project is
     # little more than its name.
     ROW_SHADE = 0.4
 

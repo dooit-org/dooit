@@ -9,7 +9,7 @@ from rich.table import Table
 from rich.text import Text
 from textual.widgets import Label
 from textual.widgets.option_list import Option
-from dooit.api import Todo, Workspace
+from dooit.api import Todo, Project
 from dooit.ui.api.events import (
     ModeChanged,
     StartSearch,
@@ -56,7 +56,7 @@ class ColumnRule:
         return Measurement(0, 0)
 
 
-ModelType = TypeVar("ModelType", bound=Union[Todo, Workspace])
+ModelType = TypeVar("ModelType", bound=Union[Todo, Project])
 RenderDictType = TypeVar("RenderDictType", bound=RenderDict)
 
 
@@ -463,7 +463,7 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
     @property
     def _current_has_children(self) -> bool:
         model = self.current_model
-        return bool(getattr(model, "workspaces", None) or getattr(model, "todos", None))
+        return bool(getattr(model, "projects", None) or getattr(model, "todos", None))
 
     def _delete_current_model(self) -> None:
         model = self.current_model
@@ -514,7 +514,7 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
             if isinstance(self.current_model, Todo):
                 new_model = Todo.clone_from_id(self._model_clipboard, order_index)
             else:
-                new_model = Workspace.clone_from_id(self._model_clipboard, order_index)
+                new_model = Project.clone_from_id(self._model_clipboard, order_index)
 
             return new_model
 

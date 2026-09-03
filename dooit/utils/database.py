@@ -44,6 +44,44 @@ def migrate_urgency_to_priority(engine: Engine):
         )
 
 
+def rename_workspace_to_project(engine: Engine):
+    """
+    Rename a legacy `workspace` table to `project`, along with the
+    `parent_workspace_id` columns that point at it.
+
+    Without this `create_all` would find no `project` table, happily create an
+    empty one next to the old one, and leave every existing project and its
+    todos stranded in a table nothing reads any more.
+    """
+
+    inspector = inspect(engine)
+    tables = set(inspector.get_table_names())
+
+    if "workspace" not in tables or "project" in tables:
+        return
+
+    def has_column(table: str, column: str) -> bool:
+        return any(col["name"] == column for col in inspector.get_columns(table))
+
+    statements = ["ALTER TABLE workspace RENAME TO project"]
+
+    # Renaming the table is enough for sqlite to repoint the foreign keys that
+    # referenced it; the columns holding them still have to be renamed by hand.
+    if has_column("workspace", "parent_workspace_id"):
+        statements.append(
+            "ALTER TABLE project RENAME COLUMN parent_workspace_id TO parent_project_id"
+        )
+
+    if "todo" in tables and has_column("todo", "parent_workspace_id"):
+        statements.append(
+            "ALTER TABLE todo RENAME COLUMN parent_workspace_id TO parent_project_id"
+        )
+
+    with engine.begin() as connection:
+        for statement in statements:
+            connection.execute(text(statement))
+
+
 def add_scheduled_column(engine: Engine):
     """
     Add the `scheduled` column to a todo table written before it existed.

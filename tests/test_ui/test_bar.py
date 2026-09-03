@@ -8,15 +8,15 @@ async def test_bar_switcher():
         assert isinstance(app, Dooit)
 
         bar_switcher = app.bar_switcher
-        wtree = app.workspace_tree
-        wtree.add_sibling()
+        ptree = app.project_tree
+        ptree.add_sibling()
 
         await pilot.press("escape")
 
-        bar_switcher.switch_to_sort(wtree.current_model, wtree.sort)
+        bar_switcher.switch_to_sort(ptree.current_model, ptree.sort)
         await pilot.pause()
         assert bar_switcher.current == "sort_bar"
 
-        bar_switcher.switch_to_sort(wtree.current_model, wtree.sort)
+        bar_switcher.switch_to_sort(ptree.current_model, ptree.sort)
         await pilot.pause()
         assert bar_switcher.current == "sort_bar"

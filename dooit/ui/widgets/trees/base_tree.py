@@ -4,10 +4,10 @@ from textual.widgets import OptionList
 from textual.widgets.option_list import Option
 from textual import events, on
 
-from dooit.api import Todo, Workspace
+from dooit.api import Todo, Project
 from ._decorators import require_highlighted_node
 
-ModelType = Union[Todo, Workspace]
+ModelType = Union[Todo, Project]
 
 if TYPE_CHECKING:  # pragma: no cover
     from ....ui.tui import Dooit, DooitAPI

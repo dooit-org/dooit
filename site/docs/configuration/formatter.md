@@ -27,7 +27,7 @@ Check out [`Backend API`](../backend/introduction.md) to get the know about the 
 :::
 
 - `value` -> The real value of the object (for e.g., `due` will be a `datetime` object, `description` will be a `str`)
-- `model` -> The respective `Todo` or `Workspace` object
+- `model` -> The respective `Todo` or `Project` object
 - `api` [Optional] -> The dooit api 
 
 and returns an optional `str`/`Text` value to be rendered
@@ -74,7 +74,7 @@ def redify_important(description: str, model: Todo, api: DooitAPI) -> Text:
 
 Adding a formatter is pretty straightforward, and in this format:
 
-`api.formatter.<todos or workspaces>.<name of the column>.add(<your function>)`
+`api.formatter.<todos or projects>.<name of the column>.add(<your function>)`
 
 :::tip
 Check out [`Layout`](./layout) Section for column names
@@ -90,7 +90,7 @@ from rich.text import Text
 def set_formatters(api: DooitAPI, _):
     fmt = api.formatter
 
-    fmt.workspaces.description.add(redify_important)
+    fmt.projects.description.add(redify_important)
     fmt.todos.description.add(redify_important)
     fmt.todos.due.add(my_custom_due)
 ```
@@ -109,12 +109,12 @@ from rich.text import Text
 def set_formatters(api: DooitAPI, _):
     fmt = api.formatter
 
-    fmt.workspaces.description.add(redify_important, id = "redify_important")
+    fmt.projects.description.add(redify_important, id = "redify_important")
     fmt.todos.description.add(redify_important, id = "redify_important")
     fmt.todos.due.add(my_custom_due, "my_due")
 
-    fmt.workspaces.description.disable("redify_important")
-    fmt.workspaces.description.enable("redify_important")
+    fmt.projects.description.disable("redify_important")
+    fmt.projects.description.enable("redify_important")
     fmt.todos.description.remove("redify_important")
 ```
 

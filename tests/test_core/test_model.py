@@ -1,50 +1,50 @@
-from dooit.api.workspace import Workspace
+from dooit.api.project import Project
 from tests.test_core.core_base import *  # noqa
 
 
-def test_creation_and_deletion(create_workspace):
-    w = create_workspace()
-    assert len(Workspace.all()) == 1
+def test_creation_and_deletion(create_project):
+    p = create_project()
+    assert len(Project.all()) == 1
 
-    w.drop()
-    assert len(Workspace.all()) == 0
-
-
-def test_shifts_normal(create_workspace):
-    workspace = [create_workspace() for _ in range(5)][0]
-    assert workspace is not None
-
-    siblings = workspace.siblings
-    assert workspace.is_first_sibling()
-
-    workspace.shift_down()
-    siblings = workspace.siblings
-    assert siblings[1].id == workspace.id
-
-    workspace.shift_up()
-    siblings = workspace.siblings
-    assert siblings[0].id == workspace.id
-    assert workspace.is_first_sibling()
+    p.drop()
+    assert len(Project.all()) == 0
 
 
-def test_shifts_edge(create_workspace):
-    workspaces = [create_workspace() for _ in range(5)]
+def test_shifts_normal(create_project):
+    project = [create_project() for _ in range(5)][0]
+    assert project is not None
 
-    assert not workspaces[0].shift_up()
-    assert not workspaces[-1].shift_down()
+    siblings = project.siblings
+    assert project.is_first_sibling()
+
+    project.shift_down()
+    siblings = project.siblings
+    assert siblings[1].id == project.id
+
+    project.shift_up()
+    siblings = project.siblings
+    assert siblings[0].id == project.id
+    assert project.is_first_sibling()
 
 
-def test_sort_field(create_workspace):
+def test_shifts_edge(create_project):
+    projects = [create_project() for _ in range(5)]
+
+    assert not projects[0].shift_up()
+    assert not projects[-1].shift_down()
+
+
+def test_sort_field(create_project):
     names = ["a", "b", "c", "d", "e"][::-1]
-    w = [create_workspace(name) for name in names][0]
+    p = [create_project(name) for name in names][0]
 
-    w.sort_siblings("description")
-    assert [i.description for i in w.siblings] == sorted(names)
+    p.sort_siblings("description")
+    assert [i.description for i in p.siblings] == sorted(names)
 
 
-def test_sort_reverse(create_workspace):
+def test_sort_reverse(create_project):
     names = ["a", "b", "c", "d", "e"]
-    w = [create_workspace(name) for name in names][0]
+    p = [create_project(name) for name in names][0]
 
-    w.reverse_siblings()
-    assert [i.description for i in w.siblings] == names[::-1]
+    p.reverse_siblings()
+    assert [i.description for i in p.siblings] == names[::-1]

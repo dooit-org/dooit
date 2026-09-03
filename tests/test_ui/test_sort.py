@@ -13,18 +13,18 @@ from tests.test_ui.ui_base import (
 from dooit.ui.tui import Dooit
 
 
-async def test_search_on_workspace():
+async def test_search_on_project():
     async with run_pilot() as pilot:
         app = pilot.app
         assert isinstance(app, Dooit)
         api = app.api
 
-        wtree = app.workspace_tree
+        ptree = app.project_tree
 
         with raises(NoNodeError):
             api.start_sort()
 
-        wtree.add_sibling()
+        ptree.add_sibling()
         await pilot.press(*list("zzz"))
         await pilot.press("escape")
 

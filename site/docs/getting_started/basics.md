@@ -12,7 +12,7 @@ There are multiple kinds of columns in dooit to fill.
 
 ### Descriptions
 
-Both workspaces and todos have a description column, as the name suggests, you can enter a bunch of words into it \
+Both projects and todos have a description column, as the name suggests, you can enter a bunch of words into it \
 For todos, you can use `@` in front of words to make it a `label`/`tag`. It doesn't hold any special meaning but yea
 
 ### Status

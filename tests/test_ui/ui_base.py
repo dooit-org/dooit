@@ -17,13 +17,13 @@ async def create_and_move_to_todo(pilot: Pilot) -> TodosTree:
     app = pilot.app
     assert isinstance(app, Dooit)
 
-    wtree = app.workspace_tree
-    wtree.add_sibling()
+    ptree = app.project_tree
+    ptree.add_sibling()
     await pilot.pause()
 
-    # A workspace left without a description is discarded rather than kept, so
+    # A project left without a description is discarded rather than kept, so
     # it has to be named before the edit is committed
-    await pilot.press(*list("workspace"))
+    await pilot.press(*list("project"))
     await pilot.press("escape")
     await pilot.pause()
 

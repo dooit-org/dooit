@@ -3,11 +3,11 @@ from rich.console import RenderableType
 from rich.style import Style
 from rich.table import Table
 from rich.text import Text
-from dooit.api import Todo, Workspace
+from dooit.api import Todo, Project
 from dooit.utils import blend
 from ..inputs.simple_input import SimpleInput
 
-ModelType = TypeVar("ModelType", bound=Union[Todo, Workspace])
+ModelType = TypeVar("ModelType", bound=Union[Todo, Project])
 
 # space kept on either side of a column, so that neighbouring columns are
 # separated by twice as much as the table edges get

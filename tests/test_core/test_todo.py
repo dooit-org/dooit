@@ -2,7 +2,7 @@ from typing import List, Tuple
 from datetime import datetime, timedelta
 from pytest import raises, mark
 from dooit.api.exceptions import NoParentError, MultipleParentError
-from dooit.api import Todo, Workspace
+from dooit.api import Todo, Project
 from tests.test_core.core_base import *  # noqa
 
 
@@ -10,17 +10,17 @@ def _sort_before_and_after(session, field) -> Tuple[List[Todo], List[Todo]]:
     from tests.generate_test_data import generate
 
     generate(session)
-    w = Workspace.all()[2]
-    t = w.todos[0]
+    p = Project.all()[2]
+    t = p.todos[0]
     old_todos = t.siblings
     t.sort_siblings(field)
     new_descriptions = t.siblings
     return old_todos, new_descriptions
 
 
-def test_todo_creation(create_workspace, create_todo):
-    w = create_workspace()
-    _ = [create_todo(parent_workspace=w) for _ in range(5)]
+def test_todo_creation(create_project, create_todo):
+    p = create_project()
+    _ = [create_todo(parent_project=p) for _ in range(5)]
 
     result = Todo.all()
     assert len(result) == 5
@@ -29,23 +29,23 @@ def test_todo_creation(create_workspace, create_todo):
     assert indexs == [0, 1, 2, 3, 4]
 
 
-def test_sibling_methods(create_workspace, create_todo):
-    w = create_workspace()
-    _ = [create_todo(parent_workspace=w) for _ in range(5)]
+def test_sibling_methods(create_project, create_todo):
+    p = create_project()
+    _ = [create_todo(parent_project=p) for _ in range(5)]
 
     todo = Todo.all()[0]
     assert todo is not None
 
     siblings = todo.siblings
-    index_ids = [w.order_index for w in siblings]
+    index_ids = [p.order_index for p in siblings]
     assert index_ids == [0, 1, 2, 3, 4]
     assert siblings[0].is_first_sibling()
     assert siblings[-1].is_last_sibling()
 
 
-def test_todo_siblings_by_creation(create_workspace, create_todo):
-    w = create_workspace()
-    todo = [create_todo(parent_workspace=w) for _ in range(5)][0]
+def test_todo_siblings_by_creation(create_project, create_todo):
+    p = create_project()
+    todo = [create_todo(parent_project=p) for _ in range(5)][0]
     assert len(todo.siblings) == 5
 
 
@@ -64,9 +64,9 @@ def test_without_parent():
         t.save()
 
 
-def test_with_both_parents(create_todo, create_workspace):
+def test_with_both_parents(create_todo, create_project):
     with raises(MultipleParentError):
-        create_todo(parent_workspace=create_workspace(), parent_todo=create_todo())
+        create_todo(parent_project=create_project(), parent_todo=create_todo())
 
 
 def test_sibling_add(create_todo):
@@ -121,9 +121,9 @@ def test_toggle_complete(todo1):
     assert todo1.is_completed
 
 
-def test_toggle_complete_parent(create_workspace, create_todo):
-    w = create_workspace()
-    t = w.add_todo()
+def test_toggle_complete_parent(create_project, create_todo):
+    p = create_project()
+    t = p.add_todo()
     t1 = t.add_todo()
     t2 = t.add_todo()
 
@@ -137,9 +137,9 @@ def test_toggle_complete_parent(create_workspace, create_todo):
     assert not t.is_completed
 
 
-def test_due_date_util(create_workspace, create_todo):
-    w = create_workspace()
-    t = w.add_todo()
+def test_due_date_util(create_project, create_todo):
+    p = create_project()
+    t = p.add_todo()
     assert not t.due
     assert not t.is_overdue
     assert not t.is_due_today()
@@ -164,9 +164,9 @@ def test_due_date_util(create_workspace, create_todo):
     assert t.status == "completed"
 
 
-def test_tags(create_workspace, create_todo):
-    w = create_workspace()
-    t = w.add_todo()
+def test_tags(create_project, create_todo):
+    p = create_project()
+    t = p.add_todo()
     t.description = "This is a @tag"
     assert t.tags == ["@tag"]
 
@@ -177,9 +177,9 @@ def test_tags(create_workspace, create_todo):
     assert t.tags == []
 
 
-def test_priority(create_workspace, create_todo):
-    w = create_workspace()
-    t = w.add_todo()
+def test_priority(create_project, create_todo):
+    p = create_project()
+    t = p.add_todo()
     assert t.priority == 0
 
     t.set_priority(1)
@@ -195,9 +195,9 @@ def test_priority(create_workspace, create_todo):
     assert t.priority == 3
 
 
-def test_recurrence_change(create_workspace, create_todo):
-    w = create_workspace()
-    t = w.add_todo()
+def test_recurrence_change(create_project, create_todo):
+    p = create_project()
+    t = p.add_todo()
     t.due = datetime.strptime("2021-01-01", "%Y-%m-%d")
     t.recurrence = timedelta(days=1)
     t.save()
@@ -206,9 +206,9 @@ def test_recurrence_change(create_workspace, create_todo):
     assert t.due == datetime.strptime("2021-01-02", "%Y-%m-%d")
 
 
-def test_sort_invalid(create_workspace, create_todo):
-    w = create_workspace()
-    t = w.add_todo()
+def test_sort_invalid(create_project, create_todo):
+    p = create_project()
+    t = p.add_todo()
     with raises(AttributeError):
         t.sort_siblings("???????")
 
@@ -229,7 +229,7 @@ def test_sort_invalid(create_workspace, create_todo):
         ("due", lambda x: x.due, lambda x: x.due, True),
     ],
 )
-def test_sort(session, create_workspace, field, sort_key, filter_func, compare_ids):
+def test_sort(session, create_project, field, sort_key, filter_func, compare_ids):
     old, new = _sort_before_and_after(session, field)
 
     if filter_func:
@@ -243,10 +243,10 @@ def test_sort(session, create_workspace, field, sort_key, filter_func, compare_i
     else:
         assert old == new
 
-    def test_clone_from_id(create_workspace, create_todo):
+    def test_clone_from_id(create_project, create_todo):
         # Create source todo with nested structure
-        w = create_workspace("Test Workspace")
-        t = w.add_todo()
+        p = create_project("Test Project")
+        t = p.add_todo()
         t.description = "Parent Todo"
         t.due = datetime.now()
         t.effort = 3
@@ -277,7 +277,7 @@ def test_sort(session, create_workspace, field, sort_key, filter_func, compare_i
         assert cloned_todo.effort == 3
         assert cloned_todo.priority == 2
         assert cloned_todo.order_index == 10
-        assert cloned_todo.parent_workspace_id == w.id
+        assert cloned_todo.parent_project_id == p.id
 
         # Check child todos were cloned
         assert len(cloned_todo.todos) == 2

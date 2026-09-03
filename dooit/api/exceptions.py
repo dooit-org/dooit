@@ -12,7 +12,7 @@ class NoParentError(DooitError):
 
 class MultipleParentError(DooitError):
     """
-    Raised when user tries to add a Todo object with both a workspace and a todo parent
+    Raised when user tries to add a Todo object with both a project and a todo parent
     """
 
 
@@ -22,9 +22,9 @@ class SiblingAdditionError(DooitError):
     """
 
 
-class WorkspaceAdditionError(DooitError):
+class ProjectAdditionError(DooitError):
     """
-    Raised when user tries to add a workspace to a todo object
+    Raised when user tries to add a project to a todo object
     """
 
 
