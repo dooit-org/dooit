@@ -155,7 +155,15 @@ async def test_shifts_single_item():
         ptree = app.project_tree
 
         ptree.add_sibling()
+        # A project left without a description is discarded rather than kept,
+        # so it has to be named before the edit is committed
+        await pilot.press(*list("project"))
         await pilot.press("escape")
+
+        # The pane opens on its fixed projects, and the redraw that follows an
+        # edit puts the cursor back on the first of them: shifting is what
+        # this is about, so the cursor goes back on the project first
+        ptree.highlight_id(tree_options(ptree)[0].id)
 
         ptree.shift_up()
         await pilot.pause()
@@ -248,10 +256,16 @@ async def test_add_sibling_while_editing():
         # await pilot.press("escape") # Dont stop editing
 
         ptree.add_sibling()
+        # Named before the edit is committed, or a blank project is discarded
+        await pilot.press(*list("project"))
         await pilot.press("escape")
-        assert highlighted_index(ptree) == 0
 
+        # The second `add_sibling` was refused, so there is one project, and
+        # it is the one the cursor can be put back on
         assert len(tree_options(ptree)) == 1
+
+        ptree.highlight_id(tree_options(ptree)[0].id)
+        assert highlighted_index(ptree) == 0
 
 
 async def test_yank_and_paste_project():

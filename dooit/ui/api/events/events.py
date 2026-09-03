@@ -1,5 +1,5 @@
 from datetime import timedelta, datetime
-from typing import Callable, Literal, Optional, Union
+from typing import Any, Callable, Literal, Optional, Union
 from textual.message import Message
 
 from dooit.api.model import DooitModel
@@ -317,6 +317,20 @@ class BarNotification(DooitEvent):
         self.message = message
         self.level: NotificationType = level
         self.auto_exit = auto_exit
+
+
+class StartFieldEdit(DooitEvent):
+    """
+    Emitted when an edit is started on a column the pane does not draw
+
+    There is nowhere in the row to put the buffer, so the bar takes it: the
+    tree carries on with the edit, and the bar is only where it is drawn.
+    """
+
+    def __init__(self, tree: Any, column: str) -> None:
+        super().__init__()
+        self.tree = tree
+        self.column = column
 
 
 class QuitApp(DooitEvent):

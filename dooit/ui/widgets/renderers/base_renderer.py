@@ -71,7 +71,7 @@ class BaseRenderer(Generic[ModelType]):
         component = self._get_component(attr)
         formatter = self.tree.formatter
         rendered: str = getattr(formatter, attr).format_value(
-            component.model_value, component.model
+            self.tree.column_value(attr, component), component.model
         )
 
         # An editing field draws its buffer plus whatever hint it appends to it,
@@ -128,6 +128,23 @@ class BaseRenderer(Generic[ModelType]):
         # the guides instead of bleeding into whatever gets appended to them
         return Text.assemble(("".join(reversed(pieces)), self.guide_style))
 
+    def _with_row_note(self, rendered: RenderableType) -> RenderableType:
+        """
+        The description with whatever the pane has to say about the row after it
+        """
+
+        note = self.tree.row_note(self.model)
+
+        if not note.cell_len:
+            return rendered
+
+        cell = Table.grid(expand=True)
+        cell.add_column(ratio=1)
+        cell.add_column(justify="right", no_wrap=True, width=note.cell_len)
+        cell.add_row(rendered, note)
+
+        return cell
+
     def make_renderable(self) -> Table:
         layout = self.table_layout
 
@@ -145,7 +162,7 @@ class BaseRenderer(Generic[ModelType]):
             else:
                 formatter = self.tree.formatter
                 rendered = getattr(formatter, attr).format_value(
-                    component.model_value, component.model
+                    self.tree.column_value(attr, component), component.model
                 )
 
             # Measured on what is about to be drawn, so that a field which grows
@@ -158,6 +175,15 @@ class BaseRenderer(Generic[ModelType]):
             # column it reaches into
             if index == 0 and guide.cell_len:
                 rendered = guide + rendered
+
+            # A pane's note on the row shares the description's column
+            # rather than taking one of its own: pushed to the far end of it,
+            # kept on one line, and left out of the width check above, since
+            # it is the pane's word about the row and not the field's. What is
+            # left of the column goes to the description, which wraps into it
+            # exactly as it would have without a note.
+            if attr == "description" and not component.is_editing:
+                rendered = self._with_row_note(rendered)
 
             if attr == "description":
                 table.add_column(attr, ratio=1)

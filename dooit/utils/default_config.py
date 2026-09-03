@@ -24,7 +24,7 @@ from dooit.ui.api.events import ModeChanged, Startup
 from dooit.ui.screens import HelpScreen
 from dooit.ui.widgets.bars import StatusBarWidget
 from dooit.ui.widgets.inputs.model_inputs import Recurrence
-from dooit.utils import blend
+from dooit.utils import DATE_FORMAT, WEEKDAY_NAMES, blend
 from rich.text import Text
 
 
@@ -116,12 +116,6 @@ def _add_working_days(start: date, days: int) -> date:
     return current
 
 
-# Austrian German weekday abbreviations, indexed by `date.weekday()`. Spelled
-# out here rather than left to `%a`, which follows the process locale and would
-# give English names on a default install.
-WEEKDAY_NAMES = ("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So")
-
-
 # A todo carries two dates: `due`, the deadline it has to be done by, and
 # `scheduled`, the day it is planned to be worked on. Both columns are rendered
 # by the formatters below, which differ only in the field they read.
@@ -133,7 +127,7 @@ def todo_date_formatter(value: Optional[datetime], _: Todo) -> str:
     if value is None:
         return ""
 
-    dt_format = "%d.%m.%y"
+    dt_format = DATE_FORMAT
 
     if value.hour or value.minute:
         dt_format += " (%H:%M)"
@@ -426,6 +420,7 @@ def key_setup(api: DooitAPI, _):
     api.keys.set("l", api.move_down, group=NAVIGATION)
     api.keys.set("gg", api.go_to_top, group=NAVIGATION)
     api.keys.set("gt", api.goto_today, group=NAVIGATION)
+    api.keys.set("gu", api.goto_upcoming, group=NAVIGATION)
     api.keys.set("G", api.go_to_bottom, group=NAVIGATION)
     api.keys.set("h", api.toggle_expand, group=NAVIGATION)
 

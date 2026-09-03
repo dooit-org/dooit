@@ -224,6 +224,17 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
 
         return self._renderers[_id].prompt
 
+    def row_note(self, model: ModelType) -> Text:
+        """
+        What this pane has to add to a row, drawn after its description
+
+        Nothing, for a pane whose rows are all filed under the same thing; a
+        pane that gathers its rows from across the tree overrides this to say
+        where each of them came from.
+        """
+
+        return Text()
+
     @property
     def formatter(self) -> "ModelFormatterBase":
         raise NotImplementedError  # pragma: no cover
@@ -231,6 +242,28 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
     @property
     def render_layout(self) -> Any:
         raise NotImplementedError  # pragma: no cover
+
+    def column_value(self, attr: str, component: Any) -> Any:
+        """
+        The value a column is formatted from
+
+        What the field holds, unless the pane has reason to show something
+        coarser than that.
+        """
+
+        return component.model_value
+
+    @property
+    def editable_columns(self) -> List[str]:
+        """
+        The columns an edit may be started on
+
+        Everything the pane draws, and for a pane that leaves a column out,
+        that column too: it is hidden because it has nothing to add, not
+        because there is nothing behind it to change.
+        """
+
+        return [item.value for item in self.render_layout]
 
     @property
     def filter_refresh(self):
@@ -446,8 +479,7 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         self.post_message(StartSearch(self.set_filter))
 
     def start_edit(self, property: str) -> bool:
-        columns = [i.value for i in self.render_layout]
-        if property not in columns:
+        if property not in self.editable_columns:
             self.post_message(
                 BarNotification(f"No such column: [b]{property}[/b]", "error")
             )

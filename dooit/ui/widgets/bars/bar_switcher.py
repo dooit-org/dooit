@@ -10,6 +10,7 @@ from .search_bar import SearchBar
 from .confirm_bar import ConfirmBar
 from .notification_bar import NotificationBar
 from .sort_bar import SortBar
+from .field_bar import FieldBar
 
 
 class BarSwitcher(ContentSwitcher):
@@ -74,6 +75,14 @@ class BarSwitcher(ContentSwitcher):
         self.add_content(
             widget=sort_bar,
             id="sort_bar",
+            set_current=True,
+        )
+
+    def switch_to_field(self, tree, column: str):
+        field_bar = FieldBar(tree, column)
+        self.add_content(
+            widget=field_bar,
+            id="field_bar",
             set_current=True,
         )
 

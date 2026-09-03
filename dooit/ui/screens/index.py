@@ -10,6 +10,7 @@ from dooit.ui.api.events import (
     DooitEvent,
     ModeChanged,
     ShowConfirm,
+    StartFieldEdit,
     StartSearch,
     StartSort,
     TodoChanged,
@@ -89,11 +90,14 @@ class MainScreen(BaseScreen):
         if self.app.screen != self:
             return True
 
+        key = self.resolve_key(event)
+
+        # Resolved on the way in rather than per bar: a bar that is typed into
+        # wants the character that was pressed, not the name of the key
         if self.app.bar_switcher.is_focused:
-            await self.app.bar_switcher.handle_keypress(event.key)
+            await self.app.bar_switcher.handle_keypress(key)
             return True
 
-        key = self.resolve_key(event)
         await self.api.handle_key(key)
         return True
 
@@ -118,6 +122,10 @@ class MainScreen(BaseScreen):
     def start_search(self, event: StartSearch):
         self.app.bar_switcher.switch_to_search(event.callback)
         self.post_message(ModeChanged("SEARCH"))
+
+    @on(StartFieldEdit)
+    def start_field_edit(self, event: StartFieldEdit):
+        self.app.bar_switcher.switch_to_field(event.tree, event.column)
 
     @on(StartSort)
     def start_sort(self, event: StartSort):

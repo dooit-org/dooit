@@ -2,6 +2,7 @@ from typing import List, Optional
 from textual.pilot import Pilot
 from textual.widgets.option_list import Option
 from textual.widgets import ContentSwitcher
+from dooit.api import fixed_project_from_id
 from dooit.ui.tui import Dooit
 from dooit.ui.widgets.trees.model_tree import ModelTree
 from dooit.ui.widgets.trees.todos_tree import TodosTree
@@ -39,9 +40,19 @@ async def create_and_move_to_todo(pilot: Pilot) -> TodosTree:
 
 
 def tree_options(tree: ModelTree) -> List[Option]:
-    """Options of a tree, without the column header row"""
+    """
+    Options of a tree that stand for a stored model
 
-    return [option for option in tree._options if option.id != tree.HEADER_ID]
+    The column titles, the rules and the fixed projects are all furniture the
+    pane came with; what the tests count is what they put in it.
+    """
+
+    return [
+        option
+        for option in tree._options
+        if not tree.is_static_row(option.id)
+        and fixed_project_from_id(option.id or "") is None
+    ]
 
 
 def highlighted_index(tree: ModelTree) -> Optional[int]:
@@ -50,5 +61,7 @@ def highlighted_index(tree: ModelTree) -> Optional[int]:
     if tree.highlighted is None:
         return None
 
-    header_rows = len(tree._options) - len(tree_options(tree))
-    return tree.highlighted - header_rows
+    # The furniture all sits above the stored rows, so what it takes up is
+    # what a stored row's index has to come down by
+    furniture = len(tree._options) - len(tree_options(tree))
+    return tree.highlighted - furniture

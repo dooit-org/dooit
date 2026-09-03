@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 from dooit.ui.api.events import BarNotification, NotificationType
 from dooit.ui.api.plug import PluginManager
-from dooit.api import TODAY
+from dooit.api import TODAY, UPCOMING
 from .events import DooitEvent, GotoFixedProject, SwitchTab, QuitApp
 from dooit.ui.widgets import ModelTree
 from dooit.ui.widgets.trees import TodosTree
@@ -137,6 +137,11 @@ class DooitAPI:
         """Jump to Today and start on the first task scheduled for it"""
 
         self.goto_fixed_project(TODAY.key)
+
+    def goto_upcoming(self):
+        """Jump to Upcoming and start on the first task scheduled ahead"""
+
+        self.goto_fixed_project(UPCOMING.key)
 
     def move_down(self):
         """Move the cursor down in the focused list"""

@@ -16,10 +16,11 @@ and a `todo_groups`, and register an instance of it below.
 
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from sqlalchemy import select
 
+from ..utils.day_names import day_label
 from .manager import manager
 from .project import Project
 from .todo import Todo
@@ -101,6 +102,20 @@ class FixedProject:
 
     is_fixed: bool = True
 
+    # Whether a row should say which project it was pulled out of. One that
+    # opens a block per project has already said so in the heading; one
+    # grouped by anything else would otherwise lose that entirely
+    show_owning_project: bool = False
+
+    # Columns the headings have already said, and which the rows underneath
+    # them need not repeat. They can still be edited: the buffer is drawn in
+    # the bar rather than in a column the pane does not have
+    hidden_columns: Tuple[str, ...] = ()
+
+    # Date columns to draw as a day alone. A pane that is read a day at a time
+    # has no use for the hour, which only crowds the columns beside it
+    day_only_columns: Tuple[str, ...] = ()
+
     # --- the parts of `Project` the trees and the bar read ---
 
     is_root: bool = False
@@ -154,17 +169,36 @@ def _priority_key(todo: Todo):
     return (todo.priority == 0, todo.priority, todo.order_index)
 
 
+def _day_heading(day: date) -> str:
+    """
+    What opens a day's block: the day itself, or "Tomorrow" for the next one
+
+    The nearest day is the one plans are made against, so it gets named rather
+    than dated, the same way the date columns say "Today" instead of a date.
+    """
+
+    if day == date.today() + timedelta(days=1):
+        return "Tomorrow"
+
+    return day_label(day)
+
+
 class TodayProject(FixedProject):
     """
     Everything scheduled for today, wherever in the tree it is filed
 
-    The todos keep the columns they have everywhere else; what the day view
-    adds is a block per project, so a row can still be placed at a glance.
+    What the day view adds is a block per project, so a row can still be
+    placed at a glance; what it drops is the day itself, which every row here
+    shares with the pane it is sitting in.
     """
 
     key = "today"
     title = "Today"
     icon = "󰃭"
+
+    # Every row in here is scheduled for today by definition, so the column
+    # would say "Today" the whole way down the pane
+    hidden_columns = ("scheduled",)
 
     @staticmethod
     def _scheduled_today() -> List[Todo]:
@@ -199,6 +233,57 @@ class TodayProject(FixedProject):
                 label=project_path(projects[project_id]),
             )
             for project_id in sorted(groups, key=lambda i: order.get(i, 0))
+        ]
+
+
+class UpcomingProject(FixedProject):
+    """
+    Everything scheduled for the days still ahead, a block per day
+
+    Where Today opens a block per project, this one is grouped by the day the
+    work is planned for, nearest day first, so the week ahead reads top to
+    bottom. Today itself is left out: it has a project of its own right above.
+    The project a row is filed under is no longer in the heading here, so the
+    rows carry it themselves.
+    """
+
+    key = "upcoming"
+    title = "Upcoming"
+    # The calendar and clock the date columns mark a date still to come with,
+    # so the project and the dates under it say the same thing
+    icon = "󰃰"
+
+    show_owning_project = True
+
+    # Every row under a heading is scheduled for the day it names, so the
+    # column would say the same thing over and over
+    hidden_columns = ("scheduled",)
+
+    # The deadline is read against those headings, and a day either side of it
+    # is what matters there rather than the hour
+    day_only_columns = ("due",)
+
+    @staticmethod
+    def _scheduled_ahead() -> List[Todo]:
+        tomorrow = datetime.combine(date.today() + timedelta(days=1), time.min)
+        query = select(Todo).where(Todo.scheduled >= tomorrow)
+
+        return list(manager.session.execute(query).scalars().all())
+
+    @property
+    def todo_groups(self) -> List[TodoGroup]:
+        groups: Dict[date, List[Todo]] = {}
+
+        for todo in self._scheduled_ahead():
+            assert todo.scheduled is not None
+            groups.setdefault(todo.scheduled.date(), []).append(todo)
+
+        return [
+            TodoGroup(
+                todos=sorted(groups[day], key=_priority_key),
+                label=_day_heading(day),
+            )
+            for day in sorted(groups)
         ]
 
 
@@ -239,3 +324,6 @@ def fixed_project_from_id(_id: str) -> Optional[FixedProject]:
 
 TODAY = TodayProject()
 register_fixed_project(TODAY)
+
+UPCOMING = UpcomingProject()
+register_fixed_project(UPCOMING)
