@@ -4,7 +4,7 @@ from sqlalchemy.orm.attributes import get_history
 from textual import events, on
 from textual.containers import Container
 from textual.widgets import ContentSwitcher
-from dooit.api import Todo, Project
+from dooit.api import TODAY, Todo, Project, fixed_project_from_key
 from dooit.api.model import DooitModel
 from dooit.ui.api.events import (
     DooitEvent,
@@ -12,23 +12,27 @@ from dooit.ui.api.events import (
     ShowConfirm,
     StartSearch,
     StartSort,
+    TodoChanged,
     TodoDescriptionChanged,
     TodoDueChanged,
+    TodoNoteChanged,
     TodoScheduledChanged,
     TodoEffortChanged,
     TodoRecurrenceChanged,
     TodoStatusChanged,
     TodoPriorityChanged,
+    ProjectChanged,
     ProjectDescriptionChanged,
     ProjectRemoved,
     ProjectSelected,
+    GotoFixedProject,
     SwitchTab,
     SpawnHelp,
     SpawnNote,
     BarNotification,
 )
-from dooit.ui.widgets.trees import ProjectsTree, TodosTree
-from dooit.ui.widgets import BarSwitcher, Dashboard
+from dooit.ui.widgets.trees import ProjectsTree, TodosTree, make_todos_tree
+from dooit.ui.widgets import BarSwitcher, Dashboard, ModelTree
 from .base import BaseScreen
 from .note import NoteScreen
 
@@ -108,15 +112,7 @@ class MainScreen(BaseScreen):
 
     @on(SpawnNote)
     def spawn_note(self, event: SpawnNote) -> None:
-        def refresh_row(_) -> None:
-            # Only the row that was open needs redrawing, and only its note
-            # column can have changed. A full refresh would re-highlight the
-            # first node and throw the cursor back to the top of the pane.
-            todos_tree = self.api.vars.todos_tree
-            if todos_tree:
-                todos_tree.update_current_prompt()
-
-        self.app.push_screen(NoteScreen(event.todo), refresh_row)
+        self.app.push_screen(NoteScreen(event.todo))
 
     @on(StartSearch)
     def start_search(self, event: StartSearch):
@@ -155,15 +151,66 @@ class MainScreen(BaseScreen):
 
         await pane.remove()
 
+    async def show_project(self, project) -> TodosTree:
+        """
+        Brings the project's tasks pane to the front, building it if need be
+        """
+
+        switcher = self.query_one("#todo_switcher", expect_type=ContentSwitcher)
+        tree = make_todos_tree(project)
+
+        existing = switcher.query(f"#{tree.id}")
+        if not existing:
+            await switcher.add_content(tree, set_current=True)
+            return tree
+
+        switcher.current = tree.id
+        return existing.first(TodosTree)
+
     @on(ProjectSelected)
     async def project_selected(self, event: ProjectSelected):
-        switcher = self.query_one("#todo_switcher", expect_type=ContentSwitcher)
-        tree = TodosTree(event.project)
+        await self.show_project(event.project)
 
-        if not switcher.query(f"#{tree.id}"):
-            await switcher.add_content(tree, set_current=True)
-        else:
-            switcher.current = tree.id
+    @on(GotoFixedProject)
+    async def goto_fixed_project(self, event: GotoFixedProject) -> None:
+        """
+        Moves onto a fixed project and hands the focus to its first task
+
+        The pane is brought up here rather than left to the `ProjectSelected`
+        the highlight sends off, so that there is something to focus by the
+        time the cursor is put on the first todo.
+        """
+
+        project = fixed_project_from_key(event.key)
+        if project is None:  # pragma: no cover
+            return
+
+        self.api.vars.projects_tree.highlight_id(project.uuid)
+
+        tree = await self.show_project(project)
+        tree.focus()
+        tree.action_first()
+
+    @on(TodoChanged)
+    @on(ProjectChanged)
+    def model_changed(self, _: DooitEvent) -> None:
+        """
+        Redraws every pane once something has actually changed
+
+        A todo is no longer in one place only: it is in the pane of the project
+        it is filed under, and in every fixed project that gathered it up. A
+        pane that is not in front goes on drawing whatever it was built with,
+        so an edit made in one of them would leave the others saying the old
+        thing until they happened to be rebuilt. All of them are refreshed
+        together, which also settles what a fixed project shows and in what
+        order, neither of which the edited row alone can say.
+
+        Only the events that write a model back come through here; the ones
+        that say where the cursor is do not, or this would run per keystroke.
+        """
+
+        for tree in self.query(ModelTree):
+            tree.force_refresh()
 
     # SQLAlchemy event listeners
 
@@ -184,6 +231,13 @@ class MainScreen(BaseScreen):
         listen(table, "after_update", track)
 
     def on_mount(self):
+        # Dooit opens on the day's work: the tasks scheduled for today, with
+        # the cursor already on the first of them. Left until after the first
+        # refresh, so that the config has had its say about the panes first.
+        self.call_after_refresh(
+            lambda: self.post_message(GotoFixedProject(TODAY.key))
+        )
+
         listeners = (
             (Project, "description", ProjectDescriptionChanged),
             (Todo, "description", TodoDescriptionChanged),
@@ -193,6 +247,7 @@ class MainScreen(BaseScreen):
             (Todo, "recurrence", TodoRecurrenceChanged),
             (Todo, "pending", TodoStatusChanged),
             (Todo, "priority", TodoPriorityChanged),
+            (Todo, "note", TodoNoteChanged),
         )
 
         for table, field, event in listeners:

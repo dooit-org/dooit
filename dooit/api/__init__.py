@@ -1,6 +1,15 @@
 from .model import DooitModel, BaseModel
 from .todo import Todo
 from .project import Project
+from .fixed_projects import (
+    FixedProject,
+    TodoGroup,
+    TODAY,
+    fixed_project_from_id,
+    fixed_project_from_key,
+    fixed_projects,
+    register_fixed_project,
+)
 from .manager import manager
 from .hooks import fix_hooks, validation_hooks, update_hooks
 
@@ -31,6 +40,13 @@ __all__ = [
     "DooitModel",
     "Todo",
     "Project",
+    "FixedProject",
+    "TodoGroup",
+    "TODAY",
+    "fixed_project_from_id",
+    "fixed_project_from_key",
+    "fixed_projects",
+    "register_fixed_project",
     "manager",
     "drop_blank_models",
     "fix_hooks",

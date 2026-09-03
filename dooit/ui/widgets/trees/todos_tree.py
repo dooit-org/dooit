@@ -24,6 +24,7 @@ Model = Union[Todo, Project]
 class TodosTree(ModelTree[Model, TodoRenderDict]):
     BORDER_TITLE = "TASKS"
     show_header = True
+    CHILDREN_ATTR = "todos"
 
     # How far every other row is pulled from the pane background towards the
     # lighter one behind it. Just enough to keep a row's columns tied together
@@ -145,4 +146,8 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
         assert event.option_id
 
         event.stop()
+
+        if self.is_static_row(event.option_id):
+            return
+
         self.post_message(TodoSelected(Todo.from_id(event.option_id)))

@@ -367,6 +367,33 @@ def project_tasks_formatter(count: int, _: Project, api: DooitAPI) -> str:
     return f"[{count_color(api)}]{count}[/]"
 
 
+# The folder every stored project is drawn with, the same one the status bar
+# marks the current project with. A fixed project brings an icon of its own
+# instead, which is what tells the two kinds apart at a glance.
+PROJECT_ICON = "󰉋"
+
+# How far the folder is pulled towards the background: enough that a column of
+# them stays quiet behind the names it marks
+PROJECT_ICON_FADE = 0.35
+
+
+# Runs after the sub project count has been appended, so the icon is the very
+# first thing on the row whatever else the name picked up along the way. A
+# fixed project takes the accent, since it is part of the app rather than one
+# more thing in the list.
+@extra_formatter
+def project_icon_formatter(name: str, project, api: DooitAPI) -> str:
+    theme = api.vars.theme
+
+    if getattr(project, "is_fixed", False):
+        icon, color = project.icon, theme.primary
+    else:
+        icon = PROJECT_ICON
+        color = blend(theme.foreground1, theme.background1, PROJECT_ICON_FADE)
+
+    return f"[{color}]{icon}[/] {name}"
+
+
 # How many projects hang below this one, at any depth. Nesting is invisible
 # while a project is collapsed, so the count rides along with the name, in the
 # same dimmed accent as the task tally beside it.
@@ -398,6 +425,7 @@ def key_setup(api: DooitAPI, _):
     api.keys.set("k", api.move_up, group=NAVIGATION)
     api.keys.set("l", api.move_down, group=NAVIGATION)
     api.keys.set("gg", api.go_to_top, group=NAVIGATION)
+    api.keys.set("gt", api.goto_today, group=NAVIGATION)
     api.keys.set("G", api.go_to_bottom, group=NAVIGATION)
     api.keys.set("h", api.toggle_expand, group=NAVIGATION)
 
@@ -534,6 +562,9 @@ def formatter_setup(api: DooitAPI, _):
     # Marks the repeating todos, whose interval is easy to miss as bare text
     api.formatter.todos.recurrence.add(recurrence_icon())
 
+    # Added first => runs last, so the icon ends up in front of everything the
+    # formatter below appends to the name
+    api.formatter.projects.description.add(project_icon_formatter)
     api.formatter.projects.description.add(project_description_formatter)
     api.formatter.projects.tasks.add(project_tasks_formatter)
 

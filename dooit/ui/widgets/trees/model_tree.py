@@ -1,7 +1,18 @@
 from collections import defaultdict
 from functools import cache
-from typing import TYPE_CHECKING, Any, Dict, Generic, Optional, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    List,
+    Optional,
+    TypeVar,
+    Union,
+)
 from textual.app import ComposeResult
+from rich.cells import cell_len
 from rich.console import Console, ConsoleOptions, Group, RenderableType, RenderResult
 from rich.measure import Measurement
 from rich.segment import Segment
@@ -56,6 +67,50 @@ class ColumnRule:
         return Measurement(0, 0)
 
 
+class GroupHeading:
+    """
+    The name of a block of rows, with a hairline running out to the pane edge
+
+    Same hairline the column titles sit on, so a block reads as a smaller
+    version of the header that opens the pane. The blank line above it is what
+    separates one block from the rows of the one before.
+    """
+
+    CHARACTER = "─"
+
+    def __init__(
+        self,
+        label: str,
+        label_style: str,
+        rule_style: str,
+        space_above: bool = True,
+    ) -> None:
+        self.label = label
+        self.label_style = label_style
+        self.rule_style = rule_style
+        self.space_above = space_above
+
+    def __rich_console__(
+        self, console: Console, options: ConsoleOptions
+    ) -> RenderResult:
+        if self.space_above:
+            yield Segment.line()
+
+        # Indented by what the rows pad their leftmost column with, so the
+        # label starts where the columns underneath it do
+        label = f"{' ' * COLUMN_PADDING}{self.label} "
+        yield Segment(label, console.get_style(self.label_style))
+
+        rule = self.CHARACTER * max(0, options.max_width - cell_len(label))
+        yield Segment(rule, console.get_style(self.rule_style))
+        yield Segment.line()
+
+    def __rich_measure__(
+        self, console: Console, options: ConsoleOptions
+    ) -> Measurement:
+        return Measurement(0, 0)
+
+
 ModelType = TypeVar("ModelType", bound=Union[Todo, Project])
 RenderDictType = TypeVar("RenderDictType", bound=RenderDict)
 
@@ -76,6 +131,15 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
     HEADER_ID = "dooit-column-header"
     show_header: bool = False
 
+    # The attribute a node's children hang off, walked into when the node is
+    # expanded: "projects" for the projects pane, "todos" for the tasks pane
+    CHILDREN_ATTR: str = ""
+
+    # Whether a nested row is drawn hanging off the row above it. A pane that
+    # gathers its rows from all over the tree shows them as the flat list they
+    # are, since the parent a guide would point back at is not on screen
+    show_guides: bool = True
+
     # Rounded caps drawn on either side of the border title so that the title
     # bar matches the rounded pane borders
     TITLE_CAP_LEFT = "\ue0b6"
@@ -89,6 +153,7 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         self._renderers: RenderDictType = render_dict
         self._filter_refresh = False
         self._model_clipboard = None
+        self._static_rows: Dict[str, Callable[[], RenderableType]] = {}
 
     @cache
     def get_column_width(self, attr: str) -> int:
@@ -136,6 +201,29 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         table.add_row(*row)
         return Group(table, ColumnRule(self.api.vars.theme.background3))
 
+    def static_row(self, _id: str, make: Callable[[], RenderableType]) -> Option:
+        """
+        A row that stands for no model: the column titles, a rule, a heading
+
+        It is drawn from `make` on every refresh rather than once, so that a
+        theme change reaches it, and it is disabled, which is what keeps the
+        cursor from ever landing on something there is nothing to do with.
+        """
+
+        self._static_rows[_id] = make
+        return Option("", id=_id, disabled=True)
+
+    def is_static_row(self, _id: Optional[str]) -> bool:
+        return _id is None or _id in self._static_rows
+
+    def prompt_for(self, _id: str) -> RenderableType:
+        make = self._static_rows.get(_id)
+
+        if make is not None:
+            return make()
+
+        return self._renderers[_id].prompt
+
     @property
     def formatter(self) -> "ModelFormatterBase":
         raise NotImplementedError  # pragma: no cover
@@ -167,6 +255,17 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
     def current_model(self) -> ModelType:
         return self.current.model
 
+    @property
+    def is_fixed_node(self) -> bool:
+        """
+        Whether the cursor is on a fixed project rather than a stored model
+        """
+
+        if self.highlighted is None or self.is_static_row(self.node.id):
+            return False
+
+        return getattr(self.current_model, "is_fixed", False)
+
     def update_prompt_at_index(self, index: int):
         option = self.get_option_at_index(index)
         assert option.id is not None
@@ -188,7 +287,7 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         for option in self._options:
             assert option.id
 
-            if option.id == self.HEADER_ID:
+            if self.is_static_row(option.id):
                 continue
 
             matches = self._renderers[option.id].matches_filter(filter)
@@ -223,17 +322,15 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
     def is_node_expaned(self, _id: str) -> bool:
         return self.expanded_nodes[_id]
 
-    def _force_refresh(self) -> None:
-        highlighted = self.highlighted
-        self.clear_options()
+    def _model_options(self) -> List[Option]:
+        """
+        One row per model, each expanded node followed by the rows under it
+        """
 
-        options = []
+        options: List[Option] = []
 
         def add_children_recurse(model: ModelType):
-            for child in getattr(
-                model,
-                self.__class__.__name__.replace("Tree", "").lower(),
-            ):
+            for child in getattr(model, self.CHILDREN_ATTR):
                 render = self._renderers[child.uuid]
                 options.append(Option("", id=render.id))
 
@@ -241,19 +338,70 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
                     add_children_recurse(child)
 
         add_children_recurse(self.model)
-        has_options = bool(options)
+        return options
 
-        if has_options and self.show_header:
-            options.insert(0, Option("", id=self.HEADER_ID, disabled=True))
+    def _body_options(self) -> List[Option]:
+        """
+        Every row of the pane bar the column titles
+
+        This is what a pane that shows more than the models under its own root
+        overrides: what it hands back is drawn in the order it comes in.
+        """
+
+        return self._model_options()
+
+    def _build_options(self) -> List[Option]:
+        options = self._body_options()
+
+        if options and self.show_header:
+            options.insert(0, self.static_row(self.HEADER_ID, self.make_header))
+
+        return options
+
+    def _ensure_enabled_highlight(self) -> None:
+        """
+        Moves the cursor off a row it cannot sit on
+
+        Rows come and go as the tree is refreshed, so an index that pointed at
+        a node can end up on a rule or a heading; the cursor is nudged down to
+        the next row that is really there.
+        """
+
+        if self.highlighted is None:
+            return
+
+        for index in range(self.highlighted, len(self._options)):
+            if not self._options[index].disabled:
+                self.highlighted = index
+                return
+
+        # Nothing below to fall onto: back to the top of the pane, or off the
+        # rows entirely if every last one of them is a rule or a heading
+        first = self.first_selectable_index
+        self.highlighted = first if not self._options[first].disabled else None
+
+    def _force_refresh(self) -> None:
+        highlighted = self.highlighted
+        self.clear_options()
+        self._static_rows.clear()
+
+        options = self._build_options()
+        has_nodes = any(not self.is_static_row(option.id) for option in options)
 
         self.add_options(options)
 
-        if highlighted is not None:
-            highlighted = max(highlighted, self.first_selectable_index)
+        if not options:
+            highlighted = None
+        elif highlighted is not None:
+            highlighted = min(
+                max(highlighted, self.first_selectable_index),
+                len(options) - 1,
+            )
 
         self.highlighted = highlighted
+        self._ensure_enabled_highlight()
 
-        self.empty_message.display = not has_options
+        self.empty_message.display = not has_nodes
         self.refresh_options()
 
     def on_mount(self):
@@ -365,12 +513,7 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         for i in self._options:
             assert i.id is not None
 
-            if i.id == self.HEADER_ID:
-                new_prompt = self.make_header()
-            else:
-                new_prompt = self._renderers[i.id].prompt
-
-            self.replace_option_prompt(i.id, new_prompt)
+            self.replace_option_prompt(i.id, self.prompt_for(i.id))
 
     def _get_parent(self, id: str) -> Optional[ModelType]:
         raise NotImplementedError  # pragma: no cover

@@ -1,7 +1,8 @@
 from typing import TYPE_CHECKING
 from dooit.ui.api.events import BarNotification, NotificationType
 from dooit.ui.api.plug import PluginManager
-from .events import DooitEvent, SwitchTab, QuitApp
+from dooit.api import TODAY
+from .events import DooitEvent, GotoFixedProject, SwitchTab, QuitApp
 from dooit.ui.widgets import ModelTree
 from dooit.ui.widgets.trees import TodosTree
 from dooit.utils import CssManager
@@ -121,6 +122,21 @@ class DooitAPI:
 
         if todos_tree := self.vars.todos_tree:
             todos_tree.focus()
+
+    def goto_fixed_project(self, key: str):
+        """Open a fixed project and start on the first of its tasks"""
+
+        if self.app.bar_switcher.is_focused:
+            return
+
+        # Posted at the screen rather than at the app: it is the screen that
+        # owns both panes, and so the only place that can move between them
+        self.app.screen.post_message(GotoFixedProject(key))
+
+    def goto_today(self):
+        """Jump to Today and start on the first task scheduled for it"""
+
+        self.goto_fixed_project(TODAY.key)
 
     def move_down(self):
         """Move the cursor down in the focused list"""

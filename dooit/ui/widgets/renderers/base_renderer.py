@@ -105,6 +105,9 @@ class BaseRenderer(Generic[ModelType]):
         this row or has already run out of siblings.
         """
 
+        if not self.tree.show_guides:
+            return Text()
+
         node = self.model
         pieces: List[str] = []
 

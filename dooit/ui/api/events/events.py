@@ -1,9 +1,13 @@
 from datetime import timedelta, datetime
-from typing import Callable, Literal, Optional
+from typing import Callable, Literal, Optional, Union
 from textual.message import Message
 
 from dooit.api.model import DooitModel
-from dooit.api import Project, Todo
+from dooit.api import FixedProject, Project, Todo
+
+# A pane can be showing a stored project or one of the fixed ones, and every
+# event about "the current project" carries whichever it is
+ProjectType = Union[Project, FixedProject]
 
 ModeType = Literal["NORMAL", "INSERT", "DATE", "SEARCH", "SORT", "CONFIRM"]
 EmptyWidgetType = Literal["todo", "project", "no_search_results"]
@@ -28,7 +32,7 @@ class ProjectEvent(DooitEvent):
     Base class for all project events
     """
 
-    def __init__(self, project: Project) -> None:
+    def __init__(self, project: ProjectType) -> None:
         super().__init__()
         self.project = project
 
@@ -41,6 +45,26 @@ class TodoEvent(DooitEvent):
     def __init__(self, todo: Todo) -> None:
         super().__init__()
         self.todo = todo
+
+
+class ProjectChanged(ProjectEvent):
+    """
+    Base class for the events that leave a project different from how it was
+
+    An event that only says where the cursor is stays out of here: this is what
+    the panes listen to when they have to be redrawn, and redrawing on a mere
+    selection would mean a rebuild per keystroke.
+    """
+
+
+class TodoChanged(TodoEvent):
+    """
+    Base class for the events that leave a todo different from how it was
+
+    The same todo can be on screen in more than one pane at a time — the
+    project it is filed under, and every fixed project that gathered it up — so
+    what changes it has to reach further than the row it was changed in.
+    """
 
 
 # Events
@@ -111,6 +135,19 @@ class StartSort(DooitEvent):
         self.callback = callback
 
 
+class GotoFixedProject(DooitEvent):
+    """
+    Emitted when user wants to jump straight into a fixed project
+
+    The projects pane moves onto the project and the tasks pane takes over the
+    focus, so that the todos can be walked through without another keystroke.
+    """
+
+    def __init__(self, key: str) -> None:
+        super().__init__()
+        self.key = key
+
+
 class ShowConfirm(DooitEvent):
     """
     Emitted when confirmation from user is required
@@ -129,11 +166,11 @@ class ProjectSelected(ProjectEvent):
     Emitted when user selects a project
     """
 
-    def __init__(self, project: Project) -> None:
+    def __init__(self, project: ProjectType) -> None:
         super().__init__(project)
 
 
-class ProjectRemoved(ProjectEvent):
+class ProjectRemoved(ProjectChanged):
     """
     Emitted when user removes a project
     """
@@ -142,7 +179,7 @@ class ProjectRemoved(ProjectEvent):
         super().__init__(project)
 
 
-class ProjectDescriptionChanged(ProjectEvent):
+class ProjectDescriptionChanged(ProjectChanged):
     """
     Emitted when user changes the description of a project
     """
@@ -165,7 +202,7 @@ class TodoSelected(TodoEvent):
         super().__init__(todo)
 
 
-class TodoRemoved(TodoEvent):
+class TodoRemoved(TodoChanged):
     """
     Emitted when user removes a todo
     """
@@ -174,7 +211,7 @@ class TodoRemoved(TodoEvent):
         super().__init__(todo)
 
 
-class TodoDescriptionChanged(TodoEvent):
+class TodoDescriptionChanged(TodoChanged):
     """
     Emitted when user changes the description of a todo
     """
@@ -185,7 +222,7 @@ class TodoDescriptionChanged(TodoEvent):
         self.new = new
 
 
-class TodoDueChanged(TodoEvent):
+class TodoDueChanged(TodoChanged):
     """
     Emitted when user changes the due of a todo
     """
@@ -198,7 +235,7 @@ class TodoDueChanged(TodoEvent):
         self.old = old
 
 
-class TodoScheduledChanged(TodoEvent):
+class TodoScheduledChanged(TodoChanged):
     """
     Emitted when user changes the scheduled date of a todo
     """
@@ -211,7 +248,7 @@ class TodoScheduledChanged(TodoEvent):
         self.old = old
 
 
-class TodoStatusChanged(TodoEvent):
+class TodoStatusChanged(TodoChanged):
     """
     Emitted when user changes the status of a todo
     """
@@ -222,7 +259,7 @@ class TodoStatusChanged(TodoEvent):
         self.new = new
 
 
-class TodoEffortChanged(TodoEvent):
+class TodoEffortChanged(TodoChanged):
     """
     Emitted when user changes the effort of a todo
     """
@@ -233,7 +270,7 @@ class TodoEffortChanged(TodoEvent):
         self.new = new
 
 
-class TodoRecurrenceChanged(TodoEvent):
+class TodoRecurrenceChanged(TodoChanged):
     """
     Emitted when user changes the recurrence of a todo
     """
@@ -246,7 +283,18 @@ class TodoRecurrenceChanged(TodoEvent):
         self.new = new
 
 
-class TodoPriorityChanged(TodoEvent):
+class TodoNoteChanged(TodoChanged):
+    """
+    Emitted when user changes the note of a todo
+    """
+
+    def __init__(self, old: str, new: str, todo: Todo) -> None:
+        super().__init__(todo)
+        self.old = old
+        self.new = new
+
+
+class TodoPriorityChanged(TodoChanged):
     """
     Emitted when user changes the priority of a todo
     """

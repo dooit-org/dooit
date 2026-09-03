@@ -1,5 +1,5 @@
 from typing import TYPE_CHECKING, Dict, Generic, TypeVar
-from dooit.api import Project, Todo
+from dooit.api import Project, Todo, fixed_project_from_id
 from dooit.ui.widgets.renderers import (
     BaseRenderer,
     TodoRender,
@@ -38,7 +38,9 @@ class ProjectRenderDict(RenderDict[ProjectRender]):
     """
 
     def from_id(self, _id: str) -> ProjectRender:
-        project = Project.from_id(_id)
+        # A fixed project is never in the database, so it is looked up in the
+        # registry first; anything else is a row the database put there
+        project = fixed_project_from_id(_id) or Project.from_id(_id)
         return ProjectRender(project, self.tree)
 
 
