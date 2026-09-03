@@ -1,4 +1,5 @@
 from ..inputs.model_inputs import (
+    Completed,
     Due,
     Effort,
     Note,
@@ -20,6 +21,7 @@ class TodoRender(BaseRenderer[Todo]):
         self.description = TodoDescription(self.model)
         self.due = Due(self.model)
         self.scheduled = Scheduled(self.model)
+        self.completed = Completed(self.model)
         self.status = Status(self.model)
         self.priority = Priority(self.model)
         self.effort = Effort(self.model)

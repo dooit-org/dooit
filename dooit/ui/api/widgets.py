@@ -11,6 +11,8 @@ class TodoWidget(Enum):
     description = "description"
     due = "due"
     scheduled = "scheduled"
+    # When the todo was ticked off; only ever drawn by the Completed project
+    completed = "completed"
     priority = "priority"
     recurrence = "recurrence"
     status = "status"

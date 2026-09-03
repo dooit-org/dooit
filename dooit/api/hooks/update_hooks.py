@@ -11,7 +11,11 @@ def update_children_to_pending(_, connection, target: Todo):
     if any(todo.pending for todo in target.todos):
         return
 
-    query = update(Todo).where(Todo.parent_todo_id == target.id).values(pending=True)
+    query = (
+        update(Todo)
+        .where(Todo.parent_todo_id == target.id)
+        .values(pending=True, completed_at=None)
+    )
     connection.execute(query)
 
 
@@ -20,7 +24,11 @@ def update_children_to_completed(_, connection, target: Todo):
     if target.pending:
         return
 
-    query = update(Todo).where(Todo.parent_todo_id == target.id).values(pending=False)
+    query = (
+        update(Todo)
+        .where(Todo.parent_todo_id == target.id)
+        .values(pending=False, completed_at=target.completed_at or datetime.now())
+    )
     connection.execute(query)
 
 
@@ -29,7 +37,11 @@ def update_parent_to_pending(mapper, connection, target: Todo):
     if not target.pending or not target.parent_todo:
         return
 
-    query = update(Todo).where(Todo.id == target.parent_todo_id).values(pending=True)
+    query = (
+        update(Todo)
+        .where(Todo.id == target.parent_todo_id)
+        .values(pending=True, completed_at=None)
+    )
     connection.execute(query)
 
 
@@ -42,7 +54,9 @@ def update_parent_to_completed(mapper, connection, target: Todo):
     all_sibling_completed = all([not sibling.pending for sibling in parent.todos])
     if all_sibling_completed:
         query = (
-            update(Todo).where(Todo.id == target.parent_todo_id).values(pending=False)
+            update(Todo)
+            .where(Todo.id == target.parent_todo_id)
+            .values(pending=False, completed_at=target.completed_at or datetime.now())
         )
         connection.execute(query)
 

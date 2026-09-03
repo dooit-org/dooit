@@ -19,11 +19,16 @@ def fix_highlight(func: Callable) -> Callable:
         try:
             if highlighted_id is None:
                 self.highlighted = highlighted_index
+                self._ensure_enabled_highlight()
             else:
                 self.highlight_id(highlighted_id)
 
         except OptionDoesNotExist:
+            # The row the cursor was on is gone, so its index is all there is
+            # to go back to — and what stands there now can be a rule or a
+            # heading, which is nothing to put a cursor on
             self.highlighted = highlighted_index
+            self._ensure_enabled_highlight()
 
     return wrapper
 

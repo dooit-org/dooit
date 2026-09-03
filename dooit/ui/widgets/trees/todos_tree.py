@@ -84,6 +84,18 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
 
         return super()._get_option_render(option, style)
 
+    def visible_children(self, model: Model) -> List[Todo]:
+        """
+        The todos still to be done here
+
+        A completed todo has moved to the Completed project: it is shown there,
+        under the name of this one, until it is unticked and comes back. What
+        hangs off it goes along with it, which is why the walk stops here
+        rather than reaching into a todo that is gone.
+        """
+
+        return [todo for todo in model.todos if todo.pending]
+
     def _get_parent(self, id: str) -> Optional[Todo]:
         return Todo.from_id(id).parent_todo
 

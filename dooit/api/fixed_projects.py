@@ -102,6 +102,16 @@ class FixedProject:
 
     is_fixed: bool = True
 
+    # Whether the project is pinned to the foot of the projects pane rather
+    # than opening it. For the one nothing is planned in: what is already done
+    # belongs under the work still to do, not above it
+    pinned_bottom: bool = False
+
+    # Whether the row is drawn in gray rather than in the accent the fixed
+    # projects otherwise get. For a project that is there to be looked
+    # something up in now and then, and never worked out of
+    muted: bool = False
+
     # Whether a row should say which project it was pulled out of. One that
     # opens a block per project has already said so in the heading; one
     # grouped by anything else would otherwise lose that entirely
@@ -112,9 +122,19 @@ class FixedProject:
     # the bar rather than in a column the pane does not have
     hidden_columns: Tuple[str, ...] = ()
 
+    # Columns the pane draws on top of the ones the layout asks for, in place
+    # of whatever it hid. They go in right after the description, where the
+    # columns they stand in for would have been
+    extra_columns: Tuple[str, ...] = ()
+
     # Date columns to draw as a day alone. A pane that is read a day at a time
     # has no use for the hour, which only crowds the columns beside it
     day_only_columns: Tuple[str, ...] = ()
+
+    # Whether a row unticked in here is held in its place until the edit that
+    # follows has been confirmed, rather than leaving the moment it stops
+    # being what the project gathers
+    holds_unticked_rows: bool = False
 
     # --- the parts of `Project` the trees and the bar read ---
 
@@ -169,6 +189,13 @@ def _priority_key(todo: Todo):
     return (todo.priority == 0, todo.priority, todo.order_index)
 
 
+# How todos are ordered where the point is when they were finished: the most
+# recently completed first. A todo ticked off before there was anywhere to
+# write the date down has none, and sorts below everything that has one
+def completion_key(todo: Todo) -> datetime:
+    return todo.completed_at or datetime.min
+
+
 def _day_heading(day: date) -> str:
     """
     What opens a day's block: the day itself, or "Tomorrow" for the next one
@@ -204,6 +231,7 @@ class TodayProject(FixedProject):
     def _scheduled_today() -> List[Todo]:
         start = datetime.combine(date.today(), time.min)
         query = select(Todo).where(
+            Todo.pending == True,
             Todo.scheduled >= start,
             Todo.scheduled < start + timedelta(days=1),
         )
@@ -266,7 +294,10 @@ class UpcomingProject(FixedProject):
     @staticmethod
     def _scheduled_ahead() -> List[Todo]:
         tomorrow = datetime.combine(date.today() + timedelta(days=1), time.min)
-        query = select(Todo).where(Todo.scheduled >= tomorrow)
+        query = select(Todo).where(
+            Todo.pending == True,
+            Todo.scheduled >= tomorrow,
+        )
 
         return list(manager.session.execute(query).scalars().all())
 
@@ -285,6 +316,76 @@ class UpcomingProject(FixedProject):
             )
             for day in sorted(groups)
         ]
+
+
+class CompletedProject(FixedProject):
+    """
+    Everything already ticked off, wherever in the tree it is filed
+
+    Completing a todo moves it in here: it leaves the pane of the project it
+    belongs to and turns up in this one, which is one flat run of rows, the
+    most recently finished at the top, so the pane reads as a log of what has
+    been getting done. Nothing groups it: a log is read from the top down, and
+    the project a row came out of trails the row itself the way it does in
+    Upcoming.
+
+    Unticking a row hands it back to the project it came from: the todo was
+    never moved in the database, only shown here while it was done with.
+    """
+
+    key = "completed"
+    title = "Completed"
+    # The ticked checkbox the rows themselves are marked with, so the project
+    # says the same thing its contents do
+    icon = "󰄵"
+
+    pinned_bottom = True
+    muted = True
+
+    # Nothing here says which project a row came out of, so the rows do
+    show_owning_project = True
+
+    # A row unticked in here is on its way back to its own project, and what
+    # sends it there is typed into the row: it stays put until that is done
+    holds_unticked_rows = True
+
+    # Nothing in here is planned or owed any more; what is worth knowing is
+    # when it was finished, which takes the place of both date columns. They
+    # can still be edited from the bar, which is what lets a todo be dated
+    # again on its way back out
+    hidden_columns = ("scheduled", "due")
+    extra_columns = ("completed",)
+
+    # The log is read a day at a time: what was finished today says "Today"
+    # whatever the hour, so the hour only ever shows up on the older rows,
+    # where it is least worth the width it takes from the descriptions
+    day_only_columns = ("completed",)
+
+    @staticmethod
+    def _completed() -> List[Todo]:
+        """
+        The completed todos that stand for themselves
+
+        A todo completed along with the one it hangs off is not a row of its
+        own: it went in there inside its parent, and comes back out with it.
+        """
+
+        query = select(Todo).where(Todo.pending == False)
+        todos = manager.session.execute(query).scalars().all()
+
+        return [
+            todo
+            for todo in todos
+            if todo.parent_todo is None or todo.parent_todo.pending
+        ]
+
+    @property
+    def todo_groups(self) -> List[TodoGroup]:
+        todos = sorted(self._completed(), key=completion_key, reverse=True)
+
+        # One block, and no heading over it: what the rows have in common is
+        # that they are done, which the pane has already said
+        return [TodoGroup(todos=todos)]
 
 
 _FIXED_PROJECTS: List[FixedProject] = []
@@ -327,3 +428,6 @@ register_fixed_project(TODAY)
 
 UPCOMING = UpcomingProject()
 register_fixed_project(UPCOMING)
+
+COMPLETED = CompletedProject()
+register_fixed_project(COMPLETED)

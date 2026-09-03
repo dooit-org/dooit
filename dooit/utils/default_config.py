@@ -388,6 +388,35 @@ def project_icon_formatter(name: str, project, api: DooitAPI) -> str:
     return f"[{color}]{icon}[/] {name}"
 
 
+# How far a muted project is pulled towards the background: the same fade a
+# completed todo gets, and for the same reason — it is done with, and only
+# looked at on purpose.
+MUTED_PROJECT_FADE = COMPLETED_FADE
+
+
+# A project that is never worked out of is drawn in one flat gray, icon and
+# all. The accent the fixed projects otherwise carry would put it on a level
+# with Today, which is where the day actually starts.
+@extra_formatter
+def gray_out_muted_project(value: str, project, api: DooitAPI):
+    if not getattr(project, "muted", False):
+        return
+
+    theme = api.vars.theme
+
+    # The colors handed out by the formatters above sit on inner spans, which a
+    # base style can't override, so the value is flattened before the gray
+    plain = Text.from_markup(value).plain
+
+    return Text(
+        plain,
+        style=Style(
+            color=blend(theme.foreground1, theme.background1, MUTED_PROJECT_FADE),
+            dim=True,
+        ),
+    ).markup
+
+
 # How many projects hang below this one, at any depth. Nesting is invisible
 # while a project is collapsed, so the count rides along with the name, in the
 # same dimmed accent as the task tally beside it.
@@ -421,6 +450,7 @@ def key_setup(api: DooitAPI, _):
     api.keys.set("gg", api.go_to_top, group=NAVIGATION)
     api.keys.set("gt", api.goto_today, group=NAVIGATION)
     api.keys.set("gu", api.goto_upcoming, group=NAVIGATION)
+    api.keys.set("gc", api.goto_completed, group=NAVIGATION)
     api.keys.set("G", api.go_to_bottom, group=NAVIGATION)
     api.keys.set("h", api.toggle_expand, group=NAVIGATION)
 
@@ -531,10 +561,14 @@ def formatter_setup(api: DooitAPI, _):
     api.formatter.todos.description.add(description_highlight_tags())
     api.formatter.todos.description.add(description_highlight_link())
 
-    # Both date columns are built the same way, out of the same formatters
+    # Every date column is built the same way, out of the same formatters. The
+    # completion date is only ever drawn in the Completed project, where it
+    # stands in for the two columns above: it comes out green throughout, since
+    # the row it is on is done and nothing about it can be late any more
     for column, field in (
         (api.formatter.todos.due, "due"),
         (api.formatter.todos.scheduled, "scheduled"),
+        (api.formatter.todos.completed, "completed_at"),
     ):
         column.add(todo_date_formatter)
         # Value formatters stop at the first one that returns something, so
@@ -557,8 +591,13 @@ def formatter_setup(api: DooitAPI, _):
     # Marks the repeating todos, whose interval is easy to miss as bare text
     api.formatter.todos.recurrence.add(recurrence_icon())
 
-    # Added first => runs last, so the icon ends up in front of everything the
-    # formatter below appends to the name
+    # Added first => runs last, so the gray has the final say over the icon and
+    # the counts every formatter below hands out
+    api.formatter.projects.description.add(gray_out_muted_project)
+    api.formatter.projects.tasks.add(gray_out_muted_project)
+
+    # Added before the one below it => runs after it, so the icon ends up in
+    # front of everything that formatter appends to the name
     api.formatter.projects.description.add(project_icon_formatter)
     api.formatter.projects.description.add(project_description_formatter)
     api.formatter.projects.tasks.add(project_tasks_formatter)

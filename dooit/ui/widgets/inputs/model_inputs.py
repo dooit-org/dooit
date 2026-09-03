@@ -133,6 +133,21 @@ class Scheduled(DateInput):
     """
 
 
+class Completed(DateInput):
+    """
+    The date the todo was ticked off
+
+    Written by the app rather than by hand: a todo is completed by ticking it,
+    which is what dates it, so there is nothing here to type into.
+    """
+
+    editable = False
+
+    @property
+    def _property(self) -> str:
+        return "completed_at"
+
+
 class Priority(SimpleInput[Todo, int]):
     @property
     def value(self) -> str:

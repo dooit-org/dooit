@@ -88,6 +88,7 @@ def test_comparable_fields():
         "recurrence",
         "priority",
         "pending",
+        "completed_at",
         "note",
     ]
     assert fields == expected_fields

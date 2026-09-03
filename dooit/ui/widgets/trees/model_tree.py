@@ -48,16 +48,24 @@ class ColumnRule:
 
     It takes whatever width it is handed and asks for none of its own, so the
     columns keep sizing themselves off the titles and the nodes alone.
+
+    The blank lines it can be given above it are what pushes whatever follows
+    it down: a rule with a gap over it is how a block is pinned to the foot of
+    a pane that is otherwise filled from the top.
     """
 
     CHARACTER = "─"
 
-    def __init__(self, style: str) -> None:
+    def __init__(self, style: str, space_above: int = 0) -> None:
         self.style = style
+        self.space_above = space_above
 
     def __rich_console__(
         self, console: Console, options: ConsoleOptions
     ) -> RenderResult:
+        for _ in range(self.space_above):
+            yield Segment.line()
+
         yield Segment(self.CHARACTER * options.max_width, console.get_style(self.style))
         yield Segment.line()
 
@@ -355,6 +363,16 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
     def is_node_expaned(self, _id: str) -> bool:
         return self.expanded_nodes[_id]
 
+    def visible_children(self, model: Any) -> List:
+        """
+        The children of a model that this pane has a row for
+
+        Everything filed under it, for a pane that shows the tree as it stands;
+        a pane that some of the models have moved out of leaves those out here.
+        """
+
+        return getattr(model, self.CHILDREN_ATTR)
+
     def _model_options(self) -> List[Option]:
         """
         One row per model, each expanded node followed by the rows under it
@@ -363,7 +381,7 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         options: List[Option] = []
 
         def add_children_recurse(model: ModelType):
-            for child in getattr(model, self.CHILDREN_ATTR):
+            for child in self.visible_children(model):
                 render = self._renderers[child.uuid]
                 options.append(Option("", id=render.id))
 
@@ -396,14 +414,17 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         Moves the cursor off a row it cannot sit on
 
         Rows come and go as the tree is refreshed, so an index that pointed at
-        a node can end up on a rule or a heading; the cursor is nudged down to
-        the next row that is really there.
+        a node can end up on a rule or a heading, or past the end of the pane
+        entirely; the cursor is nudged down to the next row that is really
+        there.
         """
 
-        if self.highlighted is None:
+        if self.highlighted is None or not self._options:
             return
 
-        for index in range(self.highlighted, len(self._options)):
+        start = min(self.highlighted, len(self._options) - 1)
+
+        for index in range(start, len(self._options)):
             if not self._options[index].disabled:
                 self.highlighted = index
                 return

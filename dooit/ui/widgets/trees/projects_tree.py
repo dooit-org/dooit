@@ -26,39 +26,99 @@ class ProjectsTree(ModelTree[Project, ProjectRenderDict]):
     # A project's description is just what it's called
     COLUMN_TITLES = {"description": "Name"}
 
-    # The rule that keeps the fixed projects apart from the stored ones. Same
-    # hairline the column titles sit on, so the block above it reads as part
-    # of the pane's own furniture rather than as one more project
+    # The rules that keep the fixed projects apart from the stored ones. Same
+    # hairline the column titles sit on, so the blocks outside them read as
+    # part of the pane's own furniture rather than as one more project
     FIXED_RULE_ID = "dooit-fixed-projects-rule"
+    BOTTOM_RULE_ID = "dooit-bottom-projects-rule"
 
     FIXED_MESSAGE = "[b]{}[/b] is a fixed project and can't be changed"
 
     def __init__(self, model: Project) -> None:
         render_dict = ProjectRenderDict(self)
         super().__init__(model, render_dict)
+        self._bottom_gap = 0
 
     def _body_options(self) -> List[Option]:
         """
-        The fixed projects first, then everything the database holds
+        The fixed projects first, then everything the database holds, then the
+        fixed projects that belong at the foot of the pane
 
-        The two blocks are divided by a rule, which is only drawn when there is
-        something on the far side of it to divide from.
+        Each block is divided from the next by a rule, which is only drawn when
+        there is something on the far side of it to divide from. The pinned
+        block is pushed all the way down by the blank lines over its rule, so
+        that it sits on the floor of the pane rather than under the last
+        project.
         """
 
-        fixed = [
-            Option("", id=self._renderers[project.uuid].id)
-            for project in fixed_projects()
-        ]
+        top: List[Option] = []
+        bottom: List[Option] = []
+
+        for project in fixed_projects():
+            option = Option("", id=self._renderers[project.uuid].id)
+            (bottom if project.pinned_bottom else top).append(option)
 
         stored = self._model_options()
+        options = list(top)
 
-        if fixed and stored:
-            fixed.append(self.static_row(self.FIXED_RULE_ID, self._make_fixed_rule))
+        if top and stored:
+            options.append(self.static_row(self.FIXED_RULE_ID, self._make_fixed_rule))
 
-        return fixed + stored
+        options += stored
+
+        if bottom:
+            if top or stored:
+                options.append(
+                    self.static_row(self.BOTTOM_RULE_ID, self._make_bottom_rule)
+                )
+
+            options += bottom
+
+        return options
 
     def _make_fixed_rule(self) -> ColumnRule:
         return ColumnRule(self.api.vars.theme.background3)
+
+    def _make_bottom_rule(self) -> ColumnRule:
+        return ColumnRule(self.api.vars.theme.background3, space_above=self._bottom_gap)
+
+    def _sync_bottom_gap(self) -> None:
+        """
+        Sizes the blank space that holds the pinned block against the floor
+
+        Whatever the pane has room for beyond the rows already in it, which is
+        nothing at all once they fill it: from there on the block is simply the
+        last thing in the list, and scrolled down to like anything else.
+        """
+
+        if self.BOTTOM_RULE_ID not in self._static_rows:
+            return
+
+        height = self.scrollable_content_region.height
+        if height <= 0:
+            return
+
+        heights = self._heights
+        if len(heights) != len(self._options):
+            return
+
+        # The rule's own hairline is part of what is filled; only the blank
+        # lines above it are the gap being sized here
+        filled = sum(heights.values()) - self._bottom_gap
+        gap = max(0, height - filled)
+
+        if gap != self._bottom_gap:
+            self._bottom_gap = gap
+            self.refresh_options()
+
+    def _force_refresh(self) -> None:
+        super()._force_refresh()
+        self._sync_bottom_gap()
+
+    def on_resize(self, _) -> None:
+        # A pane that got taller or shorter has a different amount of floor to
+        # hold the pinned block against
+        self._sync_bottom_gap()
 
     def _get_parent(self, id: str) -> Optional[Project]:
         return Project.from_id(id).parent_project

@@ -124,6 +124,27 @@ def add_note_column(engine: Engine):
         )
 
 
+def add_completed_at_column(engine: Engine):
+    """
+    Add the `completed_at` column to a todo table written before it existed.
+
+    Same story as `add_scheduled_column`. Todos completed before there was
+    anywhere to write the date keep an empty one: the Completed project sorts
+    them below everything that carries a real date.
+    """
+
+    inspector = inspect(engine)
+    if "todo" not in inspector.get_table_names():
+        return
+
+    columns = {column["name"] for column in inspector.get_columns("todo")}
+    if "completed_at" in columns:
+        return
+
+    with engine.begin() as connection:
+        connection.execute(text("ALTER TABLE todo ADD COLUMN completed_at DATETIME"))
+
+
 def delete_all_data(session: Session):
     meta = MetaData()
     meta.reflect(bind=session.get_bind())

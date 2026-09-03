@@ -71,14 +71,16 @@ class Project(DooitModel):
     @property
     def total_todos(self) -> int:
         """
-        Every todo nested under this project, counted at every level.
+        Every todo still to be done in here, counted at every level.
 
         Sub projects are walked into but never counted themselves: the number
-        says how much work sits in here, not how it is filed away.
+        says how much work sits in here, not how it is filed away. A completed
+        todo has moved to the Completed project and is counted there, so what
+        is left is what the project's own pane shows.
         """
 
         return sum(project.total_todos for project in self.projects) + sum(
-            1 + todo.total_children for todo in self.todos
+            1 + todo.total_children for todo in self.todos if todo.pending
         )
 
     @property
@@ -168,6 +170,7 @@ class Project(DooitModel):
                 "recurrence",
                 "priority",
                 "pending",
+                "completed_at",
             ]
             attrs = {field: getattr(todo, field) for field in fields}
             attrs["parent_project"] = new_project
@@ -206,6 +209,7 @@ class Project(DooitModel):
                 "recurrence",
                 "priority",
                 "pending",
+                "completed_at",
                 "order_index",
             ]
             attrs = {field: getattr(todo, field) for field in fields}

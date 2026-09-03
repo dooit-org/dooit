@@ -56,12 +56,18 @@ def tree_options(tree: ModelTree) -> List[Option]:
 
 
 def highlighted_index(tree: ModelTree) -> Optional[int]:
-    """Index of the highlighted node, ignoring the column header row"""
+    """Index of the highlighted node among the stored rows alone"""
 
     if tree.highlighted is None:
         return None
 
-    # The furniture all sits above the stored rows, so what it takes up is
-    # what a stored row's index has to come down by
-    furniture = len(tree._options) - len(tree_options(tree))
-    return tree.highlighted - furniture
+    # Counted by looking the row up among the stored ones rather than by
+    # subtracting what sits above it: the furniture is not all in one place,
+    # since a pane can pin a block of its own below the stored rows
+    highlighted = tree._options[tree.highlighted]
+    options = tree_options(tree)
+
+    if highlighted not in options:
+        return None
+
+    return options.index(highlighted)

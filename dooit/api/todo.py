@@ -29,6 +29,10 @@ class Todo(DooitModel):
     recurrence: Mapped[Optional[timedelta]] = mapped_column(default=None)
     priority: Mapped[int] = mapped_column(default=0)
     pending: Mapped[bool] = mapped_column(default=True)
+    # When the todo was ticked off. Never shown on a row of its own pane: it is
+    # what the Completed project orders its rows by, so that the last thing
+    # finished is the first thing seen there
+    completed_at: Mapped[Optional[datetime]] = mapped_column(default=None)
     # Free text hanging off the todo, edited in a window of its own rather than
     # in the row: the phone number to call, the steps, the reason it is blocked
     note: Mapped[str] = mapped_column(default="")
@@ -63,6 +67,22 @@ class Todo(DooitModel):
     def validate_pending(self, key, value):
         if value is not None:
             self.pending = True
+
+        return value
+
+    @validates("pending")
+    def stamp_completion(self, key, value):
+        """
+        Dates the todo the moment it is ticked off, and undates it when it is
+        unticked
+
+        Hung off the field itself rather than off `toggle_complete`, so that
+        every way a todo can be finished is stamped: the hooks that carry a
+        parent or a child along with it, and the one that bounces a recurring
+        todo straight back to pending, all go through here.
+        """
+
+        self.completed_at = None if value else datetime.now()
 
         return value
 
@@ -106,10 +126,13 @@ class Todo(DooitModel):
     @property
     def total_children(self) -> int:
         """
-        Every todo nested under this one, counted at every level
+        Every todo still to be done under this one, counted at every level
+
+        A completed one has moved to the Completed project along with whatever
+        hangs off it, so the count says what is left to expand into.
         """
 
-        return sum(1 + todo.total_children for todo in self.todos)
+        return sum(1 + todo.total_children for todo in self.todos if todo.pending)
 
     @property
     def siblings(self) -> List["Todo"]:
@@ -212,6 +235,7 @@ class Todo(DooitModel):
             "recurrence",
             "priority",
             "pending",
+            "completed_at",
             "note",
         ]
         attrs = {field: getattr(todo, field) for field in fields}
@@ -248,6 +272,7 @@ class Todo(DooitModel):
             "recurrence",
             "priority",
             "pending",
+            "completed_at",
             "note",
             "order_index",
         ]
