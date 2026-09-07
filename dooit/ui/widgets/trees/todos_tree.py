@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, Dict, List, Optional, Union
+from functools import partial
+from typing import TYPE_CHECKING, Dict, List, Optional, Set, Union
 from textual import on
 from textual.color import Color
 from textual.strip import Strip
@@ -6,11 +7,12 @@ from textual.style import Style
 from textual.timer import Timer
 from textual.widgets.option_list import Option
 
-from dooit.api import Todo, Project
+from dooit.api import Todo, Project, TodoGroup
+from dooit.api.fixed_projects import PATH_SEPARATOR
 from dooit.ui.api.events import SpawnNote, TodoRemoved
 from dooit.ui.api.events.events import TodoSelected
 from dooit.utils import blend
-from .model_tree import ModelTree
+from .model_tree import GroupHeading, ModelTree
 from ..renderers.todo_renderer import TodoRender
 from ._render_dict import TodoRenderDict
 
@@ -20,6 +22,11 @@ if TYPE_CHECKING:  # pragma: no cover
     )
 
 Model = Union[Todo, Project]
+
+# How far a group heading is pulled towards the background. The block it opens
+# has to be found without being read, so the name sits a step below the column
+# titles above it and a step above the hairline it runs into
+HEADING_FADE = 0.25
 
 
 class TodosTree(ModelTree[Model, TodoRenderDict]):
@@ -48,12 +55,22 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
     FLASH_INTERVAL = 0.04
     FLASH_STRENGTH = 0.6
 
+    # Whether a row is followed by the todos filed under it. A pane whose rows
+    # are whole tasks draws each with its steps under it, as far as it is
+    # expanded; one that gathers single todos from all over the tree draws the
+    # flat run of rows it collected, since the parents are not on screen.
+    show_children = True
+
     def __init__(self, model: Model) -> None:
         super().__init__(model, TodoRenderDict(self))
 
         # Rows still fading, each with the steps it has left to go
         self._flashing: Dict[str, int] = {}
         self._flash_timer: Optional[Timer] = None
+
+        # Indices of the options the banding falls on, worked out block by
+        # block as the rows are built
+        self._shaded_rows: Set[int] = set()
 
     @property
     def row_shade(self) -> Color:
@@ -75,15 +92,14 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
         """
         Whether the option at `index` is one of the banded rows
 
-        Counted from the first todo so that the header never shifts the
-        banding, and offset by one so that the topmost todo stays plain.
+        Worked out while the rows are built rather than off the index, so that
+        a heading never counts as a row and every block starts unshaded.
         """
 
         if not self.api.vars.row_shading:
             return False
 
-        row = index - self._body_offset
-        return row >= 0 and bool(row % 2)
+        return (index - self._body_offset) in self._shaded_rows
 
     def flash_row(self, _id: str) -> None:
         """Start the row at full brightness, and keep the fade running"""
@@ -164,6 +180,114 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
             return list(model.todos)
 
         return [todo for todo in model.todos if todo.pending]
+
+    def _heading_id(self, index: int) -> str:
+        return f"dooit-todo-group-{index}"
+
+    def _make_heading(self, label: str, space_above: bool) -> GroupHeading:
+        theme = self.api.vars.theme
+
+        return GroupHeading(
+            label=label,
+            label_style=blend(theme.foreground1, theme.background1, HEADING_FADE),
+            rule_style=theme.background3,
+            space_above=space_above,
+        )
+
+    @property
+    def todo_groups(self) -> List[TodoGroup]:
+        """
+        The blocks of rows the pane draws
+
+        A project shows the whole of the work filed under it, not just the part
+        of it that stopped at this level: its own todos open the pane, and
+        everything belonging to a project nested inside it follows in a block
+        per project. Otherwise a project that has been split into sub projects
+        reads as empty, and the work has to be hunted down a level at a time.
+
+        A project with nothing under it is one unlabelled block, which is a
+        plain list of rows: the heading is what marks a block off from the one
+        before it, and the first block of a pane has nothing to be marked off
+        from.
+        """
+
+        groups = [TodoGroup(todos=self.visible_children(self.model))]
+
+        if isinstance(self.model, Project):
+            groups.extend(self._sub_project_groups(self.model))
+
+        # A project nobody has filed anything under yet is not a block, it is
+        # a heading with nothing beneath it
+        return [group for group in groups if group.todos]
+
+    def _sub_project_groups(self, project: Project) -> List[TodoGroup]:
+        """
+        A block for every project nested under this one, however deep
+
+        Read top to bottom the way the projects pane is, so a block is found
+        where its project is over there. A block deeper than a child is headed
+        by its path down from here rather than by its name alone, which is
+        what keeps two sub projects that were given the same name apart.
+        """
+
+        groups: List[TodoGroup] = []
+
+        def walk(parent: Project, prefix: str) -> None:
+            for child in parent.projects:
+                label = f"{prefix}{child.description}"
+                groups.append(
+                    TodoGroup(todos=self.visible_children(child), label=label)
+                )
+                walk(child, f"{label}{PATH_SEPARATOR}")
+
+        walk(project, "")
+        return groups
+
+    def _body_options(self) -> List[Option]:
+        """
+        Every block of the pane, each under the name it belongs to
+        """
+
+        options: List[Option] = []
+        self._shaded_rows = set()
+
+        for index, group in enumerate(self.todo_groups):
+            if group.label:
+                options.append(
+                    self.static_row(
+                        self._heading_id(index),
+                        partial(self._make_heading, group.label, bool(index)),
+                    )
+                )
+
+            for row, todo in enumerate(self._group_rows(group.todos)):
+                if row % 2:
+                    self._shaded_rows.add(len(options))
+
+                options.append(Option("", id=self._renderers[todo.uuid].id))
+
+        return options
+
+    def _group_rows(self, todos: List[Todo]) -> List[Todo]:
+        """
+        The rows a block draws, in the order they are drawn in
+
+        The todos the block gathered, each followed by whatever is filed under
+        it for a pane that shows them, exactly as far as the node is expanded.
+        """
+
+        if not self.show_children:
+            return list(todos)
+
+        rows: List[Todo] = []
+
+        for todo in todos:
+            rows.append(todo)
+
+            if self.is_node_expaned(todo.uuid) or self.filter_refresh:
+                rows.extend(self._group_rows(self.visible_children(todo)))
+
+        return rows
 
     def _get_parent(self, id: str) -> Optional[Todo]:
         return Todo.from_id(id).parent_todo

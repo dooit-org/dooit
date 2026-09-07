@@ -1,23 +1,15 @@
 from datetime import datetime
-from functools import partial
-from typing import Any, List, Set
+from typing import Any, List
 
 from rich.style import Style
 from rich.text import Text
-from textual.widgets.option_list import Option
 
 from dooit.api import FixedProject, Todo, TodoGroup
 from dooit.api.fixed_projects import owning_project
 from dooit.ui.api.events import BarNotification, StartFieldEdit
 from dooit.ui.api.widgets import TodoWidget
 from dooit.utils import blend
-from .model_tree import GroupHeading
 from .todos_tree import TodosTree
-
-# How far a group heading is pulled towards the background. The block it opens
-# has to be found without being read, so the name sits a step below the column
-# titles above it and a step above the hairline it runs into
-HEADING_FADE = 0.25
 
 # The folder the projects pane draws its rows with, so a row that names its
 # project here is recognisably pointing back at a row over there
@@ -57,26 +49,9 @@ class FixedTodosTree(TodosTree):
     # the way the project it came from did.
     show_children = False
 
-    def __init__(self, model: FixedProject) -> None:
-        super().__init__(model)
-        self._shaded_rows: Set[int] = set()
-
     @property
     def model(self) -> FixedProject:
         return self._model
-
-    def _heading_id(self, index: int) -> str:
-        return f"dooit-todo-group-{index}"
-
-    def _make_heading(self, label: str, space_above: bool) -> GroupHeading:
-        theme = self.api.vars.theme
-
-        return GroupHeading(
-            label=label,
-            label_style=blend(theme.foreground1, theme.background1, HEADING_FADE),
-            rule_style=theme.background3,
-            space_above=space_above,
-        )
 
     @property
     def todo_groups(self) -> List[TodoGroup]:
@@ -88,55 +63,6 @@ class FixedTodosTree(TodosTree):
         """
 
         return self.model.todo_groups
-
-    def _body_options(self) -> List[Option]:
-        """
-        Every block of the fixed project, each under the name it belongs to
-
-        The banding is worked out here rather than off the row index, so that a
-        heading never counts as a row and every block starts unshaded.
-        """
-
-        options: List[Option] = []
-        self._shaded_rows = set()
-
-        for index, group in enumerate(self.todo_groups):
-            if group.label:
-                options.append(
-                    self.static_row(
-                        self._heading_id(index),
-                        partial(self._make_heading, group.label, bool(index)),
-                    )
-                )
-
-            for row, todo in enumerate(self._group_rows(group.todos)):
-                if row % 2:
-                    self._shaded_rows.add(len(options))
-
-                options.append(Option("", id=self._renderers[todo.uuid].id))
-
-        return options
-
-    def _group_rows(self, todos: List[Todo]) -> List[Todo]:
-        """
-        The rows a block draws, in the order they are drawn in
-
-        The todos the block gathered, each followed by whatever is filed under
-        it for a pane that shows them, exactly as far as the node is expanded.
-        """
-
-        if not self.show_children:
-            return list(todos)
-
-        rows: List[Todo] = []
-
-        for todo in todos:
-            rows.append(todo)
-
-            if self.is_node_expaned(todo.uuid) or self.filter_refresh:
-                rows.extend(self._group_rows(self.visible_children(todo)))
-
-        return rows
 
     @property
     def render_layout(self) -> List:
@@ -235,12 +161,6 @@ class FixedTodosTree(TodosTree):
             return name
 
         return name[: OWNER_MAX_WIDTH - 1] + ELLIPSIS
-
-    def _is_shaded(self, index: int) -> bool:
-        if not self.api.vars.row_shading:
-            return False
-
-        return (index - self._body_offset) in self._shaded_rows
 
     # ---------------------------------------------------------------
     # A fixed project owns none of the todos it shows: they can be worked on
