@@ -35,10 +35,13 @@ class Project(DooitModel):
         cascade="all",
         order_by="Project.order_index",
     )
+    # Deleting the project still takes its todos with it, but a todo lifted
+    # out of it is not thereby deleted: that is how a project is thrown away
+    # while what was filed in it goes to the Bin instead of going with it
     todos: Mapped[List["Todo"]] = relationship(
         "Todo",
         back_populates="parent_project",
-        cascade="all, delete-orphan",
+        cascade="all",
         order_by="Todo.order_index",
     )
 
@@ -76,11 +79,14 @@ class Project(DooitModel):
         Sub projects are walked into but never counted themselves: the number
         says how much work sits in here, not how it is filed away. A completed
         todo has moved to the Completed project and is counted there, so what
-        is left is what the project's own pane shows.
+        is left is what the project's own pane shows, and what it shows leaves
+        out whatever has been thrown in the Bin.
         """
 
         return sum(project.total_todos for project in self.projects) + sum(
-            1 + todo.total_children for todo in self.todos if todo.pending
+            1 + todo.total_children
+            for todo in self.todos
+            if todo.pending and not todo.is_binned
         )
 
     @property

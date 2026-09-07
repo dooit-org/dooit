@@ -80,6 +80,15 @@ class Todo(DooitModel):
     # what the Completed project orders its rows by, so that the last thing
     # finished is the first thing seen there
     completed_at: Mapped[Optional[datetime]] = mapped_column(default=None)
+    # When the todo was moved to the Bin. A binned todo is shown in the Bin
+    # project and nowhere else: not in the project it was filed under, and not
+    # in any of the fixed projects that gather work up from across the tree
+    binned_at: Mapped[Optional[datetime]] = mapped_column(default=None)
+    # The path of the project the todo was filed under, written down at the
+    # moment that project stopped existing. It is what a todo outliving its
+    # project is put back into when it is revived, and what says where it came
+    # from while there is nothing left to point at
+    origin_path: Mapped[str] = mapped_column(default="")
     # Free text hanging off the todo, edited in a window of its own rather than
     # in the row: the phone number to call, the steps, the reason it is blocked
     note: Mapped[str] = mapped_column(default="")
@@ -142,15 +151,48 @@ class Todo(DooitModel):
         return res
 
     @property
-    def parent(self) -> Union["Project", "Todo"]:
-        assert self.parent_project or self.parent_todo
+    def parent(self) -> Optional[Union["Project", "Todo"]]:
+        """
+        Whatever the todo hangs off, or nothing at all
+
+        A todo normally has one or the other. It can have neither: one that
+        outlived the project it was filed under keeps nothing but the path it
+        came from, and hangs off nothing until it is put back into a project.
+        """
 
         if self.parent_project:
             return self.parent_project
 
-        assert self.parent_todo is not None
-
         return self.parent_todo
+
+    @property
+    def is_orphan(self) -> bool:
+        """
+        Whether the project this todo was filed under is gone
+
+        Only a todo nobody is expected to work on right now can be left this
+        way: one in the Bin, or one already done and kept in the log.
+        """
+
+        return self.parent_project is None and self.parent_todo is None
+
+    @property
+    def is_binned(self) -> bool:
+        return self.binned_at is not None
+
+    @property
+    def descendants(self) -> List["Todo"]:
+        """
+        Every todo filed under this one, at any depth
+        """
+
+        found: List["Todo"] = []
+
+        for child in self.todos:
+            found.append(child)
+            found.extend(child.descendants)
+
+        return found
 
     @property
     def has_same_parent_kind(self) -> bool:
@@ -177,10 +219,15 @@ class Todo(DooitModel):
 
         The steps already done are left out: they are still drawn under this
         todo, but what the count is for is how much of the task is left, which
-        is what a collapsed row has no other way of saying.
+        is what a collapsed row has no other way of saying. A step thrown in
+        the Bin is not work left either — it is not drawn here at all.
         """
 
-        return sum(1 + todo.total_children for todo in self.todos if todo.pending)
+        return sum(
+            1 + todo.total_children
+            for todo in self.todos
+            if todo.pending and not todo.is_binned
+        )
 
     @property
     def siblings(self) -> List["Todo"]:

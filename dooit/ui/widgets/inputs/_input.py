@@ -1,7 +1,14 @@
 import pyperclip
-from typing import Optional, Union
+from typing import Optional
 
+from rich.style import Style
 from rich.text import Text
+
+# Keys that throw a selected value away rather than editing it: what was there
+# is gone either way, so the delete itself has nothing left to act on
+SELECTION_DELETE_KEYS = frozenset(
+    {"backspace", "delete", "ctrl+w", "ctrl+delete", "ctrl+l"}
+)
 
 
 class Input:
@@ -13,12 +20,17 @@ class Input:
     highlight_pattern = ""
     is_editing = False
 
+    # Whether the whole value is selected, the way an edit starts on a field
+    # that already holds something: the next thing typed replaces it
+    _selecting: bool = False
+
     # Inputs that only show a derived value refuse to be edited
     editable: bool = True
 
     def __init__(self, value="") -> None:
         self._value = value
         self._cursor_position = len(self._value)
+        self._selecting = False
 
     @property
     def value(self) -> str:
@@ -35,16 +47,40 @@ class Input:
     def render(self) -> str:
         return self.draw().strip()
 
-    def render_editing(self, theme) -> Union[str, Text]:
+    def render_editing(self, theme) -> Text:
         """
         What to draw while this field is being edited
 
         Formatters are bypassed during an edit, so a field that can say
         something useful about the half-typed buffer -- what a due date
         expression resolves to, say -- overrides this to add it.
+
+        A value that is still selected is drawn as one highlighted block
+        rather than as a buffer with a cursor sitting in it, which is what
+        says that typing replaces it instead of adding to it.
         """
 
-        return self.render()
+        # The buffer rather than `value`: a field that derives what it shows
+        # from the model (an unset priority, say) still has the buffer the
+        # keystrokes land in, and that is what is up for replacement
+        if self._selecting:
+            text = Text(self._value)
+
+            # spanned rather than styled as a whole, so that a subclass which
+            # appends to this -- a due date's preview, say -- stays outside
+            # the highlight instead of being drawn as part of the selection
+            text.stylize(self.selection_style(theme), 0, len(self._value))
+            return text
+
+        return Text(self.render())
+
+    @staticmethod
+    def selection_style(theme) -> Style:
+        """
+        The inverted pill the bar already wears while a field is typed into
+        """
+
+        return Style(color=theme.background1, bgcolor=theme.secondary)
 
     def _render_text_with_cursor(self) -> str:
         """
@@ -60,8 +96,38 @@ class Input:
     def start_edit(self) -> None:
         self.is_editing = True
 
-    def stop_edit(self) -> None:
+        # An edit that starts on a field which already holds something starts
+        # with it selected, so that replacing it is just typing, with no
+        # clearing out of the old value first
+        self._selecting = bool(self._value)
+
+    def stop_edit(self, cancel: bool = False) -> None:
         self.is_editing = False
+        self._selecting = False
+
+    def _is_text_key(self, key: str) -> bool:
+        """
+        Whether this keypress puts something into the buffer
+        """
+
+        return (
+            key in ("space", "tab") or key.startswith("events.Paste:") or len(key) == 1
+        )
+
+    def _settle_selection(self, key: str) -> None:
+        """
+        Drop the whole-value selection against the key that just arrived
+
+        Anything that writes into the buffer, and anything that deletes out of
+        it, takes the selected value with it. Everything else -- a cursor move,
+        most of all -- only drops the selection and leaves the value alone.
+        """
+
+        self._selecting = False
+
+        if key in SELECTION_DELETE_KEYS or self._is_text_key(key):
+            self._value = ""
+            self._cursor_position = 0
 
     def _insert_text(self, text: Optional[str] = None) -> None:
         """
@@ -145,6 +211,14 @@ class Input:
         self._cursor_position = len(self._value)
 
     def keypress(self, key: str) -> None:
+        if self._selecting:
+            self._settle_selection(key)
+
+            # The selected value is already gone; a delete on top of that
+            # would eat into whatever it gets replaced with
+            if key in SELECTION_DELETE_KEYS:
+                return
+
         # Moving backward
         if key == "left":
             self._move_cursor_backward()

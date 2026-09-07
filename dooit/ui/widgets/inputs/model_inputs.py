@@ -104,7 +104,7 @@ class DateInput(SimpleInput[Todo, datetime]):
         The buffer, plus what the text currently in it resolves to
         """
 
-        text = Text(self.draw().strip())
+        text = super().render_editing(theme)
 
         if not self.value.strip():
             return text
@@ -160,6 +160,21 @@ class Completed(DateInput):
     @property
     def _property(self) -> str:
         return "completed_at"
+
+
+class Binned(DateInput):
+    """
+    The date the todo was thrown away
+
+    Written by the app rather than by hand, the way the completion date is: a
+    todo lands in the Bin by being dropped, which is what dates it.
+    """
+
+    editable = False
+
+    @property
+    def _property(self) -> str:
+        return "binned_at"
 
 
 class Priority(SimpleInput[Todo, int]):

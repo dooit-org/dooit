@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 from rich.text import Text
 from textual import on
 
-from dooit.api import FixedProject, Todo, TodoGroup, manager
+from dooit.api import FixedProject, Todo, TodoGroup, manager, revive_home
 from dooit.api.fixed_projects import completion_key
 from .fixed_todos_tree import FixedTodosTree
 from .model_tree import ModelTree
@@ -169,13 +169,20 @@ class CompletedTodosTree(FixedTodosTree):
 
         super().toggle_complete()
 
-    def stop_edit(self):
+        # A finished task can sit in the log with no project at all: the one it
+        # was filed under was thrown away while it was in here. The moment
+        # there is work left in it again it needs somewhere to be done, so the
+        # project it names is built back to take it
+        if root.is_pending:
+            self.announce_revived(revive_home(root))
+
+    def stop_edit(self, cancel: bool = False):
         held = None
 
         if self.highlighted is not None:
             held = self._root_uuid(self.current_model.uuid)
 
-        super().stop_edit()
+        super().stop_edit(cancel)
 
         # The edit is the second half: whatever had to be said about the task
         # on its way back has been said, so the rows it was typed into go

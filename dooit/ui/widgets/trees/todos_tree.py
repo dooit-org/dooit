@@ -1,15 +1,21 @@
 from functools import partial
-from typing import TYPE_CHECKING, Dict, List, Optional, Set, Union
+from typing import TYPE_CHECKING, List, Optional, Set, Union
 from textual import on
 from textual.color import Color
 from textual.strip import Strip
 from textual.style import Style
-from textual.timer import Timer
 from textual.widgets.option_list import Option
 
-from dooit.api import Todo, Project, TodoGroup, sort_todos
+from dooit.api import (
+    Todo,
+    Project,
+    TodoGroup,
+    move_todo_to_bin,
+    restore_todo,
+    sort_todos,
+)
 from dooit.api.fixed_projects import PATH_SEPARATOR
-from dooit.ui.api.events import SpawnNote, TodoRemoved
+from dooit.ui.api.events import BarNotification, SpawnNote, TodoChanged, TodoRemoved
 from dooit.ui.api.events.events import TodoSelected
 from dooit.utils import blend
 from .model_tree import GroupHeading, ModelTree
@@ -44,17 +50,6 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
     # little more than its name.
     ROW_SHADE = 0.4
 
-    # The pulse a recurring todo answers a tick with. Ticking one off never
-    # takes the row anywhere: it comes straight back pending with its next date
-    # set, so without this the key looks like it did nothing and gets pressed
-    # again. The row lights up in the green the rest of the app says "done" in
-    # and sinks back to the background it was on, over a third of a second —
-    # long enough to catch out of the corner of an eye, short enough that it is
-    # gone before the next key.
-    FLASH_STEPS = 8
-    FLASH_INTERVAL = 0.04
-    FLASH_STRENGTH = 0.6
-
     # Whether a row is followed by the todos filed under it. A pane whose rows
     # are whole tasks draws each with its steps under it, as far as it is
     # expanded; one that gathers single todos from all over the tree draws the
@@ -63,10 +58,6 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
 
     def __init__(self, model: Model) -> None:
         super().__init__(model, TodoRenderDict(self))
-
-        # Rows still fading, each with the steps it has left to go
-        self._flashing: Dict[str, int] = {}
-        self._flash_timer: Optional[Timer] = None
 
         # Indices of the options the banding falls on, worked out block by
         # block as the rows are built
@@ -101,66 +92,33 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
 
         return (index - self._body_offset) in self._shaded_rows
 
-    def flash_row(self, _id: str) -> None:
-        """Start the row at full brightness, and keep the fade running"""
-
-        self._flashing[_id] = self.FLASH_STEPS
-
-        if self._flash_timer is None:
-            self._flash_timer = self.set_interval(self.FLASH_INTERVAL, self._fade_rows)
-
-        self.refresh()
-
-    def _fade_rows(self) -> None:
-        """
-        Takes every flashing row one step closer to the background it sits on
-
-        The timer is stopped rather than left ticking once the last row has
-        arrived, so that a pane nobody has touched costs nothing.
-        """
-
-        for _id, step in list(self._flashing.items()):
-            if step <= 1:
-                self._flashing.pop(_id)
-            else:
-                self._flashing[_id] = step - 1
-
-        if not self._flashing and self._flash_timer is not None:
-            self._flash_timer.stop()
-            self._flash_timer = None
-
-        self.refresh()
-
-    def _flash_background(self, step: int, under: Optional[Color]) -> Color:
-        """The green a flashing row sits on, `step` steps into the fade"""
-
-        theme = self.api.vars.theme
-        base = under or Color.parse(theme.background1)
-        strength = self.FLASH_STRENGTH * step / self.FLASH_STEPS
-
-        return base.blend(Color.parse(theme.green), strength)
-
     def _get_option_render(self, option: Option, style: Style) -> List[Strip]:
         """
         Bands the rows, leaving the highlighted one to the cursor
 
         The shade is dropped for the highlighted row rather than drawn under
-        it, so that the cursor is the only background in play wherever it sits.
-
-        A row still flashing overrides both: it is mixed into whatever
-        background it would otherwise have had, so that when the green has
-        drained away the row is left exactly as it started, cursor and all.
+        it, so that the cursor is the only background in play wherever it sits,
+        and for a row still flashing, which the pane behind this one mixes its
+        own background into.
         """
 
         index = self._option_to_index.get(option)
-        step = self._flashing.get(option.id or "")
+        flashing = (option.id or "") in self._flashing
 
-        if step:
-            style += Style(background=self._flash_background(step, style.background))
-        elif index is not None and index != self.highlighted and self._is_shaded(index):
+        if (
+            not flashing
+            and index is not None
+            and index != self.highlighted
+            and self._is_shaded(index)
+        ):
             style += Style(background=self.row_shade)
 
         return super()._get_option_render(option, style)
+
+    # Whether the pane draws the todos that have been thrown away rather than
+    # the ones that have not. A binned todo is in the Bin and nowhere else, so
+    # every pane shows one side of this or the other, never both at once
+    shows_binned = False
 
     def visible_children(self, model: Model) -> List[Todo]:
         """
@@ -169,6 +127,8 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
         A task is what moves: a completed todo filed straight under a project
         has gone to the Completed project, is shown there with everything that
         was finished along with it, and comes back here when it is unticked.
+        One thrown away has moved to the Bin the same way, and comes back the
+        same way.
 
         A completed step of a task has gone nowhere. It stays under the todo
         it belongs to, ticked off, for as long as there is anything left to do
@@ -180,6 +140,8 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
             todos = list(model.todos)
         else:
             todos = [todo for todo in model.todos if todo.pending]
+
+        todos = [todo for todo in todos if todo.is_binned == self.shows_binned]
 
         return sort_todos(todos, self.sort_mode)
 
@@ -354,6 +316,83 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
         self.post_message(TodoRemoved(self.current_model))
 
         return super()._delete_current_model()
+
+    def _bin_node(self) -> None:
+        """
+        Throws the highlighted task away, with everything filed under it
+
+        Nothing is lost by it: the task is in the Bin from here on, where it
+        can be looked at, put back, or dropped for good. Which is why the key
+        never asks first.
+        """
+
+        todo = self.current_model
+        assert isinstance(todo, Todo)
+
+        if todo.is_binned:
+            self._already_binned()
+            return
+
+        move_todo_to_bin(todo)
+        self.post_message(TodoChanged(todo))
+
+    def _already_binned(self) -> None:
+        self.post_message(
+            BarNotification(
+                "Already in the Bin — [b]yy[/b] deletes it for good", "warning"
+            )
+        )
+
+    def _restore_node(self) -> None:
+        """
+        Takes the highlighted task back out of the Bin
+        """
+
+        todo = self.current_model
+        assert isinstance(todo, Todo)
+
+        if not todo.is_binned:
+            self.post_message(
+                BarNotification("Only tasks in the Bin can be restored", "warning")
+            )
+            return
+
+        revived = restore_todo(todo)
+        self.post_message(TodoChanged(todo))
+        self.announce_revived(revived)
+
+    def announce_revived(self, projects: List[Project]) -> None:
+        """
+        Points out the projects that had to be rebuilt to take a task back
+
+        A task coming back out of the Bin or off the completion log lands
+        wherever it was filed, which can be a project nobody kept. It is built
+        again out of the name the task was carrying, and the projects pane
+        flashes it the same way this one flashes a recurring todo: the row it
+        appeared in is the only thing that says the key did anything at all.
+        """
+
+        if not projects:
+            return
+
+        tree = self.api.vars.projects_tree
+
+        for project in projects:
+            parent = project.parent_project
+
+            # A project rebuilt inside another one is only reachable if what it
+            # sits in is open, and what it sits in may have just been built too
+            if parent is not None and not parent.is_root:
+                tree.expanded_nodes[parent.uuid] = True
+
+        tree.force_refresh()
+
+        for project in projects:
+            tree.flash_row(project.uuid)
+
+        self.post_message(
+            BarNotification(f"Brought back [b]{projects[-1].description}[/b]", "info")
+        )
 
     def toggle_complete(self):
         todo = self.current_model

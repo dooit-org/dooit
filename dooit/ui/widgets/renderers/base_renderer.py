@@ -215,13 +215,13 @@ class BaseRenderer(Generic[ModelType]):
         self.editing = param
         return True
 
-    def stop_edit(self):
+    def stop_edit(self, cancel: bool = False):
         # A field that rejects what was typed raises out of here, and the tree
         # turns that into a notification. The edit still has to be torn down on
         # the way out, or the tree keeps routing keystrokes into the buffer
         # while the bar claims to be back in NORMAL mode
         try:
-            getattr(self, self.editing).stop_edit()
+            getattr(self, self.editing).stop_edit(cancel)
         finally:
             self.tree.get_column_width.cache_clear()
             self.editing = ""

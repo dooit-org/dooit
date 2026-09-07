@@ -145,6 +145,40 @@ def add_completed_at_column(engine: Engine):
         connection.execute(text("ALTER TABLE todo ADD COLUMN completed_at DATETIME"))
 
 
+def add_bin_columns(engine: Engine):
+    """
+    Add the columns the Bin is kept in to a todo table written before it
+    existed.
+
+    Same story as `add_scheduled_column`. Nothing that was already in the
+    database was ever thrown away, so every existing row starts out with an
+    empty bin date and no path of its own to remember.
+    """
+
+    inspector = inspect(engine)
+    if "todo" not in inspector.get_table_names():
+        return
+
+    columns = {column["name"] for column in inspector.get_columns("todo")}
+
+    statements = []
+
+    if "binned_at" not in columns:
+        statements.append("ALTER TABLE todo ADD COLUMN binned_at DATETIME")
+
+    if "origin_path" not in columns:
+        statements.append(
+            "ALTER TABLE todo ADD COLUMN origin_path TEXT NOT NULL DEFAULT ''"
+        )
+
+    if not statements:
+        return
+
+    with engine.begin() as connection:
+        for statement in statements:
+            connection.execute(text(statement))
+
+
 def delete_all_data(session: Session):
     meta = MetaData()
     meta.reflect(bind=session.get_bind())

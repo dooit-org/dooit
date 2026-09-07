@@ -283,13 +283,14 @@ def todo_recurrence_formatter(recurrence: Optional[timedelta], _):
 COMPLETED_FADE = 0.55
 
 
-# A completed todo is done with: its whole line is grayed out, and its
-# description struck through on top of that. The status column is left alone,
-# so the check mark stays the one bright thing left on the row.
-def gray_out_completed(strike: bool = False):
+# A row that has been finished or thrown away is done with: its whole line is
+# grayed out, and its description struck through on top of that. The status
+# column is left alone, so the check mark stays the one bright thing left on
+# the row.
+def _gray_out(applies: Callable[[Todo], bool], strike: bool):
     @extra_formatter
     def wrapper(value: str, todo: Todo, api: DooitAPI):
-        if not todo.is_completed:
+        if not applies(todo):
             return
 
         theme = api.vars.theme
@@ -311,6 +312,35 @@ def gray_out_completed(strike: bool = False):
         ).markup
 
     return wrapper
+
+
+def gray_out_completed(strike: bool = False):
+    return _gray_out(lambda todo: todo.is_completed, strike)
+
+
+# The Bin is read the way the completion log is, so the rows in it are drawn
+# the same way: struck through and sunk into the background, because they are
+# not work any more either
+def gray_out_binned(strike: bool = False):
+    return _gray_out(lambda todo: todo.is_binned, strike)
+
+
+# The waste basket in front of the date a row was thrown away on, the same one
+# the Bin itself is drawn with. It carries the muted gray the rest of the row
+# is faded to rather than a status color: nothing about a binned row is urgent,
+# and the date is only there to say how long ago you changed your mind.
+BIN_DATE_ICON = "󰆴 "
+
+
+@extra_formatter
+def binned_date_formatter(value: str, todo: Todo, api: DooitAPI) -> str:
+    if not todo.binned_at:
+        return value
+
+    theme = api.vars.theme
+    color = blend(theme.foreground1, theme.background1, COMPLETED_FADE)
+
+    return f"[{color}]{BIN_DATE_ICON}{_strip_markup(value)}[/]"
 
 
 # Hold-to-show help
@@ -458,20 +488,27 @@ def key_setup(api: DooitAPI, _):
     api.keys.set("gt", api.goto_today, group=NAVIGATION)
     api.keys.set("gu", api.goto_upcoming, group=NAVIGATION)
     api.keys.set("gc", api.goto_completed, group=NAVIGATION)
+    api.keys.set("gb", api.goto_bin, group=NAVIGATION)
     api.keys.set("G", api.go_to_bottom, group=NAVIGATION)
     api.keys.set("h", api.toggle_expand, group=NAVIGATION)
 
     api.keys.set("i", api.edit_description, group=EDITING)
     api.keys.set("d", api.edit_due, group=EDITING)
-    # Capital, because lowercase "s" opens the sorting chords below and a key
-    # that is the start of another one can never be pressed on its own
-    api.keys.set("S", api.edit_scheduled, group=EDITING)
+    # Lowercase, matching the other date: the sorting chords below moved up to
+    # the shifted "S" to leave this one free, since a key that is the start of
+    # another one can never be pressed on its own
+    api.keys.set("s", api.edit_scheduled, group=EDITING)
     api.keys.set("r", api.edit_recurrence, group=EDITING)
     api.keys.set("n", api.add_sibling, group=EDITING)
     api.keys.set("N", api.add_child_node, group=EDITING)
     api.keys.set(" ", api.show_note, group=EDITING)
     api.keys.set("c", api.toggle_complete, group=EDITING)
+    # Throwing something away costs nothing and asks nothing: it goes to the
+    # Bin, where "u" fetches it back. Getting rid of it for real is the other
+    # chord, which is the one that stops to ask
     api.keys.set("xx", api.remove_node, group=EDITING)
+    api.keys.set("yy", api.delete_node, group=EDITING)
+    api.keys.set("u", api.restore_node, group=EDITING)
 
     # A scale is one thing to learn, not four, so the whole run of digits is
     # listed as the single row it reads as. The keys are still set one at a
@@ -519,18 +556,20 @@ def key_setup(api: DooitAPI, _):
     api.keys.set("/", api.start_search, group=VIEW)
     api.keys.set("q", api.toggle_row_shading, group=VIEW)
 
-    # The order a project is read in, typed as one chord per order: "s" then
-    # the initial of the thing sorted by. They are one row in the help for the
-    # same reason the priority scale is — three ways of asking the same
-    # question, and a list of them is read as a list, not as three bindings.
-    SORT_LABEL = "s" + "/s".join(mode[0] for mode in SORT_MODES)
+    # The order a project is read in, typed as one chord per order: shifted
+    # "S" then the shifted initial of the thing sorted by. Shifted, so that
+    # plain "s" is left to the scheduled date rather than being swallowed as
+    # the prefix of these. They are one row in the help for the same reason
+    # the priority scale is — three ways of asking the same question, and a
+    # list of them is read as a list, not as three bindings.
+    SORT_LABEL = "S" + "/S".join(mode[0].upper() for mode in SORT_MODES)
     SORT_HELP = "Sort the todos by " + ", ".join(
         SORT_LABELS[mode] for mode in SORT_MODES
     )
 
     for mode in SORT_MODES:
         api.keys.set(
-            f"s{mode[0]}",
+            f"S{mode[0].upper()}",
             partial(api.sort_todos, mode),
             description=SORT_HELP,
             group=VIEW,
@@ -575,12 +614,13 @@ def layout_setup(api: DooitAPI, _):
 def formatter_setup(api: DooitAPI, _):
     # Added first => runs last, so the graying has the final say over every
     # color the formatters below hand out
-    api.formatter.todos.description.add(gray_out_completed(strike=True))
-    api.formatter.todos.due.add(gray_out_completed())
-    api.formatter.todos.scheduled.add(gray_out_completed())
-    api.formatter.todos.effort.add(gray_out_completed())
-    api.formatter.todos.recurrence.add(gray_out_completed())
-    api.formatter.todos.note.add(gray_out_completed())
+    for gray_out in (gray_out_binned, gray_out_completed):
+        api.formatter.todos.description.add(gray_out(strike=True))
+        api.formatter.todos.due.add(gray_out())
+        api.formatter.todos.scheduled.add(gray_out())
+        api.formatter.todos.effort.add(gray_out())
+        api.formatter.todos.recurrence.add(gray_out())
+        api.formatter.todos.note.add(gray_out())
 
     api.formatter.todos.status.add(todo_status_formatter)
     api.formatter.todos.description.add(todo_description_formatter)
@@ -609,6 +649,13 @@ def formatter_setup(api: DooitAPI, _):
         column.add(due_danger_today())
         column.add(date_color_formatter(field))
         column.add(date_icon(field))  # added last => runs first
+
+    # The Bin's own date column, built out of the same date formatter, read a
+    # day at a time the way the completion log is, and then marked and colored
+    # by the one thing it has to say, which is that the row is in the Bin
+    api.formatter.todos.binned.add(todo_date_formatter)
+    api.formatter.todos.binned.add(due_danger_today())
+    api.formatter.todos.binned.add(binned_date_formatter)
 
     api.formatter.todos.effort.add(todo_effort_formatter)
     api.formatter.todos.effort.add(todo_effort_color_formatter)

@@ -18,6 +18,10 @@ from rich.measure import Measurement
 from rich.segment import Segment
 from rich.table import Table
 from rich.text import Text
+from textual.color import Color
+from textual.strip import Strip
+from textual.style import Style
+from textual.timer import Timer
 from textual.widgets import Label
 from textual.widgets.option_list import Option
 from dooit.api import Todo, Project
@@ -154,6 +158,16 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
     TITLE_CAP_LEFT = "\ue0b6"
     TITLE_CAP_RIGHT = "\ue0b4"
 
+    # The pulse a row answers a key with when the key changed something the
+    # row cannot show by moving: a recurring todo handed straight back pending,
+    # a project rebuilt to take a revived todo back. The row lights up in the
+    # green the rest of the app says "done" in and sinks back to the background
+    # it was on, over a third of a second \u2014 long enough to catch out of the
+    # corner of an eye, short enough that it is gone before the next key.
+    FLASH_STEPS = 8
+    FLASH_INTERVAL = 0.04
+    FLASH_STRENGTH = 0.6
+
     def __init__(self, model: ModelType, render_dict: RenderDictType) -> None:
         tree = self.__class__.__name__
         super().__init__(id=f"{tree}_{model.uuid}")
@@ -162,6 +176,64 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         self._renderers: RenderDictType = render_dict
         self._filter_refresh = False
         self._static_rows: Dict[str, Callable[[], RenderableType]] = {}
+
+        # Rows still fading, each with the steps it has left to go
+        self._flashing: Dict[str, int] = {}
+        self._flash_timer: Optional[Timer] = None
+
+    def flash_row(self, _id: str) -> None:
+        """Start the row at full brightness, and keep the fade running"""
+
+        self._flashing[_id] = self.FLASH_STEPS
+
+        if self._flash_timer is None:
+            self._flash_timer = self.set_interval(self.FLASH_INTERVAL, self._fade_rows)
+
+        self.refresh()
+
+    def _fade_rows(self) -> None:
+        """
+        Takes every flashing row one step closer to the background it sits on
+
+        The timer is stopped rather than left ticking once the last row has
+        arrived, so that a pane nobody has touched costs nothing.
+        """
+
+        for _id, step in list(self._flashing.items()):
+            if step <= 1:
+                self._flashing.pop(_id)
+            else:
+                self._flashing[_id] = step - 1
+
+        if not self._flashing and self._flash_timer is not None:
+            self._flash_timer.stop()
+            self._flash_timer = None
+
+        self.refresh()
+
+    def _flash_background(self, step: int, under: Optional[Color]) -> Color:
+        """The green a flashing row sits on, `step` steps into the fade"""
+
+        theme = self.api.vars.theme
+        base = under or Color.parse(theme.background1)
+        strength = self.FLASH_STRENGTH * step / self.FLASH_STEPS
+
+        return base.blend(Color.parse(theme.green), strength)
+
+    def _get_option_render(self, option: Option, style: Style) -> List[Strip]:
+        """
+        Mixes the flash into whatever background the row would otherwise have
+
+        Whatever it was \u2014 the pane's own, the cursor's, a banded row's \u2014 is
+        what the row is left on once the green has drained away.
+        """
+
+        step = self._flashing.get(option.id or "")
+
+        if step:
+            style += Style(background=self._flash_background(step, style.background))
+
+        return super()._get_option_render(option, style)
 
     @cache
     def get_column_width(self, attr: str) -> int:
@@ -513,11 +585,19 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
             self.update_current_prompt()
         return res
 
-    def stop_edit(self):
+    def stop_edit(self, cancel: bool = False):
+        """
+        End the edit, keeping what was typed unless it is being thrown away
+
+        A cancelled edit leaves the model exactly as it was, which still lets
+        a brand new item fall through the blank-description check below: it
+        was never given a name, so there is nothing to keep it for.
+        """
+
         edited = self.current.editing
 
         try:
-            self.current.stop_edit()
+            self.current.stop_edit(cancel)
         except Exception as e:  # pragma: no cover
             self.post_message(BarNotification(str(e), "error"))
 
@@ -547,7 +627,9 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
     async def handle_keypress(self, key: str) -> bool:
         if self.is_editing:
             if key in ["escape", "enter"]:
-                self.stop_edit()
+                # enter keeps what was typed; escape throws it away and puts
+                # the field back the way it was found
+                self.stop_edit(cancel=key == "escape")
             else:
                 self.current.handle_keypress(key)
 
@@ -721,9 +803,54 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
 
         self._delete_current_model()
 
+    def _bin_node(self) -> None:
+        """
+        Move the highlighted node to the Bin, keeping everything it holds
+        """
+
+        raise NotImplementedError  # pragma: no cover
+
+    def _restore_node(self) -> None:
+        """
+        Take the highlighted node back out of the Bin
+        """
+
+        self.post_message(
+            BarNotification("Only tasks in the Bin can be restored", "warning")
+        )
+
     @require_highlighted_node
+    @refresh_tree
     def remove_node(self):
+        """
+        Throws the highlighted item away
+
+        Nothing goes for good here: what is dropped lands in the Bin, whole,
+        and stays there until it is either restored or deleted on purpose.
+        Which is what lets the key act on the spot instead of asking first.
+        """
+
+        self._bin_node()
+
+    @require_highlighted_node
+    def delete_node(self):
+        """
+        Deletes the highlighted item outright, with everything under it
+
+        The one way something leaves the database, and the only edit that
+        cannot be taken back — so it is the one that asks.
+        """
+
         self._remove_node()
+
+    @require_highlighted_node
+    @refresh_tree
+    def restore_node(self):
+        """
+        Puts the highlighted item back where it was thrown away from
+        """
+
+        self._restore_node()
 
     @refresh_tree
     def shift_up(self) -> None:

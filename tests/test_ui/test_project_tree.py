@@ -94,7 +94,7 @@ async def test_project_remove_cancelled():
         assert current is not None
         assert current.id == TodosTree(p1).id
 
-        ptree.remove_node()
+        ptree.delete_node()
         await pilot.pause()
         await pilot.press("n")
         await pilot.pause()
@@ -128,7 +128,7 @@ async def test_project_remove():
         assert current is not None
         assert current.id == TodosTree(p1).id
 
-        ptree.remove_node()
+        ptree.delete_node()
         await pilot.pause()
         await pilot.press("y")
         await pilot.pause()

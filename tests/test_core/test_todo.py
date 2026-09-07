@@ -89,6 +89,8 @@ def test_comparable_fields():
         "priority",
         "pending",
         "completed_at",
+        "binned_at",
+        "origin_path",
         "note",
     ]
     assert fields == expected_fields

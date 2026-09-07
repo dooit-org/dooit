@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 from dooit.ui.api.events import BarNotification, NotificationType
 from dooit.ui.api.plug import PluginManager
-from dooit.api import COMPLETED, TODAY, UPCOMING
+from dooit.api import BIN, COMPLETED, TODAY, UPCOMING
 from .events import DooitEvent, GotoFixedProject, SwitchTab, QuitApp
 from dooit.ui.widgets import ModelTree
 from dooit.ui.widgets.trees import TodosTree
@@ -151,6 +151,11 @@ class DooitAPI:
 
         self.goto_fixed_project(COMPLETED.key)
 
+    def goto_bin(self):
+        """Jump to the Bin and start on the task thrown away last"""
+
+        self.goto_fixed_project(BIN.key)
+
     def move_down(self):
         """Move the cursor down in the focused list"""
 
@@ -220,8 +225,16 @@ class DooitAPI:
         self.focused.add_child_node()
 
     def remove_node(self):
-        """Remove the highlighted item"""
+        """Move the highlighted item to the Bin"""
         self.focused.remove_node()
+
+    def delete_node(self):
+        """Delete the highlighted item for good (asks first)"""
+        self.focused.delete_node()
+
+    def restore_node(self):
+        """Restore the highlighted item out of the Bin"""
+        self.focused.restore_node()
 
     def start_search(self):
         """Start a search within the list"""

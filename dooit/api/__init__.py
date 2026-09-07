@@ -7,10 +7,18 @@ from .fixed_projects import (
     TODAY,
     UPCOMING,
     COMPLETED,
+    BIN,
     fixed_project_from_id,
     fixed_project_from_key,
     fixed_projects,
     register_fixed_project,
+)
+from .recycle import (
+    REVIVED_PREFIX,
+    move_project_to_bin,
+    move_todo_to_bin,
+    restore_todo,
+    revive_home,
 )
 from .manager import manager
 from .hooks import fix_hooks, validation_hooks, update_hooks
@@ -50,6 +58,12 @@ __all__ = [
     "TODAY",
     "UPCOMING",
     "COMPLETED",
+    "BIN",
+    "REVIVED_PREFIX",
+    "move_project_to_bin",
+    "move_todo_to_bin",
+    "restore_todo",
+    "revive_home",
     "fixed_project_from_id",
     "fixed_project_from_key",
     "fixed_projects",

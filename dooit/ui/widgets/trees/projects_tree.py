@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING, List, Optional
 from textual import on
 from textual.widgets.option_list import Option
 
-from dooit.api import Project, fixed_projects
+from dooit.api import Project, fixed_projects, move_project_to_bin
 from dooit.ui.api.events import (
     ProjectRemoved,
     ProjectSelected,
@@ -150,6 +150,25 @@ class ProjectsTree(ModelTree[Project, ProjectRenderDict]):
         self.post_message(ProjectRemoved(self.current_model))
         return super()._delete_current_model()
 
+    def _bin_node(self) -> None:
+        """
+        Throws the highlighted project away, keeping what was filed in it
+
+        The project row is the only part that actually goes: every task under
+        it, and under the projects nested inside it, lands in the Bin carrying
+        the path it came from. Restoring one of them from there builds the
+        project back out of that path, so dropping a project is a decision
+        that can be walked back one task at a time.
+        """
+
+        project = self.current_model
+
+        self.post_message(ProjectRemoved(project))
+        self._renderers.pop(project.uuid, None)
+        self.expanded_nodes.pop(project.uuid, None)
+
+        move_project_to_bin(project)
+
     # ---------------------------------------------------------------
     # Nothing about a fixed project is stored, so every edit that would
     # write one back to the database is turned away with a word about why
@@ -166,6 +185,10 @@ class ProjectsTree(ModelTree[Project, ProjectRenderDict]):
     @reject_fixed_node(FIXED_MESSAGE)
     def remove_node(self):
         return super().remove_node()
+
+    @reject_fixed_node(FIXED_MESSAGE)
+    def delete_node(self):
+        return super().delete_node()
 
     @reject_fixed_node(FIXED_MESSAGE)
     def shift_up(self) -> None:

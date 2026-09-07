@@ -5,7 +5,7 @@ from rich.style import Style
 from rich.text import Text
 
 from dooit.api import FixedProject, Todo, TodoGroup
-from dooit.api.fixed_projects import owning_project
+from dooit.api.fixed_projects import PATH_SEPARATOR, owning_project
 from dooit.ui.api.events import BarNotification, StartFieldEdit
 from dooit.ui.api.widgets import TodoWidget
 from dooit.utils import blend
@@ -149,20 +149,39 @@ class FixedTodosTree(TodosTree):
         project: the ones with a block per project have said it already. What
         it shows is the project's own name rather than its whole path, which
         is what keeps it to the end of a line it is sharing.
+
+        A todo that outlived its project has the name it was filed under
+        instead, which is the name the project comes back under if the todo
+        does.
         """
 
         if not self.model.show_owning_project or not isinstance(model, Todo):
             return Text()
 
-        project = owning_project(model)
+        name = self._owner_name(model)
 
-        if project is None:  # pragma: no cover
+        if not name:  # pragma: no cover
             return Text()
 
         theme = self.api.vars.theme
         style = Style(color=blend(theme.foreground1, theme.background1, OWNER_FADE))
 
-        return Text(f"  {OWNER_ICON} {self._fit(project.description)}", style=style)
+        return Text(f"  {OWNER_ICON} {self._fit(name)}", style=style)
+
+    @staticmethod
+    def _owner_name(todo: Todo) -> str:
+        """
+        What a row calls the project it belongs to, gone or not
+        """
+
+        project = owning_project(todo)
+
+        if project is not None:
+            return project.description
+
+        # Only the last step of the path: the row has room for a name, and the
+        # name is the part of the path that says which project this was
+        return todo.origin_path.split(PATH_SEPARATOR)[-1].strip()
 
     @staticmethod
     def _fit(name: str) -> str:

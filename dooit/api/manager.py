@@ -20,6 +20,7 @@ class Manager:
 
         from dooit.api import BaseModel
         from dooit.utils.database import (
+            add_bin_columns,
             add_completed_at_column,
             add_note_column,
             add_scheduled_column,
@@ -39,6 +40,7 @@ class Manager:
         add_scheduled_column(self.engine)
         add_note_column(self.engine)
         add_completed_at_column(self.engine)
+        add_bin_columns(self.engine)
         BaseModel.metadata.create_all(bind=self.engine)
         self._db_last_modified = self._get_db_last_modified()
 

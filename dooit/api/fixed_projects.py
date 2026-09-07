@@ -136,6 +136,11 @@ class FixedProject:
     # being what the project gathers
     holds_unticked_rows: bool = False
 
+    # Whether what the project gathers is the todos that have been thrown
+    # away. Every other pane shows the ones that have not: a binned todo is in
+    # here and nowhere else, until it is restored or deleted for good
+    gathers_binned: bool = False
+
     # --- the parts of `Project` the trees and the bar read ---
 
     is_root: bool = False
@@ -190,6 +195,12 @@ def completion_key(todo: Todo) -> datetime:
     return todo.completed_at or datetime.min
 
 
+# The same, for the Bin: the thing thrown away last is the thing most likely
+# to be wanted back, so it sits at the top
+def binned_key(todo: Todo) -> datetime:
+    return todo.binned_at or datetime.min
+
+
 def _day_heading(day: date) -> str:
     """
     What opens a day's block: the day itself, or "Tomorrow" for the next one
@@ -226,6 +237,7 @@ class TodayProject(FixedProject):
         start = datetime.combine(date.today(), time.min)
         query = select(Todo).where(
             Todo.pending == True,
+            Todo.binned_at.is_(None),
             Todo.scheduled >= start,
             Todo.scheduled < start + timedelta(days=1),
         )
@@ -290,6 +302,7 @@ class UpcomingProject(FixedProject):
         tomorrow = datetime.combine(date.today() + timedelta(days=1), time.min)
         query = select(Todo).where(
             Todo.pending == True,
+            Todo.binned_at.is_(None),
             Todo.scheduled >= tomorrow,
         )
 
@@ -375,6 +388,7 @@ class CompletedProject(FixedProject):
 
         query = select(Todo).where(
             Todo.pending == False,
+            Todo.binned_at.is_(None),
             Todo.parent_todo_id.is_(None),
         )
 
@@ -386,6 +400,77 @@ class CompletedProject(FixedProject):
 
         # One block, and no heading over it: what the rows have in common is
         # that they are done, which the pane has already said
+        return [TodoGroup(todos=todos)]
+
+
+class BinProject(FixedProject):
+    """
+    Everything that has been thrown away and not yet emptied out
+
+    The other side of the Completed project, and drawn the same way: one run
+    of rows with the most recent at the top, each carrying the project it came
+    out of and the date it landed here instead of the dates it was working to.
+    Where Completed is a log of what got done, this is a log of what got
+    dropped — and unlike Completed, it can be undone: a row restored from here
+    goes straight back to the project it was filed under.
+
+    A task arrives whole, with its steps under it, and goes back out whole.
+    What it does not do is leave on its own: a todo stays in the Bin until it
+    is either restored or deleted for good, which is what makes throwing
+    something away a decision that can be slept on.
+    """
+
+    key = "bin"
+    title = "Bin"
+    # The waste basket, so the project says the same thing about its rows that
+    # the key which fills it does
+    icon = "󰆴"
+
+    pinned_bottom = True
+    muted = True
+
+    gathers_binned = True
+
+    # Nothing here says which project a row came out of, so the rows do
+    show_owning_project = True
+
+    # Nothing in the Bin is planned or owed any more; what is worth knowing is
+    # when it was thrown away, which is how long there is left to change your
+    # mind. It takes the place of both date columns, which can still be edited
+    # from the bar on a row that is on its way back out
+    hidden_columns = ("scheduled", "due")
+    extra_columns = ("binned",)
+
+    # Read a day at a time, the way the completion log is: what went in today
+    # says "Today" whatever the hour
+    day_only_columns = ("binned",)
+
+    @staticmethod
+    def _binned() -> List[Todo]:
+        """
+        The tasks in the Bin: the binned todos nothing binned is filed under
+
+        Throwing a todo away throws away everything under it, so a step whose
+        task went in the Bin arrives inside that task rather than beside it.
+        A step binned on its own has no binned todo above it and stands as a
+        row of its own, which is exactly what it is.
+        """
+
+        query = select(Todo).where(Todo.binned_at.is_not(None))
+        todos = manager.session.execute(query).scalars().all()
+
+        return [
+            todo
+            for todo in todos
+            if todo.parent_todo is None or not todo.parent_todo.is_binned
+        ]
+
+    @property
+    def todo_groups(self) -> List[TodoGroup]:
+        todos = sorted(self._binned(), key=binned_key, reverse=True)
+
+        # One block, and no heading over it: what the rows have in common is
+        # that they were thrown out, which the pane has already said
         return [TodoGroup(todos=todos)]
 
 
@@ -432,3 +517,8 @@ register_fixed_project(UPCOMING)
 
 COMPLETED = CompletedProject()
 register_fixed_project(COMPLETED)
+
+# Right under Completed, at the very foot of the pane: the two places work
+# leaves the tree for, in the order they are looked in
+BIN = BinProject()
+register_fixed_project(BIN)

@@ -59,7 +59,22 @@ class SimpleInput(Input, Generic[ModelType, ModelValue]):
         super().start_edit()
         self.move_cursor_to_end()
 
-    def stop_edit(self) -> None:
+    def stop_edit(self, cancel: bool = False) -> None:
+        """
+        End the edit, writing the buffer back to the model unless it is thrown
+        away
+
+        A cancelled edit never touches the model: the buffer is refilled from
+        what the model still holds, which is what puts the field back the way
+        it was before the first keystroke.
+        """
+
+        if cancel:
+            self._value = self._get_default_value()
+            super().stop_edit(cancel)
+            self.move_cursor_to_end()
+            return
+
         self._value = self.value.strip()
         try:
             self.model_value = self._typecast_value(self.value)
