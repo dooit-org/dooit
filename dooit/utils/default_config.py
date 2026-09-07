@@ -19,6 +19,7 @@ from dooit_extras.bar_widgets import (
     ProjectProgress,
 )
 from dooit.ui.api import DooitAPI, extra_formatter, subscribe
+from dooit.ui.api.dooit_api import SORT_LABELS
 from dooit.ui.api.widgets import TodoWidget, ProjectWidget
 from dooit.ui.api.events import ModeChanged, Startup
 from dooit.ui.screens import HelpScreen
@@ -58,6 +59,14 @@ def priority_color(priority: int, api: DooitAPI) -> str:
 
     # Nothing prioritized: a gray sitting halfway between text and background
     return colors.get(priority, blend(theme.foreground1, theme.background1, 0.5))
+
+
+# The orders a project's todos can be read in, in the order the help lists
+# them. Priority leads because it is the one a project is opened to ask:
+# whatever is filed in here, what is the next thing to do out of it. The dates
+# are there for the stretches of work that are run off a calendar instead, and
+# hold until they are switched back — the order is the pane's, not a project's.
+SORT_MODES = ("priority", "due", "scheduled")
 
 
 # Effort runs the opposite way to priority: e1 is a quick job, e3 a big one.
@@ -454,7 +463,9 @@ def key_setup(api: DooitAPI, _):
 
     api.keys.set("i", api.edit_description, group=EDITING)
     api.keys.set("d", api.edit_due, group=EDITING)
-    api.keys.set("s", api.edit_scheduled, group=EDITING)
+    # Capital, because lowercase "s" opens the sorting chords below and a key
+    # that is the start of another one can never be pressed on its own
+    api.keys.set("S", api.edit_scheduled, group=EDITING)
     api.keys.set("r", api.edit_recurrence, group=EDITING)
     api.keys.set("n", api.add_sibling, group=EDITING)
     api.keys.set("N", api.add_child_node, group=EDITING)
@@ -462,38 +473,41 @@ def key_setup(api: DooitAPI, _):
     api.keys.set("c", api.toggle_complete, group=EDITING)
     api.keys.set("xx", api.remove_node, group=EDITING)
 
-    for priority in PRIORITIES:
+    # A scale is one thing to learn, not four, so the whole run of digits is
+    # listed as the single row it reads as. The keys are still set one at a
+    # time; it is only the help screen that is told to write them as a range.
+    PRIORITY_LABEL = f"p0-p{max(PRIORITIES)}"
+    PRIORITY_HELP = (
+        f"Set the todo priority, p1 the most urgent "
+        f"and p{max(PRIORITIES)} the least (p0 clears it)"
+    )
+
+    for priority in [0, *PRIORITIES]:
         api.keys.set(
             f"p{priority}",
             partial(api.set_priority, priority),
-            description=f"Set the todo priority to p{priority}",
+            description=PRIORITY_HELP,
             group=PRIORITY_EFFORT,
+            label=PRIORITY_LABEL,
         )
-
-    api.keys.set(
-        "p0",
-        partial(api.set_priority, 0),
-        description="Clear the priority of the todo",
-        group=PRIORITY_EFFORT,
-    )
 
     # Effort is picked off a fixed scale the same way priority is, so it is
     # typed the same way: a chord, not a text field. "e" on its own is only a
     # prefix of these, so it stays unbound and waits for the digit.
-    for effort in EFFORTS:
+    EFFORT_LABEL = f"e0-e{max(EFFORTS)}"
+    EFFORT_HELP = (
+        f"Set the todo effort, e1 the quickest "
+        f"and e{max(EFFORTS)} the biggest job (e0 clears it)"
+    )
+
+    for effort in [0, *EFFORTS]:
         api.keys.set(
             f"e{effort}",
             partial(api.set_effort, effort),
-            description=f"Set the todo effort to e{effort}",
+            description=EFFORT_HELP,
             group=PRIORITY_EFFORT,
+            label=EFFORT_LABEL,
         )
-
-    api.keys.set(
-        "e0",
-        partial(api.set_effort, 0),
-        description="Clear the effort of the todo",
-        group=PRIORITY_EFFORT,
-    )
 
     api.keys.set("L", api.shift_down, group=MOVING)
     api.keys.set("K", api.shift_up, group=MOVING)
@@ -504,6 +518,24 @@ def key_setup(api: DooitAPI, _):
 
     api.keys.set("/", api.start_search, group=VIEW)
     api.keys.set("q", api.toggle_row_shading, group=VIEW)
+
+    # The order a project is read in, typed as one chord per order: "s" then
+    # the initial of the thing sorted by. They are one row in the help for the
+    # same reason the priority scale is — three ways of asking the same
+    # question, and a list of them is read as a list, not as three bindings.
+    SORT_LABEL = "s" + "/s".join(mode[0] for mode in SORT_MODES)
+    SORT_HELP = "Sort the todos by " + ", ".join(
+        SORT_LABELS[mode] for mode in SORT_MODES
+    )
+
+    for mode in SORT_MODES:
+        api.keys.set(
+            f"s{mode[0]}",
+            partial(api.sort_todos, mode),
+            description=SORT_HELP,
+            group=VIEW,
+            label=SORT_LABEL,
+        )
 
     api.keys.set(
         "?",

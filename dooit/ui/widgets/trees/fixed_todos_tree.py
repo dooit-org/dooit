@@ -54,6 +54,19 @@ class FixedTodosTree(TodosTree):
         return self._model
 
     @property
+    def sort_mode(self) -> None:
+        """
+        A fixed project orders its own rows, and is not re-ordered over
+
+        The order is half of what the project is: Today reads by priority
+        because that is the question the day asks, and Completed by the date
+        each row was ticked off. An order picked for a stored project has
+        nothing to say about either.
+        """
+
+        return None
+
+    @property
     def todo_groups(self) -> List[TodoGroup]:
         """
         The blocks of rows the pane draws
@@ -188,3 +201,16 @@ class FixedTodosTree(TodosTree):
 
     def start_sort(self):
         self._not_here("Tasks can't be sorted")
+
+    def sort_by(self, mode: str) -> bool:
+        """
+        The order keys do nothing here, rather than quietly re-ordering
+        elsewhere
+
+        The order is the pane's, so taking it from a project that has no say
+        in its own would leave the key looking like it had missed: nothing
+        moves here, and what did move is a pane nobody is looking at.
+        """
+
+        self._not_here("Tasks can't be sorted")
+        return False

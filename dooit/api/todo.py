@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Callable, Dict, Literal, Optional, Union
 from datetime import datetime, timedelta
 from typing import List
 from sqlalchemy import ForeignKey, select, nulls_last
@@ -14,6 +14,53 @@ if TYPE_CHECKING:  # pragma: no cover
 # Effort is a rough estimate of how much work a todo is, on a 1-3 scale;
 # 0 means no estimate was made
 MAX_EFFORT = 3
+
+# The orders a pane of todos can be read in. Every one of them ends on the
+# order the todos were filed in by hand, so the rows a sort has nothing to say
+# about — the ones nobody prioritized, or put a date on — keep the order they
+# were given rather than being shuffled around by it.
+TodoSortModeType = Literal["priority", "due", "scheduled"]
+
+
+# The most urgent first, and everything unprioritized after the lot of them:
+# priority 1 is the top of the scale and 0 means it was never set, so the rows
+# without one are pushed past the end rather than sorting ahead of p1
+def priority_key(todo: "Todo") -> tuple:
+    return (todo.priority == 0, todo.priority, todo.order_index)
+
+
+# What a date sort does with the rows carrying no date: they go last. A todo
+# nobody put a day on is not due at the beginning of time, it is simply not
+# something the sort can place.
+def _date_key(attr: str) -> Callable[["Todo"], tuple]:
+    def key(todo: "Todo") -> tuple:
+        value = getattr(todo, attr)
+        return (value is None, value or datetime.max, todo.order_index)
+
+    return key
+
+
+SORT_KEYS: Dict[str, Callable[["Todo"], tuple]] = {
+    "priority": priority_key,
+    "due": _date_key("due"),
+    "scheduled": _date_key("scheduled"),
+}
+
+
+def sort_todos(todos: List["Todo"], mode: Optional[str]) -> List["Todo"]:
+    """
+    A run of todos in the order the pane reads them in
+
+    No mode — or one nothing is known about — hands the list straight back, in
+    the order the todos were filed in.
+    """
+
+    key = SORT_KEYS.get(mode or "")
+
+    if key is None:
+        return list(todos)
+
+    return sorted(todos, key=key)
 
 
 class Todo(DooitModel):

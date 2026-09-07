@@ -1,5 +1,5 @@
 from .model import DooitModel, BaseModel
-from .todo import Todo
+from .todo import SORT_KEYS, Todo, TodoSortModeType, sort_todos
 from .project import Project
 from .fixed_projects import (
     FixedProject,
@@ -41,6 +41,9 @@ __all__ = [
     "BaseModel",
     "DooitModel",
     "Todo",
+    "TodoSortModeType",
+    "SORT_KEYS",
+    "sort_todos",
     "Project",
     "FixedProject",
     "TodoGroup",

@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING, Optional
 
 from textual.widgets import ContentSwitcher
 
-from dooit.api import Project
+from dooit.api import Project, TodoSortModeType
 from dooit.api.theme import DooitThemeBase
 from dooit.api.todo import Todo
 from dooit.ui.widgets.trees import ProjectsTree, TodosTree
@@ -21,6 +21,26 @@ class VarManager(ApiComponent):
         self._always_expand_projects = False
         self._always_expand_todos = False
         self._row_shading = False
+        self._todo_sort: TodoSortModeType = "priority"
+
+    @property
+    def todo_sort(self) -> TodoSortModeType:
+        """
+        The order the todos of a stored project are read in
+
+        Priority to start with: a project is a pile of work, and what is asked
+        of it first is what to do next. An order picked instead of it belongs
+        to the pane rather than to the project that was open at the time, and
+        holds until it is switched again.
+
+        Fixed projects order their own rows and are left alone by this.
+        """
+
+        return self._todo_sort
+
+    @todo_sort.setter
+    def todo_sort(self, value: TodoSortModeType):
+        self._todo_sort = value
 
     @property
     def row_shading(self) -> bool:

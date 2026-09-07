@@ -21,6 +21,16 @@ if TYPE_CHECKING:  # pragma: no cover
     from ..tui import Dooit
 
 
+# What each order is called where it is announced. The field names are what
+# the columns are titled, but "scheduled" on its own reads as an adjective
+# looking for a noun once it is in a sentence.
+SORT_LABELS = {
+    "priority": "priority",
+    "due": "due date",
+    "scheduled": "scheduled date",
+}
+
+
 class DooitAPI:
     def __init__(
         self,
@@ -235,6 +245,26 @@ class DooitAPI:
         """Set the effort of the todo (1 is the lightest, 0 clears it)"""
         if isinstance(self.focused, TodosTree):
             self.focused.set_effort(effort)
+
+    def sort_todos(self, mode: str):
+        """Order the todos of a project by priority, due date or scheduled date"""
+
+        tree = self.vars.todos_tree
+
+        # The projects pane can be the focused one, and the order still belongs
+        # to the todos beside it: there is only ever one pane of them on screen
+        if tree is None:
+            return
+
+        # A fixed project turns the order down and says so itself, so there is
+        # nothing left for this to announce
+        if not tree.sort_by(mode):
+            return
+
+        # The order is not written anywhere on the pane, and the rows of a
+        # project that has no dates on it do not move when it changes, so the
+        # bar is what says the key landed
+        self.notify(f"Todos sorted by [b]{SORT_LABELS[mode]}[/b]")
 
     def toggle_row_shading(self):
         """Toggle the shading of alternate rows in the todos pane"""

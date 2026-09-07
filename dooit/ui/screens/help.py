@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from typing import List, Tuple
 from rich.console import Group, RenderableType
 from rich.rule import Rule
 from rich.table import Table
@@ -37,6 +38,29 @@ class DooitKeyTable(Static):
     # Keys that arrive as a character nobody can see, and so have to be named
     KEY_LABELS = {" ": "space"}
 
+    def _rows(self, group: str) -> List[Tuple[str, str]]:
+        """
+        The rows a section lists, as the key it names and what it does
+
+        A binding carrying a label of its own is written under that instead of
+        under its key, and the whole run of bindings sharing one collapses to
+        the single row they all read as: a scale is one thing to learn, and
+        four rows of it is four times the screen saying so.
+        """
+
+        rows: List[Tuple[str, str]] = []
+
+        for keybind, func in self.keybinds.get_keybinds_by_group(group):
+            if func.description == "<NOP>":
+                continue
+
+            row = (func.label or self.key_label(keybind), func.description)
+
+            if row not in rows:
+                rows.append(row)
+
+        return rows
+
     @classmethod
     def key_label(cls, keybind: str) -> str:
         if keybind in cls.KEY_LABELS:
@@ -58,18 +82,12 @@ class DooitKeyTable(Static):
         t.add_column("arrow", width=2)
         t.add_column("description", ratio=1)
 
-        for keybind, func in self.keybinds.get_keybinds_by_group(group):
-            if func.description == "<NOP>":
-                continue
-
+        for label, description in self._rows(group):
             t.add_row(
-                Text(
-                    self.key_label(keybind),
-                    style=self.get_component_rich_style("keybind"),
-                ),
+                Text(label, style=self.get_component_rich_style("keybind")),
                 Text("->", style=self.get_component_rich_style("arrow")),
                 Text(
-                    func.description,
+                    description,
                     style=self.get_component_rich_style("description"),
                 ),
             )
@@ -84,10 +102,9 @@ class DooitKeyTable(Static):
 
         key_width = max(
             (
-                len(self.key_label(keybind))
+                len(label)
                 for group in self.keybinds.groups
-                for keybind, func in self.keybinds.get_keybinds_by_group(group)
-                if func.description != "<NOP>"
+                for label, _ in self._rows(group)
             ),
             default=0,
         )
@@ -95,15 +112,17 @@ class DooitKeyTable(Static):
         renderables = []
 
         for group in self.keybinds.groups:
-            # A blank line either side keeps the separator from crowding the
-            # sections it divides
+            # A blank line above the rule and the section title straight under
+            # it. The gap the sections were once given on either side is worth
+            # less than the whole listing being on screen at once: a screen of
+            # blank lines is what pushes the last section off the bottom of it.
             if renderables:
-                renderables += [Text(""), separator, Text("")]
+                renderables += [Text(""), separator]
 
             if group:
                 title = Text(group, style=self.get_component_rich_style("table-title"))
                 title.pad(1)
-                renderables += [title, Text("")]
+                renderables.append(title)
 
             renderables.append(self._render_group(group, key_width))
 

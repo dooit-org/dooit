@@ -7,7 +7,7 @@ from textual.style import Style
 from textual.timer import Timer
 from textual.widgets.option_list import Option
 
-from dooit.api import Todo, Project, TodoGroup
+from dooit.api import Todo, Project, TodoGroup, sort_todos
 from dooit.api.fixed_projects import PATH_SEPARATOR
 from dooit.ui.api.events import SpawnNote, TodoRemoved
 from dooit.ui.api.events.events import TodoSelected
@@ -177,9 +177,43 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
         """
 
         if isinstance(model, Todo):
-            return list(model.todos)
+            todos = list(model.todos)
+        else:
+            todos = [todo for todo in model.todos if todo.pending]
 
-        return [todo for todo in model.todos if todo.pending]
+        return sort_todos(todos, self.sort_mode)
+
+    @property
+    def sort_mode(self) -> Optional[str]:
+        """
+        The order this pane reads its rows in, or None to leave them filed
+
+        The steps of a task are ordered the same way the tasks are: a pane is
+        read one way down its whole length, or the order it is in stops
+        meaning anything halfway down it.
+        """
+
+        return self.api.vars.todo_sort
+
+    def sort_by(self, mode: str) -> bool:
+        """
+        Read the pane in a different order, and say whether it took
+
+        Every todos pane switches, not just this one: the switcher keeps one
+        per project, and an order picked here is the order the next project is
+        opened in. The cursor stays on the row it was on rather than on the
+        place in the pane that row used to be.
+
+        A pane that orders its own rows turns the order down instead, which is
+        what the answer is for.
+        """
+
+        self.api.vars.todo_sort = mode
+
+        for tree in self.app.screen.query(TodosTree):
+            tree._refresh_and_restore_highlight()
+
+        return True
 
     def _heading_id(self, index: int) -> str:
         return f"dooit-todo-group-{index}"

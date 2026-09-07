@@ -23,7 +23,7 @@ from sqlalchemy import select
 from ..utils.day_names import day_label
 from .manager import manager
 from .project import Project
-from .todo import Todo
+from .todo import Todo, priority_key
 
 FIXED_ID_PREFIX = "FixedProject"
 
@@ -183,12 +183,6 @@ class FixedProject:
         return [self]
 
 
-# How todos are ordered inside a group: the most urgent first, and everything
-# nobody prioritized after the lot of them
-def _priority_key(todo: Todo):
-    return (todo.priority == 0, todo.priority, todo.order_index)
-
-
 # How todos are ordered where the point is when they were finished: the most
 # recently completed first. A todo ticked off before there was anywhere to
 # write the date down has none, and sorts below everything that has one
@@ -257,7 +251,7 @@ class TodayProject(FixedProject):
 
         return [
             TodoGroup(
-                todos=sorted(groups[project_id], key=_priority_key),
+                todos=sorted(groups[project_id], key=priority_key),
                 label=project_path(projects[project_id]),
             )
             for project_id in sorted(groups, key=lambda i: order.get(i, 0))
@@ -311,7 +305,7 @@ class UpcomingProject(FixedProject):
 
         return [
             TodoGroup(
-                todos=sorted(groups[day], key=_priority_key),
+                todos=sorted(groups[day], key=priority_key),
                 label=_day_heading(day),
             )
             for day in sorted(groups)
