@@ -62,7 +62,10 @@ class BaseTree(OptionList, can_focus=True, inherit_bindings=False):
         """Highlight the topmost node if nothing is highlighted yet"""
 
         if self.highlighted is None and self._options:
-            self.action_first()
+            index = self.first_selectable_index
+
+            if not self._options[index].disabled:
+                self.highlighted = index
 
     @on(events.Focus)
     def highlight_on_focus(self, _: events.Focus) -> None:

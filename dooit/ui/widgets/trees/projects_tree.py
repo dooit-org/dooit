@@ -120,6 +120,47 @@ class ProjectsTree(ModelTree[Project, ProjectRenderDict]):
         # hold the pinned block against
         self._sync_bottom_gap()
 
+    def _stored_indices(self) -> List[int]:
+        """
+        The rows of the pane that stand for a project the database holds
+
+        The fixed blocks top and tail the pane and each of them already has a
+        key that jumps straight to it, so they are left out here: the top and
+        the bottom of the pane, as far as moving around it goes, are the first
+        and the last stored project.
+        """
+
+        indices: List[int] = []
+
+        for index, option in enumerate(self._options):
+            if option.disabled or self.is_static_row(option.id):
+                continue
+
+            assert option.id is not None
+
+            if getattr(self._renderers[option.id].model, "is_fixed", False):
+                continue
+
+            indices.append(index)
+
+        return indices
+
+    def action_first(self) -> None:
+        indices = self._stored_indices()
+
+        if not indices:
+            return super().action_first()
+
+        self.highlighted = indices[0]
+
+    def action_last(self) -> None:
+        indices = self._stored_indices()
+
+        if not indices:
+            return super().action_last()
+
+        self.highlighted = indices[-1]
+
     def _get_parent(self, id: str) -> Optional[Project]:
         return Project.from_id(id).parent_project
 
