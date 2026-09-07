@@ -199,12 +199,40 @@ def test_priority(create_project, create_todo):
 def test_recurrence_change(create_project, create_todo):
     p = create_project()
     t = p.add_todo()
-    t.due = datetime.strptime("2021-01-01", "%Y-%m-%d")
+    t.scheduled = datetime.strptime("2021-01-01", "%Y-%m-%d")
     t.recurrence = timedelta(days=1)
     t.save()
-    assert t.due == datetime.strptime("2021-01-01", "%Y-%m-%d")
+    assert t.scheduled == datetime.strptime("2021-01-01", "%Y-%m-%d")
     t.toggle_complete()
-    assert t.due == datetime.strptime("2021-01-02", "%Y-%m-%d")
+    assert t.scheduled == datetime.strptime("2021-01-02", "%Y-%m-%d")
+    assert t.is_pending
+
+
+def test_recurrence_takes_over_the_due_date(create_project):
+    """A deadline becomes the first occurrence, and the column stays clear"""
+
+    p = create_project()
+    t = p.add_todo()
+    t.due = datetime.strptime("2021-01-01", "%Y-%m-%d")
+    t.recurrence = timedelta(weeks=1)
+    t.save()
+
+    assert t.due is None
+    assert t.scheduled == datetime.strptime("2021-01-01", "%Y-%m-%d")
+
+
+def test_recurrence_drops_a_due_date_it_cannot_use(create_project):
+    """With a day already planned, the deadline is simply dropped"""
+
+    p = create_project()
+    t = p.add_todo()
+    t.due = datetime.strptime("2021-01-01", "%Y-%m-%d")
+    t.scheduled = datetime.strptime("2021-02-01", "%Y-%m-%d")
+    t.recurrence = timedelta(weeks=1)
+    t.save()
+
+    assert t.due is None
+    assert t.scheduled == datetime.strptime("2021-02-01", "%Y-%m-%d")
 
 
 def test_sort_invalid(create_project, create_todo):

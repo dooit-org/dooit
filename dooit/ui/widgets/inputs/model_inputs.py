@@ -124,7 +124,21 @@ class DateInput(SimpleInput[Todo, datetime]):
 class Due(DateInput):
     """
     The date the todo has to be done by
+
+    A recurring todo has none: what repeats is never owed by a date, only
+    planned for the next one. Typing a deadline into one is turned away here
+    rather than silently dropped by the hook that keeps the column clear.
     """
+
+    def _typecast_value(self, value: str) -> Any:
+        date = super()._typecast_value(value)
+
+        if date is not None and self.model.recurrence is not None:
+            raise ValueError(
+                "A recurring todo has no due date; set its scheduled date instead"
+            )
+
+        return date
 
 
 class Scheduled(DateInput):

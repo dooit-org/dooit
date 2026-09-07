@@ -61,16 +61,46 @@ def update_parent_to_completed(mapper, connection, target: Todo):
         connection.execute(query)
 
 
+@event.listens_for(Todo, "before_insert")
 @event.listens_for(Todo, "before_update")
-def update_due_for_recurrence(mapper, connection, todo: Todo):
+def clear_due_for_recurrence(mapper, connection, todo: Todo):
+    """
+    A recurring todo carries no deadline, only the day it next comes round
+
+    Nothing that repeats is owed by a date: what it has is the next time it is
+    meant to be done, which is what `scheduled` holds. A deadline it was
+    carrying before the recurrence was set becomes that first occurrence,
+    unless a day was already planned for it, in which case it is dropped.
+    """
+
+    if todo.recurrence is None or todo.due is None:
+        return
+
+    if todo.scheduled is None:
+        todo.scheduled = todo.due
+
+    todo.due = None
+
+
+@event.listens_for(Todo, "before_update")
+def update_scheduled_for_recurrence(mapper, connection, todo: Todo):
+    """
+    Bounces a ticked-off recurring todo back to pending, one interval on
+
+    A recurring todo is never finished, only done for now: ticking it off
+    moves the day it is planned for forward by its interval and hands it
+    straight back, pending. The tick never lands and the row never moves,
+    which is why the pane flashes it instead.
+    """
+
     if todo.recurrence is None:
         return
 
-    if todo.due is None:
-        todo.due = datetime.now()
+    if todo.scheduled is None:
+        todo.scheduled = datetime.now()
 
     if todo.pending:
         return
 
     todo.pending = True
-    todo.due += todo.recurrence
+    todo.scheduled += todo.recurrence

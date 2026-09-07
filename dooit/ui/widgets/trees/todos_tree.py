@@ -1,8 +1,9 @@
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
 from textual import on
 from textual.color import Color
 from textual.strip import Strip
 from textual.style import Style
+from textual.timer import Timer
 from textual.widgets.option_list import Option
 
 from dooit.api import Todo, Project
@@ -36,8 +37,23 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
     # little more than its name.
     ROW_SHADE = 0.4
 
+    # The pulse a recurring todo answers a tick with. Ticking one off never
+    # takes the row anywhere: it comes straight back pending with its next date
+    # set, so without this the key looks like it did nothing and gets pressed
+    # again. The row lights up in the green the rest of the app says "done" in
+    # and sinks back to the background it was on, over a third of a second —
+    # long enough to catch out of the corner of an eye, short enough that it is
+    # gone before the next key.
+    FLASH_STEPS = 8
+    FLASH_INTERVAL = 0.04
+    FLASH_STRENGTH = 0.6
+
     def __init__(self, model: Model) -> None:
         super().__init__(model, TodoRenderDict(self))
+
+        # Rows still fading, each with the steps it has left to go
+        self._flashing: Dict[str, int] = {}
+        self._flash_timer: Optional[Timer] = None
 
     @property
     def row_shade(self) -> Color:
@@ -69,17 +85,63 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
         row = index - self._body_offset
         return row >= 0 and bool(row % 2)
 
+    def flash_row(self, _id: str) -> None:
+        """Start the row at full brightness, and keep the fade running"""
+
+        self._flashing[_id] = self.FLASH_STEPS
+
+        if self._flash_timer is None:
+            self._flash_timer = self.set_interval(self.FLASH_INTERVAL, self._fade_rows)
+
+        self.refresh()
+
+    def _fade_rows(self) -> None:
+        """
+        Takes every flashing row one step closer to the background it sits on
+
+        The timer is stopped rather than left ticking once the last row has
+        arrived, so that a pane nobody has touched costs nothing.
+        """
+
+        for _id, step in list(self._flashing.items()):
+            if step <= 1:
+                self._flashing.pop(_id)
+            else:
+                self._flashing[_id] = step - 1
+
+        if not self._flashing and self._flash_timer is not None:
+            self._flash_timer.stop()
+            self._flash_timer = None
+
+        self.refresh()
+
+    def _flash_background(self, step: int, under: Optional[Color]) -> Color:
+        """The green a flashing row sits on, `step` steps into the fade"""
+
+        theme = self.api.vars.theme
+        base = under or Color.parse(theme.background1)
+        strength = self.FLASH_STRENGTH * step / self.FLASH_STEPS
+
+        return base.blend(Color.parse(theme.green), strength)
+
     def _get_option_render(self, option: Option, style: Style) -> List[Strip]:
         """
         Bands the rows, leaving the highlighted one to the cursor
 
         The shade is dropped for the highlighted row rather than drawn under
-        it, so that the cursor is the only background in play wherever it sits
+        it, so that the cursor is the only background in play wherever it sits.
+
+        A row still flashing overrides both: it is mixed into whatever
+        background it would otherwise have had, so that when the green has
+        drained away the row is left exactly as it started, cursor and all.
         """
 
         index = self._option_to_index.get(option)
+        step = self._flashing.get(option.id or "")
 
-        if index is not None and index != self.highlighted and self._is_shaded(index):
+        if step:
+            style += Style(background=self._flash_background(step, style.background))
+        elif index is not None and index != self.highlighted and self._is_shaded(index):
             style += Style(background=self.row_shade)
 
         return super()._get_option_render(option, style)
@@ -129,10 +191,20 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
         return super()._delete_current_model()
 
     def toggle_complete(self):
-        assert isinstance(self.current_model, Todo)
+        todo = self.current_model
+        assert isinstance(todo, Todo)
 
-        self.current_model.toggle_complete()
+        was_scheduled_for = todo.scheduled
+
+        todo.toggle_complete()
         self.refresh_options()
+
+        # A recurring todo is handed back pending with its next date already
+        # set, so the only thing the tick changed is the day it is planned for:
+        # the flash is what says so. Every other row says it for itself, by
+        # moving out of the pane.
+        if todo.scheduled != was_scheduled_for:
+            self.flash_row(todo.uuid)
 
     def set_priority(self, priority: int):
         assert isinstance(self.current_model, Todo)
