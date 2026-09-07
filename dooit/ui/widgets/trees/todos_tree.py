@@ -148,13 +148,20 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
 
     def visible_children(self, model: Model) -> List[Todo]:
         """
-        The todos still to be done here
+        The todos of this model that the pane has a row for
 
-        A completed todo has moved to the Completed project: it is shown there,
-        under the name of this one, until it is unticked and comes back. What
-        hangs off it goes along with it, which is why the walk stops here
-        rather than reaching into a todo that is gone.
+        A task is what moves: a completed todo filed straight under a project
+        has gone to the Completed project, is shown there with everything that
+        was finished along with it, and comes back here when it is unticked.
+
+        A completed step of a task has gone nowhere. It stays under the todo
+        it belongs to, ticked off, for as long as there is anything left to do
+        in that todo — which is what makes the parent a task in progress
+        rather than a row that empties out as it is worked on.
         """
+
+        if isinstance(model, Todo):
+            return list(model.todos)
 
         return [todo for todo in model.todos if todo.pending]
 

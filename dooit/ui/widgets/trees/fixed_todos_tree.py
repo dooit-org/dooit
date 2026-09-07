@@ -51,6 +51,12 @@ class FixedTodosTree(TodosTree):
 
     show_guides = False
 
+    # Whether a row is followed by the todos filed under it. A fixed project
+    # that gathers single todos from all over the tree draws one flat run of
+    # rows; one whose rows are whole tasks draws each with its steps under it,
+    # the way the project it came from did.
+    show_children = False
+
     def __init__(self, model: FixedProject) -> None:
         super().__init__(model)
         self._shaded_rows: Set[int] = set()
@@ -103,13 +109,34 @@ class FixedTodosTree(TodosTree):
                     )
                 )
 
-            for row, todo in enumerate(group.todos):
+            for row, todo in enumerate(self._group_rows(group.todos)):
                 if row % 2:
                     self._shaded_rows.add(len(options))
 
                 options.append(Option("", id=self._renderers[todo.uuid].id))
 
         return options
+
+    def _group_rows(self, todos: List[Todo]) -> List[Todo]:
+        """
+        The rows a block draws, in the order they are drawn in
+
+        The todos the block gathered, each followed by whatever is filed under
+        it for a pane that shows them, exactly as far as the node is expanded.
+        """
+
+        if not self.show_children:
+            return list(todos)
+
+        rows: List[Todo] = []
+
+        for todo in todos:
+            rows.append(todo)
+
+            if self.is_node_expaned(todo.uuid) or self.filter_refresh:
+                rows.extend(self._group_rows(self.visible_children(todo)))
+
+        return rows
 
     @property
     def render_layout(self) -> List:

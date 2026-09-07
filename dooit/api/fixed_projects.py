@@ -320,17 +320,22 @@ class UpcomingProject(FixedProject):
 
 class CompletedProject(FixedProject):
     """
-    Everything already ticked off, wherever in the tree it is filed
+    Every finished task, wherever in the tree it is filed
 
-    Completing a todo moves it in here: it leaves the pane of the project it
-    belongs to and turns up in this one, which is one flat run of rows, the
-    most recently finished at the top, so the pane reads as a log of what has
-    been getting done. Nothing groups it: a log is read from the top down, and
-    the project a row came out of trails the row itself the way it does in
+    Finishing a task moves it in here: it leaves the pane of the project it
+    belongs to and turns up in this one, which is one run of rows, the most
+    recently finished at the top, so the pane reads as a log of what has been
+    getting done. Nothing groups it: a log is read from the top down, and the
+    project a row came out of trails the row itself the way it does in
     Upcoming.
 
-    Unticking a row hands it back to the project it came from: the todo was
-    never moved in the database, only shown here while it was done with.
+    A task made of steps arrives whole, with its steps under it: it is
+    finished when the last of them is, and until then it stays in its own
+    project with the ones already done still shown under it.
+
+    Unticking a row — the task or any step of it — hands the whole of it back
+    to the project it came from: the todo was never moved in the database,
+    only shown here while it was done with.
     """
 
     key = "completed"
@@ -364,20 +369,22 @@ class CompletedProject(FixedProject):
     @staticmethod
     def _completed() -> List[Todo]:
         """
-        The completed todos that stand for themselves
+        The finished tasks: the completed todos filed straight under a project
 
-        A todo completed along with the one it hangs off is not a row of its
-        own: it went in there inside its parent, and comes back out with it.
+        What comes in here is a whole task rather than a step of one. A todo
+        that hangs off another is part of the task above it: ticking it off
+        leaves it where it is, under a parent that is still being worked on,
+        and it only arrives here inside that parent, once the last of its
+        siblings has been done too. It is drawn under it here the way it was
+        drawn under it there, and goes back out with it.
         """
 
-        query = select(Todo).where(Todo.pending == False)
-        todos = manager.session.execute(query).scalars().all()
+        query = select(Todo).where(
+            Todo.pending == False,
+            Todo.parent_todo_id.is_(None),
+        )
 
-        return [
-            todo
-            for todo in todos
-            if todo.parent_todo is None or todo.parent_todo.pending
-        ]
+        return list(manager.session.execute(query).scalars().all())
 
     @property
     def todo_groups(self) -> List[TodoGroup]:

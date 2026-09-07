@@ -128,8 +128,9 @@ class Todo(DooitModel):
         """
         Every todo still to be done under this one, counted at every level
 
-        A completed one has moved to the Completed project along with whatever
-        hangs off it, so the count says what is left to expand into.
+        The steps already done are left out: they are still drawn under this
+        todo, but what the count is for is how much of the task is left, which
+        is what a collapsed row has no other way of saying.
         """
 
         return sum(1 + todo.total_children for todo in self.todos if todo.pending)
