@@ -86,6 +86,17 @@ NoteEditor {
   border-title-color: $background1;
   border-title-align: center;
   padding: 0 1;
+
+  /* The mode the note is in, written into the bottom border as a block the
+     same two colors the status bar wears out on the trees: the accent for
+     NORMAL, the second one for INSERT */
+  border-subtitle-background: $primary;
+  border-subtitle-color: $background1;
+  border-subtitle-align: right;
+
+  &.-insert {
+    border-subtitle-background: $secondary;
+  }
 }
 
 #note-hint {

@@ -43,6 +43,29 @@ SAVE_DEBOUNCE = 0.4
 # How much of the todo's description the window title carries
 TITLE_MAX = 60
 
+# What the note is doing with the keyboard. The two names are the ones the
+# status bar already uses out on the trees, because they mean the same thing
+# here: NORMAL reads and moves around, INSERT types
+MODE_NORMAL = "NORMAL"
+MODE_INSERT = "INSERT"
+
+# The motions NORMAL mode answers to. The four movement keys are dooit's own
+# rather than vim's - `j`/`ö` step left and right, `k`/`l` up and down - so the
+# note is walked with the same fingers as the trees behind it
+NORMAL_MOTIONS = {
+    "j": "cursor_left",
+    "ö": "cursor_right",
+    "k": "cursor_up",
+    "l": "cursor_down",
+    "w": "cursor_word_right",
+    "b": "cursor_word_left",
+    "0": "cursor_line_start",
+    "$": "cursor_line_end",
+}
+
+# The keys that drop into INSERT, each landing the cursor somewhere different
+INSERT_ENTRIES = ("i", "a", "I", "A")
+
 
 def scan_markup(line: str) -> Iterator[Tuple[int, int, str]]:
     """
@@ -102,6 +125,16 @@ def build_theme(theme: DooitThemeBase) -> TextAreaTheme:
 class NoteEditor(TextArea):
     """
     A plain text editor that styles `**bold**`, `*italic*` and bullets as typed
+
+    Two modes, the way the rest of dooit has two. The window opens in NORMAL,
+    where the letters move the cursor about and nothing typed reaches the note,
+    and `i` drops into INSERT, where they land in it. `escape` climbs back out
+    one step at a time: INSERT to NORMAL, NORMAL to the todo the note is on.
+
+    Selecting, copying and pasting work the same in either mode - shift with a
+    motion picks text out, `ctrl+a` takes the lot, and `ctrl+c`/`ctrl+x`/`ctrl+v`
+    do what they do in any other text field. Since the last two are edits, they
+    take the note into INSERT rather than being refused there.
     """
 
     BINDINGS = [
@@ -118,12 +151,40 @@ class NoteEditor(TextArea):
         # Takes the key off TextArea, where it deletes the character to the
         # right of the cursor; here the whole note goes, after a y/N
         Binding("ctrl+d", "clear_note", "Clear the note", show=False),
+        # What the key means in every other text field. TextArea spends it on
+        # `cursor_line_start` instead, which `home` already covers
+        Binding("ctrl+a", "select_all", "Select all", show=False),
     ]
 
     def __init__(self, text: str) -> None:
         # `tab_behavior` stays at its default of "focus", which is what lets
-        # `escape` bubble up to the screen instead of being swallowed here
-        super().__init__(text)
+        # `escape` bubble up to the screen instead of being swallowed here.
+        #
+        # `read_only` is what NORMAL mode *is*: keystrokes still move the
+        # cursor and pick text out, but none of them reach the document, so
+        # the letters are free to mean motions instead of themselves
+        super().__init__(text, read_only=True)
+
+        # Raised by the first `g` of a `gg` and by nothing else
+        self._pending_g = False
+
+    @property
+    def mode(self) -> str:
+        return MODE_NORMAL if self.read_only else MODE_INSERT
+
+    def enter_insert(self) -> None:
+        if not self.read_only:
+            return
+
+        self.read_only = False
+        self.note_screen.mode_changed()
+
+    def enter_normal(self) -> None:
+        if self.read_only:
+            return
+
+        self.read_only = True
+        self.note_screen.mode_changed()
 
     def _build_highlight_map(self) -> None:
         """
@@ -146,6 +207,9 @@ class NoteEditor(TextArea):
         """
         Put `marker` either side of the selection, or take it away again
         """
+
+        # Marking text up is writing it: the note is being edited from here on
+        self.enter_insert()
 
         start, end = sorted(self.selection)
         selected = self.selected_text
@@ -172,6 +236,8 @@ class NoteEditor(TextArea):
         """
         Put a bullet at the head of the current line, or take it away again
         """
+
+        self.enter_insert()
 
         row, column = self.cursor_location
         line = self.document[row]
@@ -204,18 +270,38 @@ class NoteEditor(TextArea):
         Overrides the TextArea binding, which pastes textual's own clipboard:
         that only ever holds what was copied inside dooit, and the point of
         the key here is to bring text in from somewhere else.
-        """
 
-        if self.read_only:
-            return
+        A paste is an edit, so it takes the note into INSERT rather than being
+        turned away in NORMAL: the keys after a paste are the ones that tidy
+        up what was pasted.
+        """
 
         text = paste_text(self.app)
 
         if not text:
             return
 
+        self.enter_insert()
+
         if result := self._replace_via_keyboard(text, *self.selection):
             self.move_cursor(result.end_location)
+
+    def action_cut(self) -> None:
+        """
+        Take the selection out and put it on the clipboard
+
+        Overrides the TextArea binding for the same reason `copy` does - so
+        the text goes out by both clipboard routes and not just textual's own
+        - and, like `paste`, drops into INSERT instead of refusing in NORMAL.
+        """
+
+        start, _ = self.selection
+        removed = self.selected_text or self.document[start[0]]
+
+        self.enter_insert()
+        super().action_cut()
+
+        copy_text(self.app, removed)
 
     @property
     def note_screen(self) -> "NoteScreen":
@@ -231,9 +317,94 @@ class NoteEditor(TextArea):
 
         self.note_screen.request_clear()
 
+    def _handle_normal_key(self, key: str) -> bool:
+        """
+        Act on a key pressed in NORMAL mode; True when it was one of ours
+
+        Anything not answered here is handed on untouched, which is what keeps
+        the shift-motions and the clipboard keys - all of them bindings - the
+        same in both modes.
+        """
+
+        # Only the key straight after a `g` can be its second half, so the
+        # flag is read and dropped in one go
+        pending_g, self._pending_g = self._pending_g, False
+
+        if key == "g":
+            if pending_g:
+                self.move_cursor((0, 0))
+            else:
+                self._pending_g = True
+
+            return True
+
+        if motion := NORMAL_MOTIONS.get(key):
+            getattr(self, f"action_{motion}")()
+            return True
+
+        if key == "G":
+            self.move_cursor(self.document.end)
+            return True
+
+        if key in INSERT_ENTRIES:
+            self._enter_insert_at(key)
+            return True
+
+        if key in ("o", "O"):
+            self._open_line(below=key == "o")
+            return True
+
+        return False
+
+    def _enter_insert_at(self, key: str) -> None:
+        """
+        vim's four ways in: at the cursor, past it, or at either end of the line
+        """
+
+        row, column = self.cursor_location
+        line = self.document[row]
+
+        if key == "a":
+            self.move_cursor((row, min(column + 1, len(line))))
+
+        elif key == "I":
+            # Past the bullet rather than in front of it: on a bullet line the
+            # text starts where the glyph ends
+            bullet = BULLET_RE.match(line)
+            self.move_cursor((row, bullet.end(1) if bullet else 0))
+
+        elif key == "A":
+            self.move_cursor((row, len(line)))
+
+        self.enter_insert()
+
+    def _open_line(self, below: bool) -> None:
+        """
+        Start a line either side of this one and type on it
+
+        A line opened around a bullet gets a bullet of its own, the same way
+        `enter` carries one on: `o` is how the next item of a list is written.
+        """
+
+        row, _ = self.cursor_location
+        line = self.document[row]
+        bullet = BULLET_RE.match(line)
+        prefix = line[: bullet.end(1)] if bullet else ""
+
+        self.enter_insert()
+
+        if below:
+            self.move_cursor((row, len(line)))
+            self.insert("\n" + prefix, maintain_selection_offset=False)
+            return
+
+        self.insert(prefix + "\n", (row, 0), maintain_selection_offset=False)
+        self.move_cursor((row, len(prefix)))
+
     async def _on_key(self, event: events.Key) -> None:
         """
-        Carry a bullet list on to the next line, the way a list gets written
+        The keys of whichever mode the note is in, and the bullet that a new
+        line carries over from the one above it
         """
 
         if self.note_screen.awaiting_clear:
@@ -245,7 +416,30 @@ class NoteEditor(TextArea):
             self.note_screen.answer_clear(event.key)
             return
 
-        if event.key == "enter" and not self.read_only:
+        # The character rather than the key name, so that a keyboard where the
+        # motions sit on `ö` is read the same way the trees read it
+        key = self.note_screen.resolve_key(event)
+
+        if self.read_only:
+            if self._handle_normal_key(key):
+                event.stop()
+                event.prevent_default()
+
+                # The cursor is the only thing a motion changes; a blink that
+                # happened to be mid-off would hide the move that was just made
+                self._restart_blink()
+
+            # `escape` is left to bubble on purpose: with no mode left to drop
+            # out of, what it drops out of is the window
+            return
+
+        if key == "escape":
+            event.stop()
+            event.prevent_default()
+            self.enter_normal()
+            return
+
+        if event.key == "enter":
             row, _ = self.cursor_location
             line = self.document[row]
             match = BULLET_RE.match(line)
@@ -295,10 +489,18 @@ class NoteScreen(BaseScreen):
         ("escape", "close", "Close the note"),
     ]
 
-    HINT = (
-        "ctrl+b bold    ctrl+i italic    ctrl+l bullet    "
-        "ctrl+d clear    esc close"
-    )
+    # One line of hints per mode: the keys that do nothing where you are
+    # standing would only be noise
+    HINTS = {
+        MODE_NORMAL: (
+            "i insert    jklö move    gg/G ends    "
+            "ctrl+c copy    ctrl+d clear    esc close"
+        ),
+        MODE_INSERT: (
+            "ctrl+b bold    ctrl+i italic    ctrl+l bullet    "
+            "ctrl+v paste    esc normal"
+        ),
+    }
 
     # Worded and escaped the way the confirm bar words a deletion elsewhere in
     # dooit, so the answer is the one the user already knows
@@ -340,16 +542,33 @@ class NoteScreen(BaseScreen):
         editor.border_title = self.title_text
 
         yield editor
-        yield Static(self.HINT, id="note-hint")
+        yield Static(self.HINTS[MODE_NORMAL], id="note-hint")
 
     def on_mount(self) -> None:
         editor = self.editor
         editor.register_theme(build_theme(self.api.vars.theme))
         editor.theme = THEME_NAME
 
-        # Focusing the editor is what "insert mode" means here: the window
-        # takes the keyboard, and typing lands in the note straight away
+        # The window takes the keyboard, but in NORMAL mode: the note opens to
+        # be read, and `i` is what says it is about to be written
         editor.focus()
+        self.mode_changed()
+
+    def mode_changed(self) -> None:
+        """
+        Redraw the two places the mode is written: the chip in the bottom
+        border of the window, and the line of hints under it
+        """
+
+        mode = self.editor.mode
+
+        self.editor.border_subtitle = f" {mode} "
+        self.editor.set_class(mode == MODE_INSERT, "-insert")
+
+        # A question standing in the hint line outranks the hints themselves;
+        # answering it puts the right ones back
+        if not self._awaiting_clear:
+            self.hint.update(self.HINTS[mode])
 
     @on(TextArea.Changed)
     def schedule_save(self, _: TextArea.Changed) -> None:
@@ -386,8 +605,8 @@ class NoteScreen(BaseScreen):
         """
 
         self._awaiting_clear = False
-        self.hint.update(self.HINT)
         self.hint.remove_class("confirming")
+        self.mode_changed()
 
         if key.lower() != "y":
             return
