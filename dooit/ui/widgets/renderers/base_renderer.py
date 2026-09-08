@@ -42,9 +42,6 @@ class BaseRenderer(Generic[ModelType]):
     def post_init(self):  # pragma: no cover
         pass
 
-    def matches_filter(self, filter: str) -> bool:
-        return filter in self.model.description
-
     def _get_component(self, component: str) -> SimpleInput:
         return getattr(self, component)
 

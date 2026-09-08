@@ -5,14 +5,13 @@ from sqlalchemy.orm.attributes import get_history
 from textual import events, on
 from textual.containers import Container
 from textual.widgets import ContentSwitcher
-from dooit.api import TODAY, Todo, Project, fixed_project_from_key
+from dooit.api import BIN, COMPLETED, TODAY, Todo, Project, fixed_project_from_key
 from dooit.api.model import DooitModel
 from dooit.ui.api.events import (
     DooitEvent,
     ModeChanged,
     ShowConfirm,
     StartFieldEdit,
-    StartSearch,
     StartSort,
     TodoChanged,
     TodoDescriptionChanged,
@@ -32,13 +31,17 @@ from dooit.ui.api.events import (
     SpawnHelp,
     SpawnNote,
     SpawnQuickAdd,
+    SpawnSearch,
     BarNotification,
 )
+from dooit.api.fixed_projects import owning_project
+from dooit.ui.api.events.events import ProjectType
 from dooit.ui.widgets.trees import ProjectsTree, TodosTree, make_todos_tree
 from dooit.ui.widgets import BarSwitcher, Dashboard, ModelTree
 from .base import BaseScreen
 from .note import NoteScreen
 from .quick_add import QuickAdded, QuickAddScreen
+from .search import SearchScreen, task_root
 
 
 class DualSplit(Container):
@@ -192,10 +195,97 @@ class MainScreen(BaseScreen):
         tree.force_refresh()
         tree.flash_row(project.uuid)
 
-    @on(StartSearch)
-    def start_search(self, event: StartSearch):
-        self.app.bar_switcher.switch_to_search(event.callback)
-        self.post_message(ModeChanged("SEARCH"))
+    @on(SpawnSearch)
+    def spawn_search(self, _: SpawnSearch) -> None:
+        self.app.push_screen(SearchScreen(), self.search_done)
+
+    async def search_done(self, todo: Optional[Todo]) -> None:
+        if todo is not None:
+            await self.reveal_todo(todo)
+
+    async def reveal_todo(self, todo: Todo) -> None:
+        """
+        Puts the cursor on a task that was found from somewhere else
+
+        The task can be anywhere: inside a project nobody has opened, under a
+        project that is not even unfolded, filed as a step of another task. So
+        the way down to it is opened a level at a time -- the projects above
+        it in the left hand pane, the tasks above it in the right hand one --
+        before the row can be pointed at.
+
+        The projects pane is moved onto the project first. It re-emits
+        `ProjectSelected` whenever it is redrawn, and a pane left highlighting
+        something else would take the tasks pane back to it the moment
+        anything changed.
+        """
+
+        project = self.pane_of(todo)
+
+        if project is None:  # pragma: no cover
+            return
+
+        projects_tree = self.api.vars.projects_tree
+        parent = project.parent_project
+
+        while parent is not None and not parent.is_root:
+            projects_tree.expanded_nodes[parent.uuid] = True
+            parent = parent.parent_project
+
+        projects_tree.force_refresh()
+        projects_tree.highlight_id_if_shown(project.uuid)
+
+        tree = await self.show_project(project)
+
+        step = todo.parent_todo
+        while step is not None:
+            tree.expanded_nodes[step.uuid] = True
+            step = step.parent_todo
+
+        tree.force_refresh()
+        self.app.set_focus(tree)
+
+        # After the focus, which puts the cursor on the first row of a pane
+        # that had none; and the flash last, so the row says which of them was
+        # the one that was asked for
+        self.point_at(tree, todo)
+
+    @staticmethod
+    def pane_of(todo: Todo) -> Optional[ProjectType]:
+        """
+        The pane a task is to be found in
+
+        Its own project while there is work left in it. A task that is over
+        with has left that pane for one of the fixed ones -- finished for
+        Completed, thrown away for the Bin -- and is only drawn there.
+        """
+
+        if todo.is_binned:
+            return BIN
+
+        if not task_root(todo).pending:
+            return COMPLETED
+
+        return owning_project(todo)
+
+    @staticmethod
+    def point_at(tree: TodosTree, todo: Todo) -> None:
+        """
+        Puts the cursor on a task, or on the nearest thing to it that is drawn
+
+        A pane need not have a row for the task itself: the fixed ones gather
+        whole tasks, and a step of one is only in there inside its parent. The
+        parent is where the cursor stops in that case, which is as close to
+        the step as that pane goes.
+        """
+
+        node: Optional[Todo] = todo
+
+        while node is not None:
+            if tree.highlight_id_if_shown(node.uuid):
+                tree.flash_row(node.uuid)
+                return
+
+            node = node.parent_todo
 
     @on(StartFieldEdit)
     def start_field_edit(self, event: StartFieldEdit):

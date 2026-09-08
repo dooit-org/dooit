@@ -138,6 +138,39 @@ QuickAddScreen {
   }
 }
 
+/* The finder, laid over the app the same way the one line entry is: the query
+   is a question about what is behind it, and the panes stay visible while it
+   is answered. Wider than quick add, since every row of the answer carries a
+   task, its deadline and the project it was found in. */
+SearchScreen {
+  align: center middle;
+  background: $background1 70%;
+
+  & > #search-panel {
+    width: 80%;
+    height: auto;
+    background: $background2;
+    border: $border_type $secondary;
+    border-title-background: $primary;
+    border-title-color: $background1;
+    border-title-align: center;
+    padding: 0 1;
+
+    /* Where the cursor is in the whole list of matches, written into the
+       bottom border: most of the list is off the bottom of the panel, and
+       this is the only place it is counted */
+    border-subtitle-color: $foreground1 60%;
+    border-subtitle-align: right;
+  }
+
+  & > #search-hint {
+    width: 80%;
+    padding: 0 2;
+    color: $foreground1 60%;
+    text-align: center;
+  }
+}
+
 # Bars
 
 

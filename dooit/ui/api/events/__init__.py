@@ -1,7 +1,7 @@
 from .events import (
     DooitEvent,
     Startup,
-    StartSearch,
+    SpawnSearch,
     StartSort,
     StartFieldEdit,
     ShowConfirm,
@@ -38,7 +38,7 @@ from .events import (
 __all__ = [
     "DooitEvent",
     "Startup",
-    "StartSearch",
+    "SpawnSearch",
     "StartSort",
     "StartFieldEdit",
     "ShowConfirm",

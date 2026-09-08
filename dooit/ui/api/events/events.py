@@ -9,7 +9,7 @@ from dooit.api import FixedProject, Project, Todo
 # event about "the current project" carries whichever it is
 ProjectType = Union[Project, FixedProject]
 
-ModeType = Literal["NORMAL", "INSERT", "DATE", "SEARCH", "SORT", "CONFIRM"]
+ModeType = Literal["NORMAL", "INSERT", "DATE", "SORT", "CONFIRM"]
 EmptyWidgetType = Literal["todo", "project", "no_search_results"]
 PositionType = Literal["project", "todo"]
 NotificationType = Literal["info", "warning", "error"]
@@ -120,14 +120,10 @@ class ModeChanged(DooitEvent):
         self.mode: ModeType = mode
 
 
-class StartSearch(DooitEvent):
+class SpawnSearch(DooitEvent):
     """
-    Emitted when user wants to search
+    Emitted when user wants to find a task anywhere in the tree
     """
-
-    def __init__(self, callback: Callable) -> None:
-        super().__init__()
-        self.callback = callback
 
 
 class StartSort(DooitEvent):

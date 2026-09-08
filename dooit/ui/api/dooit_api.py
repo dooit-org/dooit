@@ -6,6 +6,7 @@ from .events import (
     DooitEvent,
     GotoFixedProject,
     SpawnQuickAdd,
+    SpawnSearch,
     SwitchTab,
     QuitApp,
 )
@@ -265,8 +266,15 @@ class DooitAPI:
         self.focused.restore_node()
 
     def start_search(self):
-        """Start a search within the list"""
-        self.focused.start_search()
+        """Find a task anywhere in the tree and jump to it"""
+
+        if self.app.bar_switcher.is_focused:
+            return
+
+        # Posted at the screen the same way quick add is: the overlay goes
+        # over the panes, and the screen is what walks the cursor to whatever
+        # was picked in it
+        self.app.screen.post_message(SpawnSearch())
 
     def start_sort(self):
         """Start sorting the siblings of the highlighted item"""

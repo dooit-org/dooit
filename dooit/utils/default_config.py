@@ -568,6 +568,9 @@ def key_setup(api: DooitAPI, _):
     # "o" for open, on the row and inside the note alike: the same key opens
     # the link it is standing on wherever the link is written
     api.keys.set("o", api.open_link, group=VIEW)
+    # "/" opens the finder over the app rather than filtering the pane in
+    # front: what a search is for here is a task somewhere else in the tree,
+    # and enter walks the cursor over to it
     api.keys.set("/", api.start_search, group=VIEW)
     api.keys.set("q", api.toggle_row_shading, group=VIEW)
 

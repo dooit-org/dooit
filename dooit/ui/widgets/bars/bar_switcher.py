@@ -6,7 +6,6 @@ from dooit.api.model import DooitModel
 from dooit.ui.api.events.events import BarNotification
 from dooit.ui.widgets.bars._base import BarBase
 from .status_bar import StatusBar
-from .search_bar import SearchBar
 from .confirm_bar import ConfirmBar
 from .notification_bar import NotificationBar
 from .sort_bar import SortBar
@@ -20,10 +19,6 @@ class BarSwitcher(ContentSwitcher):
         width: 100%;
     }
     """
-
-    @property
-    def search_bar(self):
-        return self.query_one(SearchBar)
 
     @property
     def visible_content(self) -> BarBase:
@@ -51,14 +46,6 @@ class BarSwitcher(ContentSwitcher):
         self.add_content(
             widget=self.status_bar,
             id="status_bar",
-            set_current=True,
-        )
-
-    def switch_to_search(self, callback: Callable):
-        search_bar = SearchBar(callback)
-        self.add_content(
-            widget=search_bar,
-            id="search_bar",
             set_current=True,
         )
 

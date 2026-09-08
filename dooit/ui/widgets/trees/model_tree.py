@@ -23,11 +23,10 @@ from textual.strip import Strip
 from textual.style import Style
 from textual.timer import Timer
 from textual.widgets import Label
-from textual.widgets.option_list import Option
+from textual.widgets.option_list import Option, OptionDoesNotExist
 from dooit.api import Todo, Project
 from dooit.ui.api.events import (
     ModeChanged,
-    StartSearch,
     StartSort,
     BarNotification,
 )
@@ -174,7 +173,6 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         self._model = model
         self.expaned = defaultdict(bool)
         self._renderers: RenderDictType = render_dict
-        self._filter_refresh = False
         self._static_rows: Dict[str, Callable[[], RenderableType]] = {}
 
         # Rows still fading, each with the steps it has left to go
@@ -346,18 +344,6 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         return [item.value for item in self.render_layout]
 
     @property
-    def filter_refresh(self):
-        return self._filter_refresh
-
-    @filter_refresh.setter
-    def filter_refresh(self, value: bool):
-        refresh = self._filter_refresh != value
-        self._filter_refresh = value
-
-        if refresh:
-            self.force_refresh()
-
-    @property
     def current(self) -> BaseRenderer:
         _id = self.node.id
         assert _id is not None
@@ -393,21 +379,6 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         if self.highlighted is not None:
             self.update_prompt_at_index(self.highlighted)
             self.scroll_to_highlight()
-
-    def set_filter(self, filter: str) -> None:
-        self.filter_refresh = bool(filter)
-
-        for option in self._options:
-            assert option.id
-
-            if self.is_static_row(option.id):
-                continue
-
-            matches = self._renderers[option.id].matches_filter(filter)
-            if matches:
-                self.enable_option(option.id)
-            else:
-                self.disable_option(option.id)
 
     @property
     def is_editing(self) -> bool:
@@ -457,7 +428,7 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
                 render = self._renderers[child.uuid]
                 options.append(Option("", id=render.id))
 
-                if self.is_node_expaned(child.uuid) or self.filter_refresh:
+                if self.is_node_expaned(child.uuid):
                     add_children_recurse(child)
 
         add_children_recurse(self.model)
@@ -567,10 +538,6 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
     def start_sort(self):
         self.post_message(StartSort(self.current_model, self.sort))
 
-    @require_highlighted_node
-    def start_search(self):
-        self.post_message(StartSearch(self.set_filter))
-
     def start_edit(self, property: str) -> bool:
         if property not in self.editable_columns:
             self.post_message(
@@ -618,12 +585,6 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
 
         self.update_current_prompt()
 
-    def reset_state(self):
-        """
-        Reset tree of any modified status for e.g. search
-        """
-        self.set_filter("")
-
     async def handle_keypress(self, key: str) -> bool:
         if self.is_editing:
             if key in ["escape", "enter"]:
@@ -636,9 +597,6 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
             self.update_current_prompt()
             return True
         else:
-            if key == "escape":
-                self.reset_state()
-
             if self.highlighted is not None:
                 self.update_current_prompt()
 
@@ -711,6 +669,23 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
 
     def highlight_id(self, _id: str):
         self.highlighted = self.get_option_index(_id)
+
+    def highlight_id_if_shown(self, _id: str) -> bool:
+        """
+        Puts the cursor on a row, if the pane happens to have one for it
+
+        What is being pointed at can come from outside the pane -- the finder
+        picks a task out of the database, not off the screen -- and a pane
+        that does not draw it is a cursor that stays where it was rather than
+        an error.
+        """
+
+        try:
+            self.highlight_id(_id)
+        except OptionDoesNotExist:
+            return False
+
+        return True
 
     @refresh_tree
     def _add_sibling_node(self) -> ModelType:

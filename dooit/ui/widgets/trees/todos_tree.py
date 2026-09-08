@@ -281,7 +281,7 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
         for todo in todos:
             rows.append(todo)
 
-            if self.is_node_expaned(todo.uuid) or self.filter_refresh:
+            if self.is_node_expaned(todo.uuid):
                 rows.extend(self._group_rows(self.visible_children(todo)))
 
         return rows
