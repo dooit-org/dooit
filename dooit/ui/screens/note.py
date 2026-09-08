@@ -21,15 +21,31 @@ from .base import BaseScreen
 # never stand in for a different character without the columns drifting apart
 BULLET = "• "
 
+# A header is the help window's section break brought into the note: a title
+# with a rule drawn across underneath it. Stored as the glyph for the same
+# reason the bullet is, and kept on a line of its own rather than sized to the
+# words, so that retyping the title can never leave the rule the wrong length
+RULE = "─"
+
+# How wide the rule is drawn, before a narrow window is allowed to shorten it.
+# Long enough to read as a divider, short enough not to wrap in a small note
+HEADER_WIDTH = 40
+
 # What the styled spans are tagged with; the theme below maps them to styles
 BOLD = "note-bold"
 ITALIC = "note-italic"
 MARKER = "note-marker"
 BULLET_SPAN = "note-bullet"
+RULE_SPAN = "note-rule"
+HEADER = "note-header"
 
 # `**bold**` wins over `*italic*` by sitting first in the alternation
 MARKUP_RE = re.compile(r"\*\*(?P<bold>[^*]+)\*\*|\*(?P<italic>[^*]+)\*")
 BULLET_RE = re.compile(r"^[ \t]*(• )")
+
+# A line that is nothing but rule. Three is the shortest run that reads as one
+# on purpose rather than as a stray character
+RULE_RE = re.compile(rf"^{RULE}{{3,}}[ \t]*$")
 
 # How far the `*` markers are pulled towards the background: still there to be
 # seen and deleted, but out of the way of the words they wrap
@@ -67,17 +83,31 @@ NORMAL_MOTIONS = {
 INSERT_ENTRIES = ("i", "a", "I", "A")
 
 
-def scan_markup(line: str) -> Iterator[Tuple[int, int, str]]:
+def scan_markup(line: str, following: str = "") -> Iterator[Tuple[int, int, str]]:
     """
     The styled spans of one line, measured in UTF-8 bytes
 
     `TextArea.render_line` maps the offsets it is handed back through a
     byte-to-codepoint table, so anything counted in characters would land in
     the wrong place on a line holding an umlaut - or a bullet.
+
+    `following` is the line below, which is all a header needs to be
+    recognised: the rule is what says the words above it are a title.
     """
 
     def byte(index: int) -> int:
         return len(line[:index].encode("utf-8"))
+
+    if RULE_RE.match(line):
+        yield 0, byte(len(line)), RULE_SPAN
+        return
+
+    if RULE_RE.match(following) and line.strip():
+        # The whole line is the header, and that is the end of it: a title is
+        # already as loud as the window can draw it, so bold and bullets
+        # inside one would be markers with nothing left to mark
+        yield 0, byte(len(line)), HEADER
+        return
 
     bullet = BULLET_RE.match(line)
     if bullet:
@@ -118,6 +148,16 @@ def build_theme(theme: DooitThemeBase) -> TextAreaTheme:
             ITALIC: Style(italic=True),
             MARKER: Style(color=marker),
             BULLET_SPAN: Style(color=theme.primary, bold=True),
+            # The two halves of the help window's section break: a faint rule,
+            # and the title over it in the accent color.
+            #
+            # The title deliberately takes no background of its own. The cursor
+            # is a block of `primary` with `background1` written into it, so a
+            # title wearing those as a chip would swallow the cursor whole -
+            # there would be nothing left for it to invert against, and typing
+            # a header would happen somewhere the eye could not follow
+            RULE_SPAN: Style(color=blend(theme.foreground1, theme.background2, 0.7)),
+            HEADER: Style(color=theme.primary, bold=True),
         },
     )
 
@@ -148,6 +188,10 @@ class NoteEditor(TextArea):
         Binding("ctrl+i", "wrap('*')", "Italic", show=False),
         Binding("tab", "wrap('*')", "Italic", show=False),
         Binding("ctrl+l", "toggle_bullet", "Bullet", show=False),
+        # `ctrl+h` would be the mnemonic, but every terminal that does not
+        # speak the kitty protocol sends it as a backspace; `t` for title is
+        # the next letter along and is spent on nothing else here
+        Binding("ctrl+t", "toggle_header", "Header", show=False),
         # Takes the key off TextArea, where it deletes the character to the
         # right of the cursor; here the whole note goes, after a y/N
         Binding("ctrl+d", "clear_note", "Clear the note", show=False),
@@ -199,8 +243,12 @@ class NoteEditor(TextArea):
         highlights = self._highlights
         highlights.clear()
 
-        for row, line in enumerate(self.document.lines):
-            for start, end, name in scan_markup(line):
+        lines = self.document.lines
+
+        for row, line in enumerate(lines):
+            following = lines[row + 1] if row + 1 < len(lines) else ""
+
+            for start, end, name in scan_markup(line, following):
                 highlights[row].append((start, end, name))
 
     def action_wrap(self, marker: str) -> None:
@@ -251,6 +299,78 @@ class NoteEditor(TextArea):
         indent = len(line) - len(line.lstrip(" \t"))
         self.insert(BULLET, (row, indent))
         self.move_cursor((row, column + len(BULLET)))
+
+    @property
+    def rule(self) -> str:
+        """
+        A rule as wide as it is allowed to be: `HEADER_WIDTH`, or the window
+        when that is narrower, so the divider never wraps onto a second line
+        """
+
+        return RULE * max(3, min(HEADER_WIDTH, self.wrap_width or HEADER_WIDTH))
+
+    def _delete_line(self, row: int) -> None:
+        """
+        Take a whole line out, along with the newline that ends it - or, for
+        the last line of the note, the one that starts it, since there is no
+        other way to leave the line count one shorter than it was
+        """
+
+        if row + 1 < self.document.line_count:
+            start, end = (row, 0), (row + 1, 0)
+        elif row:
+            start, end = (row - 1, len(self.document[row - 1])), (row, len(self.document[row]))
+        else:
+            start, end = (row, 0), (row, len(self.document[row]))
+
+        self.replace("", start, end, maintain_selection_offset=False)
+
+    def _rule_row(self, row: int) -> Optional[int]:
+        """
+        Where the rule of the header `row` belongs to is, if there is one
+
+        Standing on the rule counts as standing on the header it closes, so
+        the key undoes a header from either of the two lines it is made of.
+        """
+
+        if RULE_RE.match(self.document[row]):
+            return row
+
+        below = row + 1
+
+        if below < self.document.line_count and RULE_RE.match(self.document[below]):
+            return below
+
+        return None
+
+    def action_toggle_header(self) -> None:
+        """
+        Close the current line off as a section title with a rule, or take the
+        rule away again
+
+        The header is the help window's section break: the title, and the rule
+        drawn across underneath it. Only the rule is ever added or removed -
+        the title is the line that was already there, and goes on being
+        ordinary text that can be typed over, marked up and deleted.
+        """
+
+        self.enter_insert()
+
+        row, column = self.cursor_location
+        rule_row = self._rule_row(row)
+
+        if rule_row is not None:
+            self._delete_line(rule_row)
+
+            # Standing on the rule, the title is the line above; standing on
+            # the title, it is where it already was
+            title = row - 1 if rule_row == row else row
+            self.move_cursor((max(title, 0), column if title == row else 0))
+            return
+
+        line = self.document[row]
+        self.insert("\n" + self.rule, (row, len(line)), maintain_selection_offset=False)
+        self.move_cursor((row, column))
 
     def action_copy(self) -> None:
         """
@@ -440,8 +560,33 @@ class NoteEditor(TextArea):
             return
 
         if event.key == "enter":
-            row, _ = self.cursor_location
+            row, column = self.cursor_location
             line = self.document[row]
+
+            below = row + 1
+            closed = (
+                column == len(line)
+                and below < self.document.line_count
+                and RULE_RE.match(self.document[below])
+            )
+
+            if closed:
+                # A title and its rule are one thing; `enter` from the end of
+                # the title steps over the rule into the section it opens
+                # rather than pushing the two of them apart
+                event.stop()
+                event.prevent_default()
+
+                if below + 1 >= self.document.line_count:
+                    self.insert(
+                        "\n",
+                        (below, len(self.document[below])),
+                        maintain_selection_offset=False,
+                    )
+
+                self.move_cursor((below + 1, 0))
+                return
+
             match = BULLET_RE.match(line)
 
             if match:
@@ -496,9 +641,12 @@ class NoteScreen(BaseScreen):
             "i insert    jklö move    gg/G ends    "
             "ctrl+c copy    ctrl+d clear    esc close"
         ),
+        # The formatting keys are what is worth advertising here; `ctrl+v` had
+        # to go to make room for the header, and is the one key on the line
+        # that every other text field in the world already taught
         MODE_INSERT: (
-            "ctrl+b bold    ctrl+i italic    ctrl+l bullet    "
-            "ctrl+v paste    esc normal"
+            "ctrl+b bold   ctrl+i italic   ctrl+l bullet   "
+            "ctrl+t header   esc normal"
         ),
     }
 
