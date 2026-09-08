@@ -29,4 +29,6 @@ class SearchBar(BarBase):
             self.refresh()
 
     def render(self) -> RenderableType:
-        return self._search.draw()
+        # Drawn by the buffer itself rather than as a bare string, so that a
+        # selection made inside the search term is highlighted here too
+        return self._search.render_editing(self.api.vars.theme)

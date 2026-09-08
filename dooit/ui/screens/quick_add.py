@@ -260,10 +260,13 @@ class QuickAddScreen(BaseScreen, ModalScreen):
         self.hint.update(CREATE_HINT if self._pending else HINT)
 
     def _line(self) -> Text:
-        return Text.assemble(
-            (PROMPT, Style(color=self.theme.primary, bold=True)),
-            (self._input.draw(), Style(color=self.theme.foreground3)),
-        )
+        # The buffer draws itself rather than being handed over as a string,
+        # so that a selection made in it is highlighted here too; the line's
+        # own colour goes underneath, where the highlight overrides it
+        buffer = self._input.render_editing(self.theme)
+        buffer.style = Style(color=self.theme.foreground3)
+
+        return Text(PROMPT, style=Style(color=self.theme.primary, bold=True)) + buffer
 
     # ------------------------------------------------------------------
     # What the line has been read as
