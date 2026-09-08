@@ -212,6 +212,12 @@ class FixedTodosTree(TodosTree):
     def add_child_node(self):
         self._not_here("Tasks can't be added")
 
+    def indent_node(self) -> None:
+        self._not_here("Tasks can't be reordered")
+
+    def unindent_node(self) -> None:
+        self._not_here("Tasks can't be reordered")
+
     def shift_up(self) -> None:
         self._not_here("Tasks can't be reordered")
 

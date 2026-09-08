@@ -182,6 +182,18 @@ class DooitAPI:
 
         self.focused.shift_down()
 
+    def indent_todo(self):
+        """Make the highlighted task a step of the task above it"""
+
+        if isinstance(self.focused, TodosTree):
+            self.focused.indent_node()
+
+    def unindent_todo(self):
+        """Take the highlighted task out of the task it is a step of"""
+
+        if isinstance(self.focused, TodosTree):
+            self.focused.unindent_node()
+
     def go_to_top(self):
         """Move the cursor to the top of the list"""
         self.focused.action_first()

@@ -552,6 +552,11 @@ def key_setup(api: DooitAPI, _):
 
     api.keys.set("L", api.shift_down, group=MOVING)
     api.keys.set("K", api.shift_up, group=MOVING)
+    # A task moves sideways as well as up and down: shifted "i" files it under
+    # the task above it, shifted "u" pulls it back out. Only the tasks pane
+    # has levels to move between, so the projects pane leaves both alone
+    api.keys.set("I", api.indent_todo, group=MOVING)
+    api.keys.set("U", api.unindent_todo, group=MOVING)
     # The clipboard is the system one, so it is worked with the keys the rest
     # of the desktop uses rather than vim's
     api.keys.set("<ctrl+c>", api.copy_description_to_clipboard, group=MOVING)

@@ -284,6 +284,107 @@ class Todo(DooitModel):
         todo.save()
         return todo
 
+    # --------------------------------------------------------------
+    # ------------------- Moving between levels --------------------
+    # --------------------------------------------------------------
+
+    def _renumber(self, todos: List["Todo"]) -> None:
+        """
+        Files a run of todos in the order they are handed over
+
+        The whole run is written back rather than just the todo that moved: a
+        run built up by hand can have holes in it, or two todos filed at the
+        same index, and either would leave the moved todo landing somewhere
+        other than where it was put.
+        """
+
+        for order, todo in enumerate(todos):
+            todo.order_index = order
+            self.session.add(todo)
+
+    @property
+    def previous_sibling(self) -> Optional["Todo"]:
+        """
+        The todo filed directly above this one, or None if it opens the run
+        """
+
+        if self.is_first_sibling():
+            return None
+
+        siblings = self.siblings
+        return siblings[siblings.index(self) - 1]
+
+    def indent(self, parent: Optional["Todo"] = None) -> Optional["Todo"]:
+        """
+        File this todo under the one above it, as a step of it
+
+        It moves under the todo it was sitting beneath, so what it becomes a
+        step of is the row above it. Everything already filed under it comes
+        along — it is the todo that moves, not the family — and it lands at
+        the end of that todo's steps, which is where a step added by hand
+        would have gone.
+
+        Which todo that is can be handed over, since a pane being read in an
+        order of its own draws its rows in an order the filing does not know
+        about; left out, it is the todo filed directly above this one.
+
+        A todo with nothing above it to move under hands back None rather
+        than moving anywhere.
+        """
+
+        parent = parent or self.previous_sibling
+
+        if parent is None:
+            return None
+
+        steps = list(parent.todos)
+
+        self.parent_project = None
+        self.parent_todo = parent
+        self._renumber(steps + [self])
+
+        self.save()
+        return parent
+
+    def unindent(self) -> Optional[Union["Project", "Todo"]]:
+        """
+        Take this todo out of the task it is a step of
+
+        It lands directly beside that task rather than at the end of the run
+        it is joining: a step pulled out of a task belongs with the task it
+        was part of, not at the bottom of the project. Its own steps come
+        along with it.
+
+        A todo filed straight under a project is already at the top of its
+        run, and hands back None.
+        """
+
+        parent = self.parent_todo
+
+        if parent is None:
+            return None
+
+        grandparent = parent.parent
+
+        # The task this is a step of outlived the project it was filed under,
+        # so there is nothing out here to land beside
+        if grandparent is None:  # pragma: no cover
+            return None
+
+        run = [todo for todo in parent.siblings if todo.id != self.id]
+        after = run.index(parent) + 1
+
+        if isinstance(grandparent, Todo):
+            self.parent_todo = grandparent
+        else:
+            self.parent_todo = None
+            self.parent_project = grandparent
+
+        self._renumber(run[:after] + [self] + run[after:])
+
+        self.save()
+        return grandparent
+
     # ----------- HELPER FUNCTIONS --------------
 
     def set_priority(self, priority: int) -> None:

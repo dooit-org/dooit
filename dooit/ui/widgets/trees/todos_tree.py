@@ -20,6 +20,7 @@ from dooit.ui.api.events.events import TodoSelected
 from dooit.utils import blend
 from .model_tree import GroupHeading, ModelTree
 from ..renderers.todo_renderer import TodoRender
+from ._decorators import refresh_tree, require_highlighted_node
 from ._render_dict import TodoRenderDict
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -393,6 +394,75 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
         self.post_message(
             BarNotification(f"Brought back [b]{projects[-1].description}[/b]", "info")
         )
+
+    def _row_above(self, todo: Todo) -> Optional[Todo]:
+        """
+        The task drawn directly above this one, out of the ones beside it
+
+        Read off the pane rather than off the filing: a pane being read by
+        priority or by date draws the run in an order of its own, and the row
+        a key talks about is the row that is there to be seen.
+        """
+
+        parent = todo.parent
+
+        if parent is None:  # pragma: no cover
+            return None
+
+        siblings = self.visible_children(parent)
+
+        if todo not in siblings:  # pragma: no cover
+            return None
+
+        index = siblings.index(todo)
+
+        return siblings[index - 1] if index else None
+
+    @require_highlighted_node
+    def indent_node(self) -> None:
+        """
+        Makes the highlighted task a step of the task above it
+
+        The task it moves under is opened by the same key, so the row is
+        still there to be worked on rather than folded away out of sight the
+        moment it moves.
+        """
+
+        todo = self.current_model
+        assert isinstance(todo, Todo)
+
+        parent = self._row_above(todo)
+
+        if parent is None:
+            self.post_message(
+                BarNotification("Nothing above this to make it a step of", "warning")
+            )
+            return
+
+        todo.indent(parent)
+
+        # Expanding refreshes the pane, which is what puts the row where it
+        # has just been filed; the cursor is carried onto it from there
+        self._expand_node(parent.uuid)
+        self.post_message(TodoChanged(todo))
+
+    @require_highlighted_node
+    @refresh_tree
+    def unindent_node(self) -> None:
+        """
+        Takes the highlighted task out of the task it is a step of
+        """
+
+        todo = self.current_model
+        assert isinstance(todo, Todo)
+
+        if todo.unindent() is None:
+            self.post_message(
+                BarNotification("This task is not a step of anything", "warning")
+            )
+            return
+
+        self.post_message(TodoChanged(todo))
 
     def toggle_complete(self):
         todo = self.current_model
