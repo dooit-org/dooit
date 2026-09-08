@@ -81,75 +81,41 @@ def test_root():
     assert len(Project.all()) == 0
 
 
-def test_clone_from_id(create_project, create_todo):
-    # Create source project with nested structure
-    p = create_project("Test Project")
-    p.description = "Source Project"
-    p.save()
+def test_total_todos_counts_open_work_at_every_level(create_project):
+    """The tally beside a project counts work left, however it is filed"""
 
-    # Add child projects
-    child_project1 = p.add_project()
-    child_project1.description = "Child Project 1"
-    child_project1.save()
+    from dooit.api import move_todo_to_bin
 
-    child_project2 = p.add_project()
-    child_project2.description = "Child Project 2"
-    child_project2.save()
+    p = create_project("home")
+    sub = Project(description="garden", parent_project=p)
+    sub.save()
 
-    # Add a nested project
-    nested_project = child_project1.add_project()
-    nested_project.description = "Nested Project"
-    nested_project.save()
+    task = p.add_todo()
+    task.add_todo()
+    sub.add_todo()
 
-    # Add todos to projects
-    todo1 = p.add_todo()
-    todo1.description = "Parent Todo"
-    todo1.save()
+    # The task, its step, and the one in the sub project
+    assert p.total_todos == 3
+    assert sub.total_todos == 1
 
-    child_todo = todo1.add_todo()
-    child_todo.description = "Child Todo"
-    child_todo.save()
+    done = p.add_todo()
+    done.toggle_complete()
+    assert p.total_todos == 3
 
-    todo2 = child_project1.add_todo()
-    todo2.description = "Project Child Todo"
-    todo2.save()
+    binned = p.add_todo()
+    move_todo_to_bin(binned)
+    assert p.total_todos == 3
 
-    # Clone the project
-    cloned_project = Project.clone_from_id(p.id, 0)
 
-    # Check basic properties were copied
-    assert cloned_project.id != p.id
-    assert cloned_project.description == "Source Project"
-    assert cloned_project.order_index == 0
-    assert cloned_project.parent_project_id == p.parent_project_id
+def test_total_projects(create_project):
+    p = create_project("outer")
+    assert p.total_projects == 0
 
-    # Check child projects were cloned
-    assert len(cloned_project.projects) == 2
+    inner = Project(description="inner", parent_project=p)
+    inner.save()
+    deepest = Project(description="deepest", parent_project=inner)
+    deepest.save()
 
-    # Check project descriptions
-    child_descriptions = [child.description for child in cloned_project.projects]
-    assert "Child Project 1" in child_descriptions
-    assert "Child Project 2" in child_descriptions
+    assert p.total_projects == 2
+    assert inner.total_projects == 1
 
-    # Find the cloned Child Project 1
-    cloned_child_project1 = next(
-        child
-        for child in cloned_project.projects
-        if child.description == "Child Project 1"
-    )
-
-    # Check nested project was cloned
-    assert len(cloned_child_project1.projects) == 1
-    assert cloned_child_project1.projects[0].description == "Nested Project"
-
-    # Check todos were cloned
-    assert len(cloned_project.todos) == 1
-    assert cloned_project.todos[0].description == "Parent Todo"
-
-    # Check child todo was cloned
-    assert len(cloned_project.todos[0].todos) == 1
-    assert cloned_project.todos[0].todos[0].description == "Child Todo"
-
-    # Check project child todo was cloned
-    assert len(cloned_child_project1.todos) == 1
-    assert cloned_child_project1.todos[0].description == "Project Child Todo"

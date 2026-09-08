@@ -39,6 +39,17 @@ def setup(api: DooitAPI):
     return store, p1, p2
 
 
+def italic_test(api: DooitAPI) -> str:
+    """The word "test" as `set_italic` marks it, in the theme's own red
+
+    Rich normalizes hex colors to lowercase on the way through a Style, so
+    the expectation has to be lowercased too.
+    """
+
+    red = api.vars.theme.red.lower()
+    return f"[italic {red}]test[/italic {red}]"
+
+
 async def test_no_formatting():
     async with run_pilot() as pilot:
         app = pilot.app
@@ -60,10 +71,7 @@ async def test_basic_formatting():
 
         store.add(set_italic)
         formatted = store.format_value(p1.description, p1)
-        assert (
-            formatted.markup
-            == "this is a [italic #bf616a]test[/italic #bf616a] description"
-        )
+        assert formatted.markup == f"this is a {italic_test(app.api)} description"
 
         formatted = store.format_value(p2.description, p2)
         assert formatted.markup == "another description 123"
@@ -78,10 +86,7 @@ async def test_multiple_formatting():
         store.add(set_italic)
         store.add(add_icon)
         formatted = store.format_value(p1.description, p1)
-        assert (
-            formatted.markup
-            == "this is a [italic #bf616a]test[/italic #bf616a] description"
-        )
+        assert formatted.markup == f"this is a {italic_test(app.api)} description"
 
         formatted = store.format_value(p2.description, p2)
         assert formatted.markup == "(icon) another description 123"
@@ -97,10 +102,7 @@ async def test_multiple_formatting_skip():
         store.add(set_italic)
         store.add(add_icon_skip_multiple)
         formatted = store.format_value(p1.description, p1)
-        assert (
-            formatted.markup
-            == "this is a [italic #bf616a]test[/italic #bf616a] description"
-        )
+        assert formatted.markup == f"this is a {italic_test(app.api)} description"
 
         formatted = store.format_value(p2.description, p2)
         assert formatted.markup == "(icon) another description 123 test"
@@ -119,7 +121,7 @@ async def test_multiple_formatting_toggle():
         formatted = store.format_value(p1.description, p1)
         assert (
             formatted.markup
-            == "(icon) this is a [italic #bf616a]test[/italic #bf616a] description 123"
+            == f"(icon) this is a {italic_test(app.api)} description 123"
         )
 
         assert store.disable("italic")
@@ -132,10 +134,7 @@ async def test_multiple_formatting_toggle():
 
         assert store.enable("italic")
         formatted = store.format_value(p1.description, p1)
-        assert (
-            formatted.markup
-            == "this is a [italic #bf616a]test[/italic #bf616a] description 123"
-        )
+        assert formatted.markup == f"this is a {italic_test(app.api)} description 123"
 
         assert not store.enable("random_gibberish_id")
         assert not store.disable("random_gibberish_id")

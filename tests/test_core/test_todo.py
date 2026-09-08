@@ -274,55 +274,179 @@ def test_sort(session, create_project, field, sort_key, filter_func, compare_ids
     else:
         assert old == new
 
-    def test_clone_from_id(create_project, create_todo):
-        # Create source todo with nested structure
-        p = create_project("Test Project")
-        t = p.add_todo()
-        t.description = "Parent Todo"
-        t.due = datetime.now()
-        t.effort = 3
-        t.priority = 2
-        t.save()
+# ------------------------------------------------------------------
+# Behaviour this fork added to the model itself
+# ------------------------------------------------------------------
 
-        # Add child todos
-        child1 = t.add_todo()
-        child1.description = "Child Todo 1"
-        child1.save()
 
-        child2 = t.add_todo()
-        child2.description = "Child Todo 2"
-        child2.save()
+def test_completion_is_stamped(create_project):
+    p = create_project()
+    t = p.add_todo()
+    assert t.completed_at is None
 
-        # Add grandchild todo
-        grandchild = child1.add_todo()
-        grandchild.description = "Grandchild Todo"
-        grandchild.save()
+    t.toggle_complete()
+    assert t.completed_at is not None
 
-        # Clone the todo
-        cloned_todo = Todo.clone_from_id(t.id, 10)
+    t.toggle_complete()
+    assert t.completed_at is None
 
-        # Check basic properties were copied
-        assert cloned_todo.id != t.id
-        assert cloned_todo.description == "Parent Todo"
-        assert cloned_todo.due == t.due
-        assert cloned_todo.effort == 3
-        assert cloned_todo.priority == 2
-        assert cloned_todo.order_index == 10
-        assert cloned_todo.parent_project_id == p.id
 
-        # Check child todos were cloned
-        assert len(cloned_todo.todos) == 2
+def test_effort_is_clamped(create_project):
+    p = create_project()
+    t = p.add_todo()
 
-        # Check grandchild todo was cloned
-        child_descriptions = [child.description for child in cloned_todo.todos]
-        assert "Child Todo 1" in child_descriptions
-        assert "Child Todo 2" in child_descriptions
+    t.set_effort(2)
+    assert t.effort == 2
 
-        # Find the cloned Child Todo 1
-        cloned_child1 = next(
-            child for child in cloned_todo.todos if child.description == "Child Todo 1"
-        )
+    t.set_effort(99)
+    assert t.effort == 3
 
-        # Check grandchild was cloned properly
-        assert len(cloned_child1.todos) == 1
-        assert cloned_child1.todos[0].description == "Grandchild Todo"
+    t.set_effort(-5)
+    assert t.effort == 0
+
+
+def test_descendants(create_project):
+    p = create_project()
+    t = p.add_todo()
+    child = t.add_todo()
+    grandchild = child.add_todo()
+    other = p.add_todo()
+
+    assert t.descendants == [child, grandchild]
+    assert other.descendants == []
+
+
+def test_total_children_counts_only_open_work(create_project):
+    """The count trailing a description is the work left, not the row count"""
+
+    p = create_project()
+    t = p.add_todo()
+
+    child1 = t.add_todo()
+    child1.description = "open step"
+    child1.save()
+
+    child2 = t.add_todo()
+    child2.description = "done step"
+    child2.save()
+
+    grandchild = child1.add_todo()
+    grandchild.description = "nested step"
+    grandchild.save()
+
+    assert t.total_children == 3
+
+    child2.toggle_complete()
+    assert t.total_children == 2
+
+    from dooit.api import move_todo_to_bin
+
+    move_todo_to_bin(child1)
+    assert t.total_children == 0
+
+
+def test_indent_files_under_previous_sibling(create_project):
+    p = create_project()
+    first = p.add_todo()
+    first.description = "first"
+    first.save()
+
+    second = p.add_todo()
+    second.description = "second"
+    second.save()
+
+    parent = second.indent()
+    assert parent == first
+    assert second.parent_todo == first
+    assert second.parent_project is None
+    assert first.todos == [second]
+
+
+def test_indent_carries_steps_along(create_project):
+    p = create_project()
+    first = p.add_todo()
+    second = p.add_todo()
+    step = second.add_todo()
+
+    second.indent()
+    assert second.parent_todo == first
+    assert step.parent_todo == second
+
+
+def test_indent_with_nothing_above(create_project):
+    p = create_project()
+    only = p.add_todo()
+
+    assert only.indent() is None
+    assert only.parent_project == p
+
+
+def test_unindent_lands_beside_the_old_parent(create_project):
+    # KNOWN BUG (intermittent): `Todo.todos` is mapped with
+    # cascade="all, delete-orphan", and `unindent` detaches the step from its
+    # parent todo before the new project association is flushed. Depending on
+    # flush order (hash-seed sensitive) the delete-orphan cascade sometimes
+    # wins and the step is DELETED instead of moved — silent data loss on the
+    # `U` key. The assertions below are the intended behaviour; the test flakes
+    # red until the cascade/re-parent order is fixed.
+    p = create_project()
+    first = p.add_todo()
+    first.description = "first"
+    first.save()
+
+    last = p.add_todo()
+    last.description = "last"
+    last.save()
+
+    step = first.add_todo()
+    step.description = "step"
+    step.save()
+
+    grandparent = step.unindent()
+    assert grandparent == p
+    assert step.parent_project == p
+    assert step.parent_todo is None
+
+    # Directly under the task it was a step of, not at the end of the run
+    ordered = sorted(p.todos, key=lambda t: t.order_index)
+    assert [t.description for t in ordered] == ["first", "step", "last"]
+
+
+def test_unindent_of_a_nested_step(create_project):
+    # Shares the intermittent delete-orphan bug described in
+    # test_unindent_lands_beside_the_old_parent
+    p = create_project()
+    task = p.add_todo()
+    step = task.add_todo()
+    sub_step = step.add_todo()
+
+    assert sub_step.unindent() == task
+    assert sub_step.parent_todo == task
+
+
+def test_unindent_at_top_level(create_project):
+    p = create_project()
+    t = p.add_todo()
+
+    assert t.unindent() is None
+    assert t.parent_project == p
+
+
+def test_tags_ignore_emails(create_project):
+    p = create_project()
+    t = p.add_todo()
+    t.description = "mail bob@example.com about @work"
+
+    assert t.tags == ["@work"]
+
+
+def test_is_binned(create_project):
+    from dooit.api import move_todo_to_bin
+
+    p = create_project()
+    t = p.add_todo()
+    assert not t.is_binned
+
+    move_todo_to_bin(t)
+    assert t.is_binned
+    assert t.binned_at is not None
