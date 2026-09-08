@@ -445,10 +445,10 @@ class NoteEditor(TextArea):
         copy_text(self.app, removed)
 
     @property
-    def note_screen(self) -> "NoteScreen":
+    def note_screen(self) -> "NoteScreenBase":
         screen = self.screen
 
-        assert isinstance(screen, NoteScreen)
+        assert isinstance(screen, NoteScreenBase)
         return screen
 
     def action_clear_note(self) -> None:
@@ -651,13 +651,18 @@ class NoteEditor(TextArea):
         await super()._on_key(event)
 
 
-class NoteScreen(BaseScreen):
+class NoteScreenBase(BaseScreen):
     """
-    The note of one todo, in a window over the whole screen
+    A note in a window over the whole screen
+
+    Everything about writing one lives here - the two modes, the debounce that
+    writes it back, the y/N that throws it away - and the three things that
+    differ between one note and another are left to whoever subclasses this:
+    what the window is called, where the text is read from, and where it goes.
     """
 
     DEFAULT_CSS = """
-    NoteScreen {
+    NoteScreenBase {
         align: center middle;
 
         & > NoteEditor {
@@ -696,12 +701,37 @@ class NoteScreen(BaseScreen):
     # dooit, so the answer is the one the user already knows
     CLEAR_PROMPT = r"Clear the whole note? \[y/N]"
 
-    def __init__(self, todo: Todo) -> None:
+    def __init__(self) -> None:
         super().__init__()
-        self.todo = todo
         self._save_timer: Optional[Timer] = None
         self._report_timer: Optional[Timer] = None
         self._awaiting_clear = False
+
+    @property
+    def title_text(self) -> str:
+        """
+        What the window is called, written into its top border
+        """
+
+        raise NotImplementedError  # pragma: no cover
+
+    def load_note(self) -> str:
+        """
+        The text the window opens on
+        """
+
+        raise NotImplementedError  # pragma: no cover
+
+    def store_note(self, text: str) -> None:
+        """
+        Write the text back to wherever this note is kept
+
+        Called on the debounce and again on the way out, so it is handed the
+        same text more than once for every one time it changes: what to do
+        about that belongs to whichever store is on the other end of it.
+        """
+
+        raise NotImplementedError  # pragma: no cover
 
     @property
     def editor(self) -> NoteEditor:
@@ -715,21 +745,8 @@ class NoteScreen(BaseScreen):
     def awaiting_clear(self) -> bool:
         return self._awaiting_clear
 
-    @property
-    def title_text(self) -> str:
-        """
-        Whose note this is, so the window is not just a box of text
-        """
-
-        description = self.todo.description.strip() or "Note"
-
-        if len(description) > TITLE_MAX:
-            description = description[: TITLE_MAX - 1] + "…"
-
-        return description
-
     def compose(self) -> ComposeResult:
-        editor = NoteEditor(self.todo.note or "")
+        editor = NoteEditor(self.load_note())
         editor.border_title = self.title_text
 
         yield editor
@@ -799,12 +816,7 @@ class NoteScreen(BaseScreen):
 
     def save(self) -> None:
         self._save_timer = None
-
-        if self.todo.note == self.editor.text:
-            return
-
-        self.todo.note = self.editor.text
-        self.todo.save()
+        self.store_note(self.editor.text)
 
     def request_clear(self) -> None:
         """
@@ -854,3 +866,36 @@ class NoteScreen(BaseScreen):
         # redraws the row - so the note icon would not turn up until dooit was
         # restarted
         self.dismiss()
+
+
+class NoteScreen(NoteScreenBase):
+    """
+    The note of one todo
+    """
+
+    def __init__(self, todo: Todo) -> None:
+        super().__init__()
+        self.todo = todo
+
+    @property
+    def title_text(self) -> str:
+        """
+        Whose note this is, so the window is not just a box of text
+        """
+
+        description = self.todo.description.strip() or "Note"
+
+        if len(description) > TITLE_MAX:
+            description = description[: TITLE_MAX - 1] + "…"
+
+        return description
+
+    def load_note(self) -> str:
+        return self.todo.note or ""
+
+    def store_note(self, text: str) -> None:
+        if self.todo.note == text:
+            return
+
+        self.todo.note = text
+        self.todo.save()

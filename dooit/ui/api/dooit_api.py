@@ -321,6 +321,13 @@ class DooitAPI:
         if isinstance(self.focused, TodosTree):
             self.focused.show_note()
 
+    def show_pinned_note(self):
+        """Write in the pinned note, which belongs to no task"""
+
+        from dooit.ui.screens import PinnedNoteScreen
+
+        self.app.push_screen(PinnedNoteScreen())
+
     def open_link(self):
         """Open the first link written in the highlighted row"""
 

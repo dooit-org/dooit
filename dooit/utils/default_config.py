@@ -506,6 +506,9 @@ def key_setup(api: DooitAPI, _):
     # the two ends of a task's life
     api.keys.set("C", api.quick_add, group=EDITING)
     api.keys.set(" ", api.show_note, group=EDITING)
+    # The scratchpad, next to the key that opens a todo's note: the same
+    # window, for the thoughts that have no task to be written on yet
+    api.keys.set("m", api.show_pinned_note, group=EDITING)
     api.keys.set("c", api.toggle_complete, group=EDITING)
     # Throwing something away costs nothing and asks nothing: it goes to the
     # Bin, where "u" fetches it back. Getting rid of it for real is the other

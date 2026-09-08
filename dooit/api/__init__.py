@@ -1,6 +1,7 @@
 from .model import DooitModel, BaseModel
 from .todo import SORT_KEYS, Todo, TodoSortModeType, sort_todos
 from .project import Project
+from .pinned_note import PINNED_NOTE_ID, PinnedNote
 from .fixed_projects import (
     FixedProject,
     TodoGroup,
@@ -53,6 +54,8 @@ __all__ = [
     "SORT_KEYS",
     "sort_todos",
     "Project",
+    "PinnedNote",
+    "PINNED_NOTE_ID",
     "FixedProject",
     "TodoGroup",
     "TODAY",
