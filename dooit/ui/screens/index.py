@@ -1,4 +1,5 @@
-from typing import Type
+from typing import Optional, Type
+from rich.markup import escape
 from sqlalchemy.event import listen
 from sqlalchemy.orm.attributes import get_history
 from textual import events, on
@@ -30,12 +31,14 @@ from dooit.ui.api.events import (
     SwitchTab,
     SpawnHelp,
     SpawnNote,
+    SpawnQuickAdd,
     BarNotification,
 )
 from dooit.ui.widgets.trees import ProjectsTree, TodosTree, make_todos_tree
 from dooit.ui.widgets import BarSwitcher, Dashboard, ModelTree
 from .base import BaseScreen
 from .note import NoteScreen
+from .quick_add import QuickAdded, QuickAddScreen
 
 
 class DualSplit(Container):
@@ -123,6 +126,71 @@ class MainScreen(BaseScreen):
     @on(SpawnNote)
     def spawn_note(self, event: SpawnNote) -> None:
         self.app.push_screen(NoteScreen(event.todo))
+
+    @on(SpawnQuickAdd)
+    def spawn_quick_add(self, _: SpawnQuickAdd) -> None:
+        """
+        Opens the one line task entry over the app
+
+        The project the line falls back to is worked out here rather than
+        inside the overlay: once the overlay is up it is the screen, and the
+        panes it would have to ask are behind it.
+        """
+
+        project = self.api.vars.current_project
+
+        self.app.push_screen(
+            QuickAddScreen(project if isinstance(project, Project) else None),
+            self.quick_add_done,
+        )
+
+    def quick_add_done(self, result: Optional[QuickAdded]) -> None:
+        """
+        Redraws the panes around a task that was added from somewhere else
+
+        The task can have landed in a project nobody is looking at, so the bar
+        says where it went: the row itself may be nowhere on screen.
+        """
+
+        if result is None:
+            return
+
+        todo = result.todo
+        project = todo.parent_project
+
+        if result.project_created and project is not None:
+            self.reveal_project(project)
+
+        self.post_message(TodoChanged(todo))
+
+        where = escape(project.description) if project else ""
+        what = escape(todo.description)
+        into = "to new project" if result.project_created else "to"
+
+        self.post_message(
+            BarNotification(f"Added [b]{what}[/b] {into} [b]{where}[/b]", "info")
+        )
+
+    def reveal_project(self, project: Project) -> None:
+        """
+        Brings a project that has just been built into view, and flashes it
+
+        The same thing that happens to a project rebuilt to take a task back
+        out of the Bin: a new row appears among ones that were already there,
+        and the flash is what says which of them is the new one. A project
+        made inside another is only reachable once that one is open, so its
+        parents are expanded before the pane is redrawn.
+        """
+
+        tree = self.api.vars.projects_tree
+        parent = project.parent_project
+
+        while parent is not None and not parent.is_root:
+            tree.expanded_nodes[parent.uuid] = True
+            parent = parent.parent_project
+
+        tree.force_refresh()
+        tree.flash_row(project.uuid)
 
     @on(StartSearch)
     def start_search(self, event: StartSearch):

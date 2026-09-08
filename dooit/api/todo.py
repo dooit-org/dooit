@@ -15,6 +15,11 @@ if TYPE_CHECKING:  # pragma: no cover
 # 0 means no estimate was made
 MAX_EFFORT = 3
 
+# Priority runs the other way round: 1 is the most urgent and 3 the least, and
+# 0 means none was set. Written down beside the effort scale so that anything
+# reading a priority off typed text has one place to ask how far the scale goes
+MAX_PRIORITY = 3
+
 # The orders a pane of todos can be read in. Every one of them ends on the
 # order the todos were filed in by hand, so the rows a sort has nothing to say
 # about — the ones nobody prioritized, or put a date on — keep the order they

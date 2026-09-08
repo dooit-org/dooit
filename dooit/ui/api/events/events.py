@@ -94,6 +94,12 @@ class SpawnHelp(DooitEvent):
     """
 
 
+class SpawnQuickAdd(DooitEvent):
+    """
+    Emitted when the user wants to type a whole task in one line
+    """
+
+
 class SpawnNote(DooitEvent):
     """
     Emitted when user wants to see and edit the note of a todo

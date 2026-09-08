@@ -163,6 +163,44 @@ SHORTHAND = re.compile(r"^\+?(\d+)\s*([a-z]+)$")
 IN_OFFSET = re.compile(r"^in\s+(\d+|[a-z]+)\s*([a-z]+)$")
 
 
+# The words a date expression is allowed to open with. What they are for is
+# picking a date out of a line that is mostly not one: a span of words is only
+# worth handing to `parse` when it starts with something the grammar above
+# could actually read, or a bare "5" counted out of a description would come
+# back as the fifth of the month.
+DATE_STARTERS = (
+    {
+        "today",
+        "tod",
+        "tomorrow",
+        "tom",
+        "tmr",
+        "tmrw",
+        "tmw",
+        "yesterday",
+        "yest",
+        "yd",
+        "someday",
+        "weekend",
+        "weekday",
+        "next",
+        "mid",
+        "in",
+        "end",
+        "eom",
+    }
+    | set(WEEKDAYS)
+    | set(MONTHS)
+    | set(DAY_PARTS)
+)
+
+# The words above that are ordinary English besides being dates, and so are
+# not read as a date when they are the whole of the expression. Each of them
+# has a spelling that is not ("saturday" for "sat"), and each still reads as a
+# date the moment it is given something to modify ("friday evening", "may 5").
+AMBIGUOUS_ALONE = {"may", "sat", "sun"} | set(DAY_PARTS)
+
+
 class _Ambiguous(Exception):
     """A pattern matched the shape but not the vocabulary; keep looking."""
 
@@ -212,6 +250,40 @@ def _normalize(value: str) -> str:
     # typed straight back in
     text = text.replace("(", " ").replace(")", " ")
     return _squash(text)
+
+
+def looks_like_date_start(word: str, alone: bool = False) -> bool:
+    """
+    Whether a word could be the first of a date expression
+
+    A loose test on purpose: all it says is that a span is worth trying, and
+    `parse` is what decides whether it means anything. What it rules out is
+    the ordinary words of a description, which is the whole point of asking.
+
+    `alone` says the word would be the whole of the expression, which is where
+    the shorthand stops being worth its false readings: "sat in the meeting"
+    and "may need a look" are not dates, and neither is the "evening" of an
+    evening class. Spelled out, or modifying something -- "saturday", "friday
+    evening" -- they are read as dates as they always were.
+    """
+
+    text = _normalize(word)
+
+    if not text:
+        return False
+
+    if alone and text in AMBIGUOUS_ALONE:
+        return False
+
+    if text in DATE_STARTERS:
+        return True
+
+    return bool(
+        SHORTHAND.match(text)
+        or ISO_DATE.match(text)
+        or DOTTED_SHAPE.match(text)
+        or any(pattern.match(text) for pattern in TIME_PATTERNS)
+    )
 
 
 def _drop_filler(text: str) -> str:

@@ -100,6 +100,33 @@ NoteEditor {
   }
 }
 
+/* The one line task entry, which sits over the app rather than in place of
+   it: the panes stay visible, dimmed, behind it, since what is being added
+   is being added to what is on screen. The `Screen` rule at the top of this
+   file would otherwise paint it solid. */
+QuickAddScreen {
+  align: center middle;
+  background: $background1 70%;
+
+  & > #quick-add-panel {
+    width: 70%;
+    height: auto;
+    background: $background2;
+    border: $border_type $secondary;
+    border-title-background: $primary;
+    border-title-color: $background1;
+    border-title-align: center;
+    padding: 0 1;
+  }
+
+  & > #quick-add-hint {
+    width: 70%;
+    padding: 0 2;
+    color: $foreground1 60%;
+    text-align: center;
+  }
+}
+
 # Bars
 
 

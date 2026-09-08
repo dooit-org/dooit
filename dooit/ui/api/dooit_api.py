@@ -2,7 +2,13 @@ from typing import TYPE_CHECKING
 from dooit.ui.api.events import BarNotification, NotificationType
 from dooit.ui.api.plug import PluginManager
 from dooit.api import BIN, COMPLETED, TODAY, UPCOMING
-from .events import DooitEvent, GotoFixedProject, SwitchTab, QuitApp
+from .events import (
+    DooitEvent,
+    GotoFixedProject,
+    SpawnQuickAdd,
+    SwitchTab,
+    QuitApp,
+)
 from dooit.ui.widgets import ModelTree
 from dooit.ui.widgets.trees import TodosTree
 from dooit.utils import CssManager
@@ -211,6 +217,16 @@ class DooitAPI:
     def add_sibling(self):
         """Add a sibling to highlighted item"""
         self.focused.add_sibling()
+
+    def quick_add(self):
+        """Type a whole task in one line: project, labels, priority and day"""
+
+        if self.app.bar_switcher.is_focused:
+            return
+
+        # Posted at the screen: the overlay goes over the panes, and the
+        # screen is what knows which project they were opened on
+        self.app.screen.post_message(SpawnQuickAdd())
 
     def toggle_expand(self):
         """Toggle the expansion of the highlighted item"""
