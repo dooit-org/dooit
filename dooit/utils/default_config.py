@@ -516,6 +516,12 @@ def key_setup(api: DooitAPI, _):
     api.keys.set("xx", api.remove_node, group=EDITING)
     api.keys.set("yy", api.delete_node, group=EDITING)
     api.keys.set("u", api.restore_node, group=EDITING)
+    # The shifted twin of the chord that deletes one task for good, and the
+    # same thing over the whole Bin: it can be pressed from anywhere, and says
+    # how much is about to go before it goes. A chord rather than the single
+    # shifted key, since the whole Bin is far too much to lose to a slip of
+    # the finger — it has to be typed twice over, the way "yy" does
+    api.keys.set("YY", api.empty_bin, group=EDITING)
 
     # A scale is one thing to learn, not four, so the whole run of digits is
     # listed as the single row it reads as. The keys are still set one at a

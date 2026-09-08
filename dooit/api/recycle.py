@@ -3,7 +3,8 @@ Throwing work away, and getting it back
 
 Nothing in dooit is deleted by accident. A todo that is dropped goes to the
 Bin, where it stays, whole, until it is either restored or deleted for good;
-the only thing that actually removes a row is the key that asks first.
+the only things that actually remove a row are the keys that ask first — the
+one that deletes what the cursor is on, and the one that empties the Bin out.
 
 Dropping a project is the same thing one level up: everything filed under it
 goes to the Bin carrying the path it came from, and the project row itself is
@@ -15,7 +16,7 @@ restoring something never quietly drops it somewhere else.
 from datetime import datetime
 from typing import Iterator, List, Optional
 
-from .fixed_projects import PATH_SEPARATOR, project_path
+from .fixed_projects import PATH_SEPARATOR, binned_tasks, project_path
 from .manager import manager
 from .project import Project
 from .todo import Todo
@@ -183,3 +184,27 @@ def move_project_to_bin(project: Project) -> None:
 
     manager.commit()
     project.drop()
+
+
+def empty_bin() -> List[str]:
+    """
+    Deletes everything in the Bin for good, and says which rows those were
+
+    A task goes out the way it went in: whole, with its steps. What comes back
+    is every row that was deleted, steps included, so that the panes which
+    drew any of them can let go of what they were holding — a row still held
+    on to here is one that gets read back out of the database after it has
+    left it.
+    """
+
+    tasks = binned_tasks()
+    gone = [node.uuid for todo in tasks for node in _family(todo)]
+
+    # Only the tasks are handed over: the steps under them go with them, the
+    # same way deleting a single task takes its own
+    for todo in tasks:
+        manager.session.delete(todo)
+
+    manager.commit()
+
+    return gone

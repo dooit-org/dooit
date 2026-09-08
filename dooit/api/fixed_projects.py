@@ -201,6 +201,29 @@ def binned_key(todo: Todo) -> datetime:
     return todo.binned_at or datetime.min
 
 
+def binned_tasks() -> List[Todo]:
+    """
+    The tasks in the Bin: the binned todos nothing binned is filed under
+
+    Throwing a todo away throws away everything under it, so a step whose task
+    went in the Bin belongs inside that task rather than beside it. A step
+    binned on its own has no binned todo above it and stands as a task of its
+    own, which is exactly what it is.
+
+    One task is one row of the pane, and one thing to put back or be rid of,
+    so it is what both the Bin and the key that empties it count in.
+    """
+
+    query = select(Todo).where(Todo.binned_at.is_not(None))
+    todos = manager.session.execute(query).scalars().all()
+
+    return [
+        todo
+        for todo in todos
+        if todo.parent_todo is None or not todo.parent_todo.is_binned
+    ]
+
+
 def _day_heading(day: date) -> str:
     """
     What opens a day's block: the day itself, or "Tomorrow" for the next one
@@ -445,29 +468,9 @@ class BinProject(FixedProject):
     # says "Today" whatever the hour
     day_only_columns = ("binned",)
 
-    @staticmethod
-    def _binned() -> List[Todo]:
-        """
-        The tasks in the Bin: the binned todos nothing binned is filed under
-
-        Throwing a todo away throws away everything under it, so a step whose
-        task went in the Bin arrives inside that task rather than beside it.
-        A step binned on its own has no binned todo above it and stands as a
-        row of its own, which is exactly what it is.
-        """
-
-        query = select(Todo).where(Todo.binned_at.is_not(None))
-        todos = manager.session.execute(query).scalars().all()
-
-        return [
-            todo
-            for todo in todos
-            if todo.parent_todo is None or not todo.parent_todo.is_binned
-        ]
-
     @property
     def todo_groups(self) -> List[TodoGroup]:
-        todos = sorted(self._binned(), key=binned_key, reverse=True)
+        todos = sorted(binned_tasks(), key=binned_key, reverse=True)
 
         # One block, and no heading over it: what the rows have in common is
         # that they were thrown out, which the pane has already said

@@ -153,11 +153,17 @@ class GotoFixedProject(DooitEvent):
 class ShowConfirm(DooitEvent):
     """
     Emitted when confirmation from user is required
+
+    The question can be spelled out by whatever is asking it: an edit that
+    takes more than the row under the cursor with it has to say so, since the
+    bar is the only place the size of it is ever mentioned. Leaving it out
+    falls back to the plain "Are you sure?".
     """
 
-    def __init__(self, callback: Callable) -> None:
+    def __init__(self, callback: Callable, message: Optional[str] = None) -> None:
         super().__init__()
         self.callback = callback
+        self.message = message
 
 
 # Project events

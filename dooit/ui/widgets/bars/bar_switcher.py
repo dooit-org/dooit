@@ -49,8 +49,8 @@ class BarSwitcher(ContentSwitcher):
             set_current=True,
         )
 
-    def switch_to_confirm(self, callback: Callable):
-        confirm_bar = ConfirmBar(callback)
+    def switch_to_confirm(self, callback: Callable, message: Optional[str] = None):
+        confirm_bar = ConfirmBar(callback, message) if message else ConfirmBar(callback)
         self.add_content(
             widget=confirm_bar,
             id="confirm_bar",

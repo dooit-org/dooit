@@ -1,10 +1,11 @@
 from typing import TYPE_CHECKING
 from dooit.ui.api.events import BarNotification, NotificationType
 from dooit.ui.api.plug import PluginManager
-from dooit.api import BIN, COMPLETED, TODAY, UPCOMING
+from dooit.api import BIN, COMPLETED, TODAY, UPCOMING, binned_tasks, empty_bin
 from .events import (
     DooitEvent,
     GotoFixedProject,
+    ShowConfirm,
     SpawnQuickAdd,
     SpawnSearch,
     SwitchTab,
@@ -264,6 +265,48 @@ class DooitAPI:
     def restore_node(self):
         """Restore the highlighted item out of the Bin"""
         self.focused.restore_node()
+
+    def empty_bin(self):
+        """Delete everything in the Bin for good (asks first)"""
+
+        if self.app.bar_switcher.is_focused:
+            return
+
+        tasks = len(binned_tasks())
+
+        # Said rather than asked: a key that stops to ask about nothing is a
+        # key that has to be answered before the app moves on again
+        if not tasks:
+            self.notify("The Bin is already empty")
+            return
+
+        # The one edit that takes more with it than the row under the cursor,
+        # and the cursor need not be anywhere near the Bin when it is pressed
+        # — so the question counts what is about to go instead of asking, like
+        # every other delete does, whether this is really meant
+        label = "task" if tasks == 1 else "tasks"
+        message = rf"Delete {tasks} {label} in the Bin for good? \[y/N]"
+
+        if not self.vars.show_confirm:
+            self._empty_bin()
+            return
+
+        self.app.screen.post_message(ShowConfirm(self._empty_bin, message))
+
+    def _empty_bin(self) -> None:
+        """
+        Empties the Bin out and redraws everything that was drawn from it
+
+        Every pane, not only the Bin: a todo thrown away is a row the project
+        it came out of drew once too, and what a pane keeps about a row it has
+        drawn outlives the row moving elsewhere.
+        """
+
+        gone = empty_bin()
+
+        for tree in self.app.screen.query(ModelTree):
+            tree.forget_rows(gone)
+            tree.force_refresh()
 
     def start_search(self):
         """Find a task anywhere in the tree and jump to it"""

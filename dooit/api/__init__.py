@@ -13,9 +13,11 @@ from .fixed_projects import (
     fixed_project_from_key,
     fixed_projects,
     register_fixed_project,
+    binned_tasks,
 )
 from .recycle import (
     REVIVED_PREFIX,
+    empty_bin,
     move_project_to_bin,
     move_todo_to_bin,
     restore_todo,
@@ -63,6 +65,7 @@ __all__ = [
     "COMPLETED",
     "BIN",
     "REVIVED_PREFIX",
+    "empty_bin",
     "move_project_to_bin",
     "move_todo_to_bin",
     "restore_todo",
@@ -71,6 +74,7 @@ __all__ = [
     "fixed_project_from_key",
     "fixed_projects",
     "register_fixed_project",
+    "binned_tasks",
     "manager",
     "drop_blank_models",
     "fix_hooks",

@@ -298,7 +298,7 @@ class MainScreen(BaseScreen):
 
     @on(ShowConfirm)
     def show_confirm(self, event: ShowConfirm):
-        self.app.bar_switcher.switch_to_confirm(event.callback)
+        self.app.bar_switcher.switch_to_confirm(event.callback, event.message)
         self.post_message(ModeChanged("CONFIRM"))
 
     @on(ProjectRemoved)

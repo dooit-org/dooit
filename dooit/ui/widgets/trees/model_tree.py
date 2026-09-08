@@ -6,6 +6,7 @@ from typing import (
     Callable,
     Dict,
     Generic,
+    Iterable,
     List,
     Optional,
     TypeVar,
@@ -766,6 +767,22 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         self._renderers.pop(model.uuid)
         self.expanded_nodes.pop(model.uuid)
         model.drop()
+
+    def forget_rows(self, ids: Iterable[str]) -> None:
+        """
+        Drops what the pane was keeping about rows that are gone for good
+
+        A row is drawn out of a renderer the pane holds on to, and it holds
+        one for every model it has ever drawn — including models that have
+        since moved out of it, into the Bin or into another project. Measuring
+        a column walks the whole lot of them, so a renderer left behind by a
+        deleted model is a row read off the database after the row it belongs
+        to has left it.
+        """
+
+        for _id in ids:
+            self._renderers.pop(_id, None)
+            self.expanded_nodes.pop(_id, None)
 
     @require_confirmation
     @refresh_tree
