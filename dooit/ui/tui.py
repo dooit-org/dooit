@@ -9,7 +9,7 @@ from dooit.ui.widgets.bars import StatusBar
 from dooit.ui.widgets.trees import ProjectsTree
 from dooit.ui.screens import MainScreen, HelpScreen
 from dooit.ui.widgets.trees.model_tree import ModelTree
-from dooit.utils import CssManager
+from dooit.utils import CssManager, open_url
 from .api import DooitAPI
 from ..api import manager, drop_blank_models
 
@@ -107,7 +107,10 @@ class Dooit(App):
         await self.action_quit()
 
     async def action_open_url(self, url: str) -> None:  # pragma: no cover
-        self.open_url(url)
+        # dooit's own opener rather than textual's: `App.open_url` goes
+        # through `webbrowser`, which finds nothing at all under WSL - the
+        # same reason the "o" key does not go through it either
+        open_url(url)
 
 
 if __name__ == "__main__":  # pragma: no cover

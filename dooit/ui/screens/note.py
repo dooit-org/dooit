@@ -11,7 +11,15 @@ from textual.widgets.text_area import TextAreaTheme
 
 from dooit.api import Todo
 from dooit.api.theme import DooitThemeBase
-from dooit.utils import blend, copy_text, paste_text
+from dooit.utils import (
+    blend,
+    copy_text,
+    find_links,
+    link_at,
+    link_label,
+    open_url,
+    paste_text,
+)
 
 from .base import BaseScreen
 
@@ -38,6 +46,7 @@ MARKER = "note-marker"
 BULLET_SPAN = "note-bullet"
 RULE_SPAN = "note-rule"
 HEADER = "note-header"
+LINK = "note-link"
 
 # `**bold**` wins over `*italic*` by sitting first in the alternation
 MARKUP_RE = re.compile(r"\*\*(?P<bold>[^*]+)\*\*|\*(?P<italic>[^*]+)\*")
@@ -55,6 +64,9 @@ THEME_NAME = "dooit-note"
 
 # How long the editor has to sit still before the note is written back
 SAVE_DEBOUNCE = 0.4
+
+# How long a message stands in the hint line before the hints come back
+REPORT_TIMEOUT = 3
 
 # How much of the todo's description the window title carries
 TITLE_MAX = 60
@@ -113,6 +125,12 @@ def scan_markup(line: str, following: str = "") -> Iterator[Tuple[int, int, str]
     if bullet:
         yield byte(bullet.start(1)), byte(bullet.end(1)), BULLET_SPAN
 
+    # Drawn the same way the trees draw a link in a description, and read off
+    # the same scan the `o` key opens one with: what is underlined here is
+    # exactly what standing on it will open
+    for link in find_links(line):
+        yield byte(link.start), byte(link.end), LINK
+
     for match in MARKUP_RE.finditer(line):
         if match.group("bold") is not None:
             name, width = BOLD, 2
@@ -158,6 +176,9 @@ def build_theme(theme: DooitThemeBase) -> TextAreaTheme:
             # a header would happen somewhere the eye could not follow
             RULE_SPAN: Style(color=blend(theme.foreground1, theme.background2, 0.7)),
             HEADER: Style(color=theme.primary, bold=True),
+            # The same underlined italic a link wears out on the todo rows,
+            # so a URL looks like one thing wherever it is written
+            LINK: Style(color=theme.primary, underline=True, italic=True),
         },
     )
 
@@ -470,11 +491,33 @@ class NoteEditor(TextArea):
             self._enter_insert_at(key)
             return True
 
-        if key in ("o", "O"):
-            self._open_line(below=key == "o")
+        if key == "o":
+            self._open_link_under_cursor()
+            return True
+
+        if key == "O":
+            self._open_line()
             return True
 
         return False
+
+    def _open_link_under_cursor(self) -> None:
+        """
+        Open the link the cursor is standing on, and say so when there is none
+
+        Nothing else: reading a note is not editing it, so the key that opens
+        a link never lands the note in INSERT - not even by falling through to
+        something that would.
+        """
+
+        row, column = self.cursor_location
+        link = link_at(self.document[row], column)
+
+        if link is None:
+            self.note_screen.report("No link under the cursor")
+            return
+
+        self.note_screen.open_link(link.url)
 
     def _enter_insert_at(self, key: str) -> None:
         """
@@ -498,12 +541,16 @@ class NoteEditor(TextArea):
 
         self.enter_insert()
 
-    def _open_line(self, below: bool) -> None:
+    def _open_line(self) -> None:
         """
-        Start a line either side of this one and type on it
+        Start a line under this one and type on it
 
-        A line opened around a bullet gets a bullet of its own, the same way
-        `enter` carries one on: `o` is how the next item of a list is written.
+        On the shifted key, since the lowercase one is spent on opening links:
+        the note is read far more often than a line is started in it, and a
+        key that opens a link has to be a key that never writes anything.
+
+        A line opened under a bullet gets a bullet of its own, the same way
+        `enter` carries one on: this is how the next item of a list is written.
         """
 
         row, _ = self.cursor_location
@@ -513,13 +560,8 @@ class NoteEditor(TextArea):
 
         self.enter_insert()
 
-        if below:
-            self.move_cursor((row, len(line)))
-            self.insert("\n" + prefix, maintain_selection_offset=False)
-            return
-
-        self.insert(prefix + "\n", (row, 0), maintain_selection_offset=False)
-        self.move_cursor((row, len(prefix)))
+        self.move_cursor((row, len(line)))
+        self.insert("\n" + prefix, maintain_selection_offset=False)
 
     async def _on_key(self, event: events.Key) -> None:
         """
@@ -638,7 +680,7 @@ class NoteScreen(BaseScreen):
     # standing would only be noise
     HINTS = {
         MODE_NORMAL: (
-            "i insert    jklö move    gg/G ends    "
+            "i insert    jklö move    o link    gg/G ends    "
             "ctrl+c copy    ctrl+d clear    esc close"
         ),
         # The formatting keys are what is worth advertising here; `ctrl+v` had
@@ -658,6 +700,7 @@ class NoteScreen(BaseScreen):
         super().__init__()
         self.todo = todo
         self._save_timer: Optional[Timer] = None
+        self._report_timer: Optional[Timer] = None
         self._awaiting_clear = False
 
     @property
@@ -718,6 +761,35 @@ class NoteScreen(BaseScreen):
         if not self._awaiting_clear:
             self.hint.update(self.HINTS[mode])
 
+    def report(self, message: str) -> None:
+        """
+        Say something in the hint line, and put the hints back afterwards
+
+        The bar dooit talks through is on the screen underneath this one, so
+        a note has to do its own talking - and the line the hints are written
+        on is already there for it.
+        """
+
+        if self._report_timer is not None:
+            self._report_timer.stop()
+
+        self.hint.update(message)
+        self._report_timer = self.set_timer(REPORT_TIMEOUT, self.mode_changed)
+
+    def open_link(self, url: str) -> None:
+        """
+        Hand a URL to the browser, and say which one went
+
+        Nothing about it shows up in here - the browser comes up somewhere
+        else entirely, or nothing does - so the line underneath is what says
+        the key landed.
+        """
+
+        if open_url(url):
+            self.report(f"Opening {link_label(url)}")
+        else:
+            self.report("Found no browser to open the link with")
+
     @on(TextArea.Changed)
     def schedule_save(self, _: TextArea.Changed) -> None:
         if self._save_timer is not None:
@@ -768,6 +840,10 @@ class NoteScreen(BaseScreen):
     def action_close(self) -> None:
         if self._save_timer is not None:
             self._save_timer.stop()
+
+        # Nothing left to write the hints back onto once the window is gone
+        if self._report_timer is not None:
+            self._report_timer.stop()
 
         # Written out here as well as on the timer, so the last keystrokes
         # can't be lost inside the debounce window

@@ -557,6 +557,9 @@ def key_setup(api: DooitAPI, _):
     api.keys.set("<ctrl+c>", api.copy_description_to_clipboard, group=MOVING)
     api.keys.set("<ctrl+v>", api.paste_as_sibling, group=MOVING)
 
+    # "o" for open, on the row and inside the note alike: the same key opens
+    # the link it is standing on wherever the link is written
+    api.keys.set("o", api.open_link, group=VIEW)
     api.keys.set("/", api.start_search, group=VIEW)
     api.keys.set("q", api.toggle_row_shading, group=VIEW)
 

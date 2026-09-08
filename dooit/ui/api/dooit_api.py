@@ -11,7 +11,7 @@ from .events import (
 )
 from dooit.ui.widgets import ModelTree
 from dooit.ui.widgets.trees import TodosTree
-from dooit.utils import CssManager
+from dooit.utils import CssManager, first_link, link_label, open_url
 
 from .api_components import (
     KeyManager,
@@ -308,6 +308,28 @@ class DooitAPI:
         """Show and edit the note of the todo"""
         if isinstance(self.focused, TodosTree):
             self.focused.show_note()
+
+    def open_link(self):
+        """Open the first link written in the highlighted row"""
+
+        tree = self.focused
+
+        if tree.highlighted is None:
+            return
+
+        link = first_link(tree.current_model.description)
+
+        if link is None:
+            self.notify("No link on this row", "warning")
+            return
+
+        # Nothing about opening a link shows up inside dooit - the browser
+        # comes up somewhere else entirely, or nothing does - so the bar is
+        # what says the key landed, and says which link it landed on
+        if open_url(link.url):
+            self.notify(f"Opening {link_label(link.url)}")
+        else:
+            self.notify("Found no browser to open the link with", "error")
 
     def show_help(self):
         """Show the help screen"""
