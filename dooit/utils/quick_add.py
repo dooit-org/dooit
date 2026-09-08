@@ -2,7 +2,7 @@
 A whole task read out of one typed line, in the style of Todoist's quick add
 
 The line is written the way the task would be said -- "call the dentist #Home
-%phone p1 e1 tomorrow 09:00" -- and the markers below pick the fields out of
+@phone p1 e1 tomorrow 09:00" -- and the markers below pick the fields out of
 it: which project it is filed under, what it is tagged with, how urgent it is,
 how big a job it is, and the day it is planned for. Everything none of them
 claims is the description, so the sentence survives having been read.
@@ -27,22 +27,25 @@ from dooit.api.todo import MAX_EFFORT, MAX_PRIORITY
 
 from .date_parser import looks_like_date_start, parse
 
-# The project the task is filed under, and a tag hung on it
+# The project the task is filed under
 PROJECT_MARKER = "#"
-LABEL_MARKER = "%"
 
 # A label is written into the description under dooit's own tag marker, which
 # is what the row highlights and what `Todo.tags` reads back
 TAG_MARKER = "@"
 
+# A tag hung on the task. The same marker it is stored under, so a label is
+# typed the way it will read back on the row.
+LABEL_MARKER = TAG_MARKER
+
 # What separates the steps of a project path, for the times a name alone is
 # not enough to say which project is meant
 PATH_SEPARATOR = "/"
 
-# `#name` or `%name`, taken only where a word starts: a `%` in the middle of
-# one is part of the word ("50%") rather than a marker. The quoted form is
-# what lets a project name have a space in it.
-MARKED = re.compile(r'(?:(?<=\s)|\A)([#%])(?:"([^"]+)"|(\S+))')
+# `#name` or `@name`, taken only where a word starts: an `@` in the middle of
+# one is part of the word ("bob@example.com") rather than a marker. The quoted
+# form is what lets a project name have a space in it.
+MARKED = re.compile(r'(?:(?<=\s)|\A)([#@])(?:"([^"]+)"|(\S+))')
 
 # The deadline, named because the bare date in a line is the other one. What
 # follows the `=` is a date expression like any other, and can run past the
@@ -153,7 +156,7 @@ def parse_quick_add(line: str, now: Optional[datetime] = None) -> QuickAddSpec:
 
 def _take_marked(line: str, spec: QuickAddSpec) -> str:
     """
-    Pulls the `#project` and `%label` out, and hands back what is left
+    Pulls the `#project` and `@label` out, and hands back what is left
     """
 
     kept: List[str] = []
