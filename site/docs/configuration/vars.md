@@ -9,12 +9,12 @@ h2 code {
 This api component exposes some of the stuff running on dooit + act as a global register to tweak settings \
 Its still developing and I'll add more stuff to it as per demand!
 
-## `editable` always_expand_workspaces
+## `editable` always_expand_projects
 
-If set to `True`, the workspaces will always be expanded
+If set to `True`, the projects will always be expanded
 
 ```py
-def always_expand_workspaces(self) -> bool
+def always_expand_projects(self) -> bool
 ```
 
 ## `editable` always_expand_todos
@@ -80,13 +80,13 @@ def foo(api: DooitAPI, event: DooitEvent):
 
 ---
 
-## `readonly` workspaces_tree
+## `readonly` projects_tree
 
 ```py
-def workspaces_tree(self) -> WorkspacesTree
+def projects_tree(self) -> ProjectsTree
 ```
 
-Returns the current workspaces tree object
+Returns the current projects tree object
 
 ```py{6}
 from dooit.ui.api.events import DooitEvent
@@ -94,18 +94,18 @@ from dooit.ui.api import DooitAPI, subscribe
 
 @subscribe(DooitEvent)
 def foo(api: DooitAPI, event: DooitEvent):
-    workspaces_tree = api.vars.workspaces_tree
+    projects_tree = api.vars.projects_tree
 ```
 
 ---
 
-## `readonly` current_workspace
+## `readonly` current_project
 
 ```py
-def current_workspace(self) -> Optional[Workspace]
+def current_project(self) -> Optional[Project]
 ```
 
-Returns the currently highlighted workspace object if available; otherwise, returns `None` (see [workspace](../backend/workspace.md))
+Returns the currently highlighted project object if available; otherwise, returns `None` (see [project](../backend/project.md))
 
 ```py{6}
 from dooit.ui.api.events import DooitEvent
@@ -113,7 +113,7 @@ from dooit.ui.api import DooitAPI, subscribe
 
 @subscribe(DooitEvent)
 def foo(api: DooitAPI, event: DooitEvent):
-    current_workspace = api.vars.current_workspace
+    current_project = api.vars.current_project
 ```
 
 ---
@@ -124,7 +124,7 @@ def foo(api: DooitAPI, event: DooitEvent):
 def todos_tree(self) -> Optional[TodosTree]
 ```
 
-Returns the todos tree for the current workspace if available; otherwise, returns `None`
+Returns the todos tree for the current project if available; otherwise, returns `None`
 
 ```py{6}
 from dooit.ui.api.events import DooitEvent

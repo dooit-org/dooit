@@ -16,7 +16,7 @@ As mentioned in the introduction, `Todo` class is a table and any sql operations
 
 ## `attr`  description
 
-The description of the workspace
+The description of the project
 
 ```python
 description: Mapped[str] = mapped_column(default="")
@@ -24,7 +24,7 @@ description: Mapped[str] = mapped_column(default="")
 
 ## `attr`  due
 
-The due date for the workspace
+The due date for the project
 
 ```python
 due: Mapped[Optional[datetime]] = mapped_column(default=None)
@@ -32,7 +32,7 @@ due: Mapped[Optional[datetime]] = mapped_column(default=None)
 
 ## `attr`  effort
 
-The effort value for the workspace
+The effort value for the project
 
 ```python
 effort: Mapped[int] = mapped_column(default=0)
@@ -48,7 +48,7 @@ recurrence: Mapped[Optional[timedelta]] = mapped_column(default=None)
 
 ## `attr`  urgency
 
-The urgency for the workspace (from `0` to `4`)
+The urgency for the project (from `0` to `4`)
 
 ```python
 due: Mapped[Optional[datetime]] = mapped_column(default=None)
@@ -62,13 +62,13 @@ Whether the todo is completed or not (`True` if not completed)
 pending: Mapped[bool] = mapped_column(default=True)
 ```
 
-## `attr`  parent_workspace
+## `attr`  parent_project
 
-The parent workspace of the todo ( will be `None` if the todo is a subtask for another `Todo`)
+The parent project of the todo ( will be `None` if the todo is a subtask for another `Todo`)
 
 ```python
-parent_workspace: Mapped[Optional["Workspace"]] = relationship(
-    "Workspace",
+parent_project: Mapped[Optional["Project"]] = relationship(
+    "Project",
     back_populates="todos",
 )
 ```
@@ -78,8 +78,8 @@ parent_workspace: Mapped[Optional["Workspace"]] = relationship(
 The parent todo of the todo ( will be `None` if the todo is ***not*** a subtask for another `Todo`)
 
 ```python
-parent_workspace: Mapped[Optional["Workspace"]] = relationship(
-    "Workspace",
+parent_project: Mapped[Optional["Project"]] = relationship(
+    "Project",
     back_populates="todos",
 )
 ```
@@ -147,7 +147,7 @@ Returns all the todos from the database
 ## `property` parent
 
 ```python
-parent -> Workspace | Todo
+parent -> Project | Todo
 ```
 
 Returns the parent of the todo object
@@ -156,7 +156,7 @@ Returns the parent of the todo object
 
 | Type|<div style="width: 100px">Default</div> |Description|
 | ------------- | :----------------:  | :----------------------------------------------------------------------------------------|
-| Workspace or Todo     |                     | The parent of the todo object                                                       |
+| Project or Todo     |                     | The parent of the todo object                                                       |
 
 ## `property` nest_level
 

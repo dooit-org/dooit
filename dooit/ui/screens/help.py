@@ -1,64 +1,22 @@
 from collections.abc import Callable
+from typing import List, Tuple
 from rich.console import Group, RenderableType
-from rich.style import Style
+from rich.rule import Rule
 from rich.table import Table
 from rich.text import Text
 from textual.app import ComposeResult
-from textual.widgets import Static
 
 from dooit.ui.api.api_components.keys import KeyManager
 from .base import BaseScreen
+from textual.widgets import Static
 
 
-class HelpWidget(Static):
+class DooitKeyTable(Static):
     DEFAULT_CSS = """
-    HelpWidget {
+    DooitKeyTable {
         content-align: center middle;
         width: 80%;
         margin: 1;
-    }
-    """
-
-
-class Header(HelpWidget):
-    def render(self) -> RenderableType:
-        return "Welcome to Dooit!"
-
-
-class Outro(HelpWidget):
-    COMPONENT_CLASSES = {
-        "exit",
-        "thanks",
-        "github",
-    }
-
-    def render(self) -> RenderableType:
-        thanks = Text.from_markup(
-            "     Thanks for using Dooit <3",
-            style=self.get_component_rich_style("thanks"),
-        )
-        github = Text.from_markup("You can find this project on  github -> ")
-        go_back = Text.from_markup("     Use  escape  to go back")
-
-        go_back.highlight_words(
-            [" escape "],
-            style=self.get_component_rich_style("exit"),
-        )
-
-        github_link = "'https://www.github.com/dooit-org/dooit'"
-        github.highlight_words(
-            [" github -> "],
-            style=Style.from_meta(
-                {"@click": f"app.open_url({github_link})"},
-            ),
-        )
-
-        return Text() + thanks + "\n" + github + "\n\n" + go_back
-
-
-class DooitKeyTable(HelpWidget):
-    DEFAULT_CSS = """
-    DooitKeyTable {
         padding: 1 2;
     }
     """
@@ -68,6 +26,7 @@ class DooitKeyTable(HelpWidget):
         "arrow",
         "description",
         "table-title",
+        "separator",
     }
     BORDER_TITLE = "Key Bindings"
 
@@ -76,41 +35,98 @@ class DooitKeyTable(HelpWidget):
         self.keybinds = keybinds
         self.no_op = no_op
 
+    # Keys that arrive as a character nobody can see, and so have to be named
+    KEY_LABELS = {" ": "space"}
+
+    def _rows(self, group: str) -> List[Tuple[str, str]]:
+        """
+        The rows a section lists, as the key it names and what it does
+
+        A binding carrying a label of its own is written under that instead of
+        under its key, and the whole run of bindings sharing one collapses to
+        the single row they all read as: a scale is one thing to learn, and
+        four rows of it is four times the screen saying so.
+        """
+
+        rows: List[Tuple[str, str]] = []
+
+        for keybind, func in self.keybinds.get_keybinds_by_group(group):
+            if func.description == "<NOP>":
+                continue
+
+            row = (func.label or self.key_label(keybind), func.description)
+
+            if row not in rows:
+                rows.append(row)
+
+        return rows
+
+    @classmethod
+    def key_label(cls, keybind: str) -> str:
+        if keybind in cls.KEY_LABELS:
+            return cls.KEY_LABELS[keybind]
+
+        # A named key is written `<ctrl+q>` so that it can be told apart from
+        # the four characters it would otherwise be, which is a distinction
+        # only the key input cares about: the table reads it as a key
+        if keybind.startswith("<") and keybind.endswith(">"):
+            return keybind[1:-1]
+
+        return keybind
+
+    def _render_group(self, group: str, key_width: int) -> RenderableType:
+        t = Table.grid(expand=True, padding=(0, 1))
+        # A fixed key column keeps the arrows lined up across every section;
+        # the description soaks up whatever width is left over
+        t.add_column("key", width=key_width)
+        t.add_column("arrow", width=2)
+        t.add_column("description", ratio=1)
+
+        for label, description in self._rows(group):
+            t.add_row(
+                Text(label, style=self.get_component_rich_style("keybind")),
+                Text("->", style=self.get_component_rich_style("arrow")),
+                Text(
+                    description,
+                    style=self.get_component_rich_style("description"),
+                ),
+            )
+
+        return t
+
     def render(self) -> RenderableType:
-        tables = []
+        separator = Rule(
+            characters="─",
+            style=self.get_component_rich_style("separator"),
+        )
+
+        key_width = max(
+            (
+                len(label)
+                for group in self.keybinds.groups
+                for label, _ in self._rows(group)
+            ),
+            default=0,
+        )
+
+        renderables = []
 
         for group in self.keybinds.groups:
-            t = Table.grid(expand=True, padding=(0, 1))
-            t_title = Text(group, style=self.get_component_rich_style("table-title"))
+            # A blank line above the rule and the section title straight under
+            # it. The gap the sections were once given on either side is worth
+            # less than the whole listing being on screen at once: a screen of
+            # blank lines is what pushes the last section off the bottom of it.
+            if renderables:
+                renderables += [Text(""), separator]
+
             if group:
-                t_title.pad(1)
+                title = Text(group, style=self.get_component_rich_style("table-title"))
+                title.pad(1)
+                renderables.append(title)
 
-            t.add_column("key")
-            t.add_column("arrow")
-            t.add_column("description")
+            renderables.append(self._render_group(group, key_width))
 
-            for keybind, func in self.keybinds.get_keybinds_by_group(group):
-                if func.description == "<NOP>":
-                    continue
-
-                keybind = Text(keybind, style=self.get_component_rich_style("keybind"))
-                arrow = Text("->", style=self.get_component_rich_style("arrow"))
-                description = (
-                    Text(
-                        func.description,
-                        style=self.get_component_rich_style("description"),
-                    )
-                    if func
-                    else Text("")
-                )
-
-                t.add_row(keybind, arrow, description)
-
-            tables.append(t_title)
-            tables.append(t)
-            t.add_row()  # padding
-
-        return Group(*tables)
+        return Group(*renderables)
 
 
 class HelpScreen(BaseScreen):
@@ -129,9 +145,7 @@ class HelpScreen(BaseScreen):
     ]
 
     def compose(self) -> ComposeResult:
-        yield Header()
         yield DooitKeyTable(self.api.keys, self.api.no_op)
-        yield Outro()
 
     def key_down(self):
         self.scroll_down()
@@ -139,8 +153,8 @@ class HelpScreen(BaseScreen):
     def key_up(self):
         self.scroll_up()
 
-    def key_j(self):
-        self.scroll_down()
-
     def key_k(self):
         self.scroll_up()
+
+    def key_l(self):
+        self.scroll_down()

@@ -1,6 +1,6 @@
 from textual.app import App
-from dooit.ui.api.widgets import TodoLayout, WorkspaceLayout
-from dooit.ui.widgets.trees import TodosTree, WorkspacesTree
+from dooit.ui.api.widgets import TodoLayout, ProjectLayout
+from dooit.ui.widgets.trees import TodosTree, ProjectsTree
 from ._base import ApiComponent
 
 
@@ -8,7 +8,7 @@ class LayoutManager(ApiComponent):
     def __init__(self, app: App) -> None:
         self.app = app
         self._todo_layout: TodoLayout = []
-        self._workspace_layout: WorkspaceLayout = []
+        self._project_layout: ProjectLayout = []
 
     @property
     def todo_layout(self) -> TodoLayout:
@@ -21,11 +21,11 @@ class LayoutManager(ApiComponent):
             tree.refresh_options()
 
     @property
-    def workspace_layout(self) -> WorkspaceLayout:
-        return self._workspace_layout
+    def project_layout(self) -> ProjectLayout:
+        return self._project_layout
 
-    @workspace_layout.setter
-    def workspace_layout(self, layout: WorkspaceLayout):
-        self._workspace_layout = layout
-        for tree in self.app.screen.query(WorkspacesTree):
+    @project_layout.setter
+    def project_layout(self, layout: ProjectLayout):
+        self._project_layout = layout
+        for tree in self.app.screen.query(ProjectsTree):
             tree.refresh_options()

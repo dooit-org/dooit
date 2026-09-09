@@ -1,6 +1,6 @@
 # Extra vars
 
-$border_type: heavy;
+$border_type: round;
 
 
 # CSS
@@ -19,15 +19,13 @@ ModelTree {
     background-tint: white 0%;
     color: $foreground3;
     border: $border_type $background3;
-    padding: 1;
+    padding: 1 0;
 
     border-title-color: $foreground1;
-    border-title-background: $background3;
+    border-title-background: $background1;
 
     &:focus {
         border: $border_type $primary;
-        border-title-color: $background1;
-        border-title-background: $primary;
 
         .option-list--option-highlighted, .option-list--option-hover-highlighted {
             background: $secondary 40%;
@@ -51,26 +49,6 @@ ModelTree {
     }
 }
 
-Header {
-  border: tall $background3;
-}
-
-Outro {
-  .thanks {
-    color: $purple;
-  }
-  
-  .github {
-    color: $primary;
-  }
-
-  .exit {
-    background: $primary;
-    color: $background1;
-  }
-
-}
-
 DooitKeyTable {
   background: $background2;
   border: blank $secondary;
@@ -92,8 +70,104 @@ DooitKeyTable {
   }
 
   .table-title {
-    color: $background3;
+    color: $background1;
     background: $primary;
+  }
+
+  .separator {
+    color: $foreground1 30%;
+  }
+}
+
+NoteEditor {
+  background: $background2;
+  border: $border_type $secondary;
+  border-title-background: $primary;
+  border-title-color: $background1;
+  border-title-align: center;
+  padding: 0 1;
+
+  /* The mode the note is in, written into the bottom border as a block the
+     same two colors the status bar wears out on the trees: the accent for
+     NORMAL, the second one for INSERT */
+  border-subtitle-background: $primary;
+  border-subtitle-color: $background1;
+  border-subtitle-align: right;
+
+  &.-insert {
+    border-subtitle-background: $secondary;
+  }
+}
+
+#note-hint {
+  color: $foreground1 60%;
+  text-align: center;
+
+  /* The hint line doubles as the y/N prompt; red the way the confirm bar is,
+     so a question that throws text away does not read like a hint */
+  &.confirming {
+    color: $red;
+    text-style: bold;
+  }
+}
+
+/* The one line task entry, which sits over the app rather than in place of
+   it: the panes stay visible, dimmed, behind it, since what is being added
+   is being added to what is on screen. The `Screen` rule at the top of this
+   file would otherwise paint it solid. */
+QuickAddScreen {
+  align: center middle;
+  background: $background1 70%;
+
+  & > #quick-add-panel {
+    width: 70%;
+    height: auto;
+    background: $background2;
+    border: $border_type $secondary;
+    border-title-background: $primary;
+    border-title-color: $background1;
+    border-title-align: center;
+    padding: 0 1;
+  }
+
+  & > #quick-add-hint {
+    width: 70%;
+    padding: 0 2;
+    color: $foreground1 60%;
+    text-align: center;
+  }
+}
+
+/* The finder, laid over the app the same way the one line entry is: the query
+   is a question about what is behind it, and the panes stay visible while it
+   is answered. Wider than quick add, since every row of the answer carries a
+   task, its deadline and the project it was found in. */
+SearchScreen {
+  align: center middle;
+  background: $background1 70%;
+
+  & > #search-panel {
+    width: 80%;
+    height: auto;
+    background: $background2;
+    border: $border_type $secondary;
+    border-title-background: $primary;
+    border-title-color: $background1;
+    border-title-align: center;
+    padding: 0 1;
+
+    /* Where the cursor is in the whole list of matches, written into the
+       bottom border: most of the list is off the bottom of the panel, and
+       this is the only place it is counted */
+    border-subtitle-color: $foreground1 60%;
+    border-subtitle-align: right;
+  }
+
+  & > #search-hint {
+    width: 80%;
+    padding: 0 2;
+    color: $foreground1 60%;
+    text-align: center;
   }
 }
 

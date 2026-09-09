@@ -45,7 +45,36 @@ class SimpleInput(Input, Generic[ModelType, ModelValue]):
         self._cursor_pos = len(self.value)
         return self.value
 
-    def stop_edit(self) -> None:
+    def start_edit(self) -> None:
+        """
+        Begin an edit on what the model holds now, not what it held then
+
+        A row is drawn straight off the model, so a field that was changed
+        without being typed into - pasted in, say - shows the new value while
+        this buffer still holds the one the renderer was built with. Filling
+        it here is what keeps the two the same thing.
+        """
+
+        self._value = self._get_default_value()
+        super().start_edit()
+        self.move_cursor_to_end()
+
+    def stop_edit(self, cancel: bool = False) -> None:
+        """
+        End the edit, writing the buffer back to the model unless it is thrown
+        away
+
+        A cancelled edit never touches the model: the buffer is refilled from
+        what the model still holds, which is what puts the field back the way
+        it was before the first keystroke.
+        """
+
+        if cancel:
+            self._value = self._get_default_value()
+            super().stop_edit(cancel)
+            self.move_cursor_to_end()
+            return
+
         self._value = self.value.strip()
         try:
             self.model_value = self._typecast_value(self.value)

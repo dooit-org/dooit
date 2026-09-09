@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 from typing import Optional, Type, Union
 from platformdirs import user_cache_dir
-from dooit.api.theme import DooitThemeBase
+from dooit.api.theme import DooitThemeBase, TokyoNight
 from uuid import uuid4
 
 dooit_cache_path = Path(user_cache_dir("dooit"))
@@ -23,7 +23,7 @@ class CssManager:
 
     def __init__(
         self,
-        theme: DooitThemeBase = DooitThemeBase(),
+        theme: DooitThemeBase = TokyoNight(),
         cache_path: Path = dooit_cache_path,
     ):
         self.theme: DooitThemeBase = theme
@@ -64,7 +64,7 @@ class CssManager:
 
     def set_theme(self, theme: Union[str, Type[DooitThemeBase]]):
         if isinstance(theme, str):
-            self.theme = self.themes.get(theme, DooitThemeBase)
+            self.theme = self.themes.get(theme, TokyoNight())
         else:
             self.theme = theme()
 

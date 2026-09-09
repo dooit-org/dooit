@@ -1,10 +1,11 @@
-from .base_renderer import BaseRenderer
+from .base_renderer import BaseRenderer, COLUMN_PADDING
 from .todo_renderer import TodoRender
-from .workspace_renderer import WorkspaceRender
+from .project_renderer import ProjectRender
 
 
 __all__ = [
     "BaseRenderer",
+    "COLUMN_PADDING",
     "TodoRender",
-    "WorkspaceRender",
+    "ProjectRender",
 ]

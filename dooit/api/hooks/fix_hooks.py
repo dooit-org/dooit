@@ -1,10 +1,10 @@
 from sqlalchemy import event, text
-from ..workspace import Workspace
+from ..project import Project
 from ..todo import Todo
 
 
-@event.listens_for(Workspace, "before_insert")
-def fix_order_id_workspace(_, connection, target: Workspace):
+@event.listens_for(Project, "before_insert")
+def fix_order_id_project(_, connection, target: Project):
     if target.is_root:
         return
 
@@ -15,7 +15,7 @@ def fix_order_id_workspace(_, connection, target: Workspace):
     if target.order_index >= 0:
         connection.execute(
             text("""
-            UPDATE workspace
+            UPDATE project
             SET order_index = order_index + 1
             WHERE order_index >= :current_index
             """),

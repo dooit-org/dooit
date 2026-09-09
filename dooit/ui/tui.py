@@ -2,17 +2,16 @@ from pathlib import Path
 from typing import Optional
 from textual import on
 from textual.app import App
-from textual.binding import Binding
 from dooit.ui.api.events import ModeChanged, DooitEvent, ModeType, Startup, QuitApp
 from dooit.ui.api.events.events import ShutDown
 from dooit.ui.widgets import BarSwitcher
 from dooit.ui.widgets.bars import StatusBar
-from dooit.ui.widgets.trees import WorkspacesTree
+from dooit.ui.widgets.trees import ProjectsTree
 from dooit.ui.screens import MainScreen, HelpScreen
 from dooit.ui.widgets.trees.model_tree import ModelTree
-from dooit.utils import CssManager
+from dooit.utils import CssManager, open_url
 from .api import DooitAPI
-from ..api import manager
+from ..api import manager, drop_blank_models
 
 PRINTABLE = (
     "0123456789"
@@ -30,10 +29,6 @@ class Dooit(App):
         "main": MainScreen,
     }
 
-    BINDINGS = [
-        Binding("ctrl+c", "quit", "Quit", show=False, priority=True),
-    ]
-
     def __init__(
         self,
         db_path: Optional[str] = None,
@@ -45,6 +40,7 @@ class Dooit(App):
         manager.connect(db_path)
 
     async def base_setup(self):
+        drop_blank_models()
         self.api = DooitAPI(self)
         self.api.plugin_manager.scan()
         self.post_message(Startup())
@@ -59,12 +55,13 @@ class Dooit(App):
         await self.setup_poller()
 
     async def action_quit(self) -> None:
+        drop_blank_models()
         self.post_message(ShutDown())
         return await super().action_quit()
 
     @property
-    def workspace_tree(self) -> WorkspacesTree:
-        return self.screen.query_one(WorkspacesTree)
+    def project_tree(self) -> ProjectsTree:
+        return self.screen.query_one(ProjectsTree)
 
     @property
     def bar(self) -> StatusBar:
@@ -100,7 +97,7 @@ class Dooit(App):
     def change_status(self, event: ModeChanged):
         self.dooit_mode = event.mode
         if event.mode == "NORMAL":
-            self.workspace_tree.refresh_options()
+            self.project_tree.refresh_options()
             todos_tree = self.api.vars.todos_tree
             if todos_tree:
                 todos_tree.refresh_options()
@@ -110,7 +107,10 @@ class Dooit(App):
         await self.action_quit()
 
     async def action_open_url(self, url: str) -> None:  # pragma: no cover
-        self.open_url(url)
+        # dooit's own opener rather than textual's: `App.open_url` goes
+        # through `webbrowser`, which finds nothing at all under WSL - the
+        # same reason the "o" key does not go through it either
+        open_url(url)
 
 
 if __name__ == "__main__":  # pragma: no cover

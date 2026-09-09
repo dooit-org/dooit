@@ -4,10 +4,10 @@ from textual.widgets import OptionList
 from textual.widgets.option_list import Option
 from textual import events, on
 
-from dooit.api import Todo, Workspace
+from dooit.api import Todo, Project
 from ._decorators import require_highlighted_node
 
-ModelType = Union[Todo, Workspace]
+ModelType = Union[Todo, Project]
 
 if TYPE_CHECKING:  # pragma: no cover
     from ....ui.tui import Dooit, DooitAPI
@@ -39,11 +39,37 @@ class BaseTree(OptionList, can_focus=True, inherit_bindings=False):
 
         return super().action_cursor_down()
 
+    @property
+    def first_selectable_index(self) -> int:
+        """Index of the topmost option that can be highlighted (skips the header)"""
+
+        for index, option in enumerate(self._options):
+            if not option.disabled:
+                return index
+
+        return 0
+
     def action_cursor_up(self) -> None:
-        if self.highlighted == 0:
+        if (
+            self.highlighted is not None
+            and self.highlighted <= self.first_selectable_index
+        ):
             return
 
         return super().action_cursor_up()
+
+    def highlight_first_node(self) -> None:
+        """Highlight the topmost node if nothing is highlighted yet"""
+
+        if self.highlighted is None and self._options:
+            index = self.first_selectable_index
+
+            if not self._options[index].disabled:
+                self.highlighted = index
+
+    @on(events.Focus)
+    def highlight_on_focus(self, _: events.Focus) -> None:
+        self.highlight_first_node()
 
     @on(events.Click)
     def on_click(self, event: events.Click) -> None:

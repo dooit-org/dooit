@@ -2,18 +2,25 @@ from enum import Enum
 from typing import List
 
 
-class WorkspaceWidget(Enum):
+class ProjectWidget(Enum):
     description = "description"
+    tasks = "tasks"
 
 
 class TodoWidget(Enum):
     description = "description"
     due = "due"
-    urgency = "urgency"
+    scheduled = "scheduled"
+    # When the todo was ticked off; only ever drawn by the Completed project
+    completed = "completed"
+    # When the todo was thrown away; only ever drawn by the Bin
+    binned = "binned"
+    priority = "priority"
     recurrence = "recurrence"
     status = "status"
     effort = "effort"
+    note = "note"
 
 
-WorkspaceLayout = List[WorkspaceWidget]
+ProjectLayout = List[ProjectWidget]
 TodoLayout = List[TodoWidget]

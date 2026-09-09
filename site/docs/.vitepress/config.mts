@@ -31,7 +31,7 @@ export default defineConfig({
         collapsed: false,
         items: [
           { text: "Introduction", link: "/backend/introduction" },
-          { text: "Workspace", link: "/backend/workspace" },
+          { text: "Project", link: "/backend/project" },
           { text: "Todo", link: "/backend/todo" },
         ],
       },

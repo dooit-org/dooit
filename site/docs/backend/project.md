@@ -4,57 +4,57 @@ h2 code {
 }
 </style>
 
-# Workspace
+# Project
 
-In this page, I'll lay out all the methods available on the workspace class
+In this page, I'll lay out all the methods available on the project class
 
 :::tip :bulb: TIP
-As mentioned in the introduction, `Workspace` class is a table and any sql operations can be performed using sqlalchemy
+As mentioned in the introduction, `Project` class is a table and any sql operations can be performed using sqlalchemy
 :::
 
 <!-- ----------------------- ATTRIBUTES ---------------------------------- -->
 
 ## `attr`  description
 
-The description of the workspace
+The description of the project
 
 ```python
 description: Mapped[str] = mapped_column(default="")
 ```
 
-## `attr`  parent_workspace
+## `attr`  parent_project
 
-The parent workspace of the workpsace
+The parent project of the workpsace
 
 ```python
-parent_workspace: Mapped[Optional["Workspace"]] = relationship(
-    "Workspace",
-    back_populates="workspaces",
+parent_project: Mapped[Optional["Project"]] = relationship(
+    "Project",
+    back_populates="projects",
     remote_side=[id],
 )
 ```
 
-## `attr`  workspaces
+## `attr`  projects
 
-The child workspaces of the workspace
+The child projects of the project
 
 ```python
-workspaces: Mapped[List["Workspace"]] = relationship(
-    "Workspace",
-    back_populates="parent_workspace",
+projects: Mapped[List["Project"]] = relationship(
+    "Project",
+    back_populates="parent_project",
     cascade="all",
-    order_by="Workspace.order_index",
+    order_by="Project.order_index",
 )
 ```
 
 ## `attr` todos
 
-The todos for the workspace
+The todos for the project
 
 ```python
 todos: Mapped[List["Todo"]] = relationship(
     "Todo",
-    back_populates="parent_workspace",
+    back_populates="parent_project",
     cascade="all, delete-orphan",
     order_by="Todo.order_index",
 )
@@ -65,22 +65,22 @@ todos: Mapped[List["Todo"]] = relationship(
 ## `classmethod` from_id
 
 ```python
-from_id(id: str | int) -> Workspace
+from_id(id: str | int) -> Project
 ```
 
-Returns the workspace object with the given id
+Returns the project object with the given id
 
 **Parameters:**
 
 | Param|<div style="width: 100px">Default</div> |Description|
 | ------------- | :----------------:  | :----------------------------------------------------------------------------------------|
-| id            |                     | The id of the workspace object you want to get                                           |
+| id            |                     | The id of the project object you want to get                                           |
 
 **Returns:**
 
 | Type|<div style="width: 100px">Default</div> |Description|
 | ------------- | :----------------:  | :----------------------------------------------------------------------------------------|
-| Self          |                     | The workspace object                                                                     |
+| Self          |                     | The project object                                                                     |
 
 **Raises:**
 
@@ -92,32 +92,32 @@ Returns the workspace object with the given id
 ## `classmethod` all
 
 ```python
-all() -> List[Workspace]
+all() -> List[Project]
 ```
 
-Returns all the workspaces from the database
+Returns all the projects from the database
 
 **Returns:**
 
 | Type|<div style="width: 100px">Default</div> |Description|
 | ------------- | :----------------:  | :----------------------------------------------------------------------------------------|
-| List[Self]    |                     | List of the workspaces present in the database                                           |
+| List[Self]    |                     | List of the projects present in the database                                           |
 
 <!-- ---------------- PROPERTIES ------------------------------------- -->
 
 ## `property` parent
 
 ```python
-parent -> Workspace
+parent -> Project
 ```
 
-Returns the parent of the workspace object
+Returns the parent of the project object
 
 **Returns:**
 
 | Type|<div style="width: 100px">Default</div> |Description|
 | ------------- | :----------------:  | :----------------------------------------------------------------------------------------|
-| Workspace     |                     | The parent of the workspace object                                                       |
+| Project     |                     | The parent of the project object                                                       |
 
 ## `property` nest_level
 
@@ -139,10 +139,10 @@ Returns the nested level from the root
 ## `method` siblings
 
 ```python
-siblings() -> List[Workspace]
+siblings() -> List[Project]
 ```
 
-Returns the siblings for the workspace (including self)
+Returns the siblings for the project (including self)
 
 **Returns:**
 
@@ -167,7 +167,7 @@ Sorts all the siblings ***(by description)***
 add_todo() -> Todo
 ```
 
-Adds a todo to the workspace object
+Adds a todo to the project object
 
 **Returns:**
 
@@ -176,23 +176,23 @@ Adds a todo to the workspace object
 | Todo          |                     | The newly added todo                                                                     |
 
 
-## `method` add_workspace
+## `method` add_project
 
 ```python
-add_workspace() -> Workspace
+add_project() -> Project
 ```
 
-Adds a child workspace to the workspace object
+Adds a child project to the project object
 
 **Returns:**
 
 | Type|<div style="width: 100px">Default</div> |Description|
 | ------------- | :----------------:  | :----------------------------------------------------------------------------------------|
-| Workspace     |                     | The newly added Workspace                                                                |
+| Project     |                     | The newly added Project                                                                |
 
 ## `method` shift_down
 
-Shifts the workspace down by one index (Nothing happens if its the first workspace)
+Shifts the project down by one index (Nothing happens if its the first project)
 
 ```python
 shift_down()
@@ -200,7 +200,7 @@ shift_down()
 
 ## `method` shift_up
 
-Shifts the workspace down by one index (Nothing happens if its the last workspace)
+Shifts the project down by one index (Nothing happens if its the last project)
 
 ```python
 shift_up()

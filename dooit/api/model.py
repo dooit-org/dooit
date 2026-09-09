@@ -7,7 +7,9 @@ from sqlalchemy import inspect
 from .manager import manager
 
 
-SortMethodType = Literal["description", "status", "due", "urgency", "effort"]
+SortMethodType = Literal[
+    "description", "status", "due", "scheduled", "priority", "effort", "note"
+]
 T = TypeVar("T")
 
 
@@ -83,11 +85,16 @@ class DooitModel(BaseModel, BaseModelMixin):
     def session(self):
         return manager.session
 
+    # An item with nobody beside it is at both ends of the run it is the whole
+    # of. A todo that outlived its project has no siblings at all, and asking
+    # where it sits among them has to answer rather than fall over.
     def is_last_sibling(self) -> bool:
-        return self.siblings[-1].id == self.id
+        siblings = self.siblings
+        return not siblings or siblings[-1].id == self.id
 
     def is_first_sibling(self) -> bool:
-        return self.siblings[0].id == self.id
+        siblings = self.siblings
+        return not siblings or siblings[0].id == self.id
 
     @property
     def has_same_parent_kind(self) -> bool:

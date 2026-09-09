@@ -3,7 +3,7 @@
 You can customize your dooit bar using widgets!
 
 :::tip :bulb: TIP
-Check out [dooit-extras' widgets](https://dooit-org.github.io/dooit-extras/widgets/current_workspace.html)
+Check out [dooit-extras' widgets](https://dooit-org.github.io/dooit-extras/widgets/current_project.html)
 :::
 
 ## Using widgets
