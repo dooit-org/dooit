@@ -382,13 +382,9 @@ def test_indent_with_nothing_above(create_project):
 
 
 def test_unindent_lands_beside_the_old_parent(create_project):
-    # KNOWN BUG (intermittent): `Todo.todos` is mapped with
-    # cascade="all, delete-orphan", and `unindent` detaches the step from its
-    # parent todo before the new project association is flushed. Depending on
-    # flush order (hash-seed sensitive) the delete-orphan cascade sometimes
-    # wins and the step is DELETED instead of moved — silent data loss on the
-    # `U` key. The assertions below are the intended behaviour; the test flakes
-    # red until the cascade/re-parent order is fixed.
+    # A step on its way out to a project is briefly attached to neither, which
+    # a `delete-orphan` cascade on `Todo.todos` used to read as a step nobody
+    # wanted: it deleted the row instead of moving it, every sixth `U` or so
     p = create_project()
     first = p.add_todo()
     first.description = "first"
@@ -413,8 +409,6 @@ def test_unindent_lands_beside_the_old_parent(create_project):
 
 
 def test_unindent_of_a_nested_step(create_project):
-    # Shares the intermittent delete-orphan bug described in
-    # test_unindent_lands_beside_the_old_parent
     p = create_project()
     task = p.add_todo()
     step = task.add_todo()

@@ -308,10 +308,6 @@ async def test_indenting_builds_a_task_out_of_rows():
     """
     Two flat rows filed as task and step with I, shifted, and pulled apart
     again with U — the pane redrawn correctly at every step.
-
-    The `U` at the end shares the intermittent delete-orphan bug described in
-    test_todo.test_unindent_lands_beside_the_old_parent, so this can flake red
-    until that is fixed.
     """
 
     async with run_pilot() as pilot:

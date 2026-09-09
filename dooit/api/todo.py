@@ -117,10 +117,15 @@ class Todo(DooitModel):
         remote_side=[id],
     )
 
+    # Deleting the task still takes its steps with it, but a step lifted out
+    # of it is not thereby deleted: `delete-orphan` here made the `U` key —
+    # which takes a step out of the task it is a step of — sometimes delete
+    # the step instead of moving it, since a step on its way to a project is
+    # briefly attached to neither
     todos: Mapped[List["Todo"]] = relationship(
         "Todo",
         back_populates="parent_todo",
-        cascade="all, delete-orphan",
+        cascade="all",
         order_by=order_index,
     )
 
