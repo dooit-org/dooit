@@ -291,3 +291,60 @@ def test_sort(session, create_workspace, field, sort_key, filter_func, compare_i
         # Check grandchild was cloned properly
         assert len(cloned_child1.todos) == 1
         assert cloned_child1.todos[0].description == "Grandchild Todo"
+
+#Added tests
+def test_total_effort_standalone(create_todo):
+    todo = create_todo()
+    todo.effort = 5
+    todo.save()
+
+    assert todo.total_effort == 5
+
+
+def test_total_effort_subtasks(create_todo):
+    parent = create_todo()
+    first = create_todo(parent_todo=parent)
+    second = create_todo(parent_todo=parent)
+
+    first.effort = 3
+    second.effort = 7
+    first.save()
+    second.save()
+
+    assert parent.total_effort == 10
+
+
+def test_total_effort_missing_values(create_todo):
+    parent = create_todo()
+    first = create_todo(parent_todo=parent)
+    second = create_todo(parent_todo=parent)
+
+    first.effort = 5
+    first.save()
+
+    assert parent.total_effort == 5
+
+
+def test_total_effort_updates(create_todo):
+    parent = create_todo()
+    child = create_todo(parent_todo=parent)
+
+    child.effort = 3
+    child.save()
+    assert parent.total_effort == 3
+
+    child.effort = 8
+    child.save()
+    assert parent.total_effort == 8
+
+
+def test_total_effort_nested(create_todo):
+    parent = create_todo()
+    child = create_todo(parent_todo=parent)
+    grandchild = create_todo(parent_todo=child)
+
+    grandchild.effort = 4
+    grandchild.save()
+
+    assert child.total_effort == 4
+    assert parent.total_effort == 4

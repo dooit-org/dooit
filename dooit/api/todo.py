@@ -47,6 +47,13 @@ class Todo(DooitModel):
         cascade="all, delete-orphan",
         order_by=order_index,
     )
+    @property
+    def total_effort(self) -> int:
+#Calculate effort for a task and its subtasks
+        if not self.todos:
+            return self.effort or 0
+
+        return sum(child.total_effort for child in self.todos)
 
     @validates("recurrence")
     def validate_pending(self, key, value):

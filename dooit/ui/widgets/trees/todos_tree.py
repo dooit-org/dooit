@@ -22,6 +22,10 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
 
     def __init__(self, model: Model) -> None:
         super().__init__(model, TodoRenderDict(self))
+#stop edit
+    def stop_edit(self):
+        super().stop_edit()
+        self.refresh_options()
 
     def _get_parent(self, id: str) -> Optional[Todo]:
         return Todo.from_id(id).parent_todo

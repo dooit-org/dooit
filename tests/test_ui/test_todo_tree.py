@@ -201,7 +201,12 @@ async def test_effort_change():
         assert isinstance(todo, Todo)
 
         assert todo.effort == 0
+#verify editing fails when the effort column is hidden
+        app.api.layouts.todo_layout = [TodoWidget.description]
         assert not tree.start_edit("effort")
+#verify editing works when the effort column is visible
+        app.api.layouts.todo_layout = [TodoWidget.effort]
+        assert tree.start_edit("effort")
 
         app.api.layouts.todo_layout = [
             TodoWidget.effort

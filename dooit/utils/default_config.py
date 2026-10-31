@@ -118,7 +118,8 @@ def todo_recurrence_formatter(recurrence: Optional[timedelta], _):
 
     return Recurrence.timedelta_to_simple_string(recurrence)
 
-
+def todo_effort_formatter(effort: int, todo: Todo):
+    return str(todo.total_effort)
 # Workspace formatters
 
 
@@ -160,6 +161,8 @@ def layout_setup(api: DooitAPI, _):
         TodoWidget.status,
         TodoWidget.description,
         TodoWidget.due,
+#added todowidget.effort
+        TodoWidget.effort,
         TodoWidget.urgency,
     ]
 
@@ -170,6 +173,8 @@ def formatter_setup(api: DooitAPI, _):
     api.formatter.todos.due.add(todo_due_formatter)
     api.formatter.todos.urgency.add(todo_urgency_formatter)
     api.formatter.todos.recurrence.add(todo_recurrence_formatter)
+#effort formatter added
+    api.formatter.todos.effort.add(todo_effort_formatter)
 
 
 @subscribe(Startup)
