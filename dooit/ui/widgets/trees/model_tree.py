@@ -1,6 +1,6 @@
 from collections import defaultdict
 from functools import cache
-from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Generic, List, Optional, TypeVar, Union
 from textual.app import ComposeResult
 from textual.widgets import Label
 from textual.widgets.option_list import Option
@@ -139,6 +139,13 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
 
     def has_children(self, model: ModelType) -> bool:
         return bool(getattr(model, self.children_attr))
+
+    def subtree(self, model: ModelType) -> List[ModelType]:
+        nodes = [model]
+        for child in getattr(model, self.children_attr):
+            nodes.extend(self.subtree(child))
+
+        return nodes
 
     def is_collapsed_parent(self, model: ModelType) -> bool:
         if self.is_node_expaned(model.uuid) or self.filter_refresh:
@@ -330,8 +337,11 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
     def _remove_node(self):
         model = self.current_model
 
-        self._renderers.pop(model.uuid)
-        self.expanded_nodes.pop(model.uuid)
+        # ids of deleted rows get reused, so drop cached state for all of them
+        for node in self.subtree(model):
+            self._renderers.pop(node.uuid, None)
+            self.expanded_nodes.pop(node.uuid, None)
+
         model.drop()
 
     @require_highlighted_node

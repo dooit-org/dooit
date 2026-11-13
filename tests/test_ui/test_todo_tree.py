@@ -312,3 +312,28 @@ async def test_recurrence_in_default_layout():
 
         await pilot.press("1", "w", "enter")
         assert tree.current_model.recurrence == timedelta(weeks=1)
+
+
+async def test_new_todo_reusing_deleted_child_id():
+    async with run_pilot() as pilot:
+        app = pilot.app
+        assert isinstance(app, Dooit)
+        app.api.vars.show_confirm = False
+
+        tree = await create_and_move_to_todo(pilot)
+
+        tree.add_sibling()
+        await pilot.press(*list("parent"), "escape")
+        tree.add_child_node()
+        await pilot.press(*list("child"), "escape")
+
+        tree.highlighted = 0
+        await pilot.press("x", "x")  # removes parent and child
+
+        for name in ["one", "two"]:
+            tree.add_sibling()
+            await pilot.press(*list(name), "escape")
+
+        assert [t.description for t in tree.model.todos] == ["one", "two"]
+        shown = [tree._renderers[o.id].model.description for o in tree._options]
+        assert shown == ["one", "two"]
