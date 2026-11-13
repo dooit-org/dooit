@@ -1,5 +1,5 @@
 import uuid
-from typing import Any, List, Literal, TypeVar
+from typing import Any, List, Literal, Optional, TypeVar
 from typing_extensions import Self
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.ext.declarative import declared_attr
@@ -157,5 +157,7 @@ class DooitModel(BaseModel, BaseModelMixin):
         manager.save(self)
 
     @staticmethod
-    def clone_from_id(id: int, order_index: int) -> "DooitModel":
+    def clone_from_id(
+        id: int, order_index: int, parent: Optional[Any] = None
+    ) -> "DooitModel":
         raise NotImplementedError

@@ -355,3 +355,28 @@ async def test_paste_above_first_item():
 
         assert [t.description for t in tree.model.todos] == ["c", "a", "b", "c"]
         assert tree.highlighted == 0
+
+
+async def test_paste_goes_next_to_highlighted_item():
+    async with run_pilot() as pilot:
+        app = pilot.app
+        assert isinstance(app, Dooit)
+
+        tree = await create_and_move_to_todo(pilot)
+        for name in "pq":
+            tree.add_sibling()
+            await pilot.press(name, "escape")
+
+        tree.highlighted = 0
+        tree.add_child_node()
+        await pilot.press(*list("child"), "escape")
+        await pilot.press("Y")  # copy the nested child
+
+        q = tree.model.todos[1]
+        tree.highlight_id(q.uuid)
+        await pilot.press("p")  # paste below q
+
+        assert [t.description for t in tree.model.todos] == ["p", "q", "child"]
+        assert [t.description for t in tree.model.todos[0].todos] == ["child"]
+        assert tree.current_model.description == "child"
+        assert tree.current_model.parent_workspace == tree.model

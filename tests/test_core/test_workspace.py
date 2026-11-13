@@ -153,3 +153,20 @@ def test_clone_from_id(create_workspace, create_todo):
     # Check workspace child todo was cloned
     assert len(cloned_child_ws1.todos) == 1
     assert cloned_child_ws1.todos[0].description == "Workspace Child Todo"
+
+
+def test_clone_into_own_subtree(create_workspace):
+    w = create_workspace("w")
+    sub = w.add_workspace()
+    sub.description = "sub"
+    sub.save()
+    t = w.add_todo()
+    t.description = "t"
+    t.save()
+
+    clone = Workspace.clone_from_id(w.id, 0, parent=sub)
+
+    assert clone.parent_workspace == sub
+    assert [x.description for x in clone.workspaces] == ["sub"]
+    assert clone.workspaces[0].workspaces == []
+    assert [x.description for x in clone.todos] == ["t"]

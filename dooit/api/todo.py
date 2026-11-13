@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 from datetime import datetime, timedelta
 from typing import List
 from sqlalchemy import ForeignKey, select, nulls_last
@@ -211,48 +211,42 @@ class Todo(DooitModel):
         return list(manager.session.execute(query).scalars().all())
 
     @staticmethod
-    def clone_from_id(id: int, order_index: int) -> "Todo":
+    def clone_from_id(
+        id: int,
+        order_index: int,
+        parent: Optional[Union["Workspace", "Todo"]] = None,
+    ) -> "Todo":
+        """
+        Copy a todo and its subtodos under `parent` (defaults to the original's parent)
+        """
+
         todo = Todo.from_id(str(id))
+
+        # read the whole subtree first, the copy may be placed inside it
+        snapshot = todo._snapshot()
+        return Todo._from_snapshot(snapshot, parent or todo.parent, order_index)
+
+    def _snapshot(self) -> Dict[str, Any]:
         fields = ["description", "due", "effort", "recurrence", "urgency", "pending"]
-        attrs = {field: getattr(todo, field) for field in fields}
-        attrs.update(
-            {
-                "parent_workspace": todo.parent_workspace,
-                "parent_todo": todo.parent_todo,
-                "order_index": order_index,
-            }
-        )
-        new_todo = Todo(**attrs)
-        new_todo.save()
-
-        # Clone all child todos recursively
-        for i, child_todo in enumerate(todo.todos):
-            attrs = {field: getattr(child_todo, field) for field in fields}
-            attrs["parent_todo"] = new_todo
-            child_clone = Todo(**attrs)
-            child_clone.save()
-
-            # Recursively clone any nested todos
-            for grandchild in child_todo.todos:
-                Todo._clone_todo_recursively(grandchild, child_clone)
-
-        return new_todo
+        return {
+            "attrs": {field: getattr(self, field) for field in fields},
+            "todos": [todo._snapshot() for todo in self.todos],
+        }
 
     @staticmethod
-    def _clone_todo_recursively(source_todo: "Todo", parent_clone: "Todo") -> None:
-        fields = [
-            "description",
-            "due",
-            "effort",
-            "recurrence",
-            "urgency",
-            "pending",
-            "order_index",
-        ]
-        attrs = {field: getattr(source_todo, field) for field in fields}
-        attrs["parent_todo"] = parent_clone
-        todo_clone = Todo(**attrs)
-        todo_clone.save()
+    def _from_snapshot(
+        snapshot: Dict[str, Any],
+        parent: Union["Workspace", "Todo"],
+        order_index: int = -1,
+    ) -> "Todo":
+        todo = Todo(**snapshot["attrs"], order_index=order_index)
+        if isinstance(parent, Todo):
+            todo.parent_todo = parent
+        else:
+            todo.parent_workspace = parent
+        todo.save()
 
-        for child in source_todo.todos:
-            Todo._clone_todo_recursively(child, todo_clone)
+        for child in snapshot["todos"]:
+            Todo._from_snapshot(child, todo)
+
+        return todo

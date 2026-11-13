@@ -371,15 +371,21 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
 
             if self.highlighted is None:
                 order_index = len(self._options)
+                parent = self.model
             else:
                 order_index = self.current_model.order_index
+                parent = self.current_model.parent
                 if position == "below":
                     order_index += 1
 
             if isinstance(self.current_model, Todo):
-                new_model = Todo.clone_from_id(self._model_clipboard, order_index)
+                new_model = Todo.clone_from_id(
+                    self._model_clipboard, order_index, parent
+                )
             else:
-                new_model = Workspace.clone_from_id(self._model_clipboard, order_index)
+                new_model = Workspace.clone_from_id(
+                    self._model_clipboard, order_index, parent
+                )
 
             return new_model
 

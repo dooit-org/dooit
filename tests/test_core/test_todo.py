@@ -238,6 +238,31 @@ def test_non_recurring_completion_adds_no_child(create_workspace):
     assert t.todos == []
 
 
+def test_clone_into_own_subtree(create_workspace):
+    w = create_workspace()
+    p = w.add_todo()
+    p.description = "p"
+    c = p.add_todo()
+    c.description = "c"
+    c.save()
+
+    clone = Todo.clone_from_id(p.id, 0, parent=c)
+
+    assert clone.parent_todo == c
+    assert [t.description for t in c.todos] == ["p"]
+    assert [t.description for t in clone.todos] == ["c"]
+    assert clone.todos[0].todos == []
+
+
+def test_clone_defaults_to_original_parent(create_workspace):
+    w = create_workspace()
+    p = w.add_todo()
+    c = p.add_todo()
+
+    clone = Todo.clone_from_id(c.id, 0)
+    assert clone.parent_todo == p
+
+
 def test_sort_invalid(create_workspace, create_todo):
     w = create_workspace()
     t = w.add_todo()
