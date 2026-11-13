@@ -171,6 +171,9 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
     def on_mount(self):
         self.force_refresh()
 
+        if self._options and self.highlighted is None:
+            self.highlighted = 0
+
     @require_highlighted_node
     def start_sort(self):
         self.post_message(StartSort(self.current_model, self.sort))
