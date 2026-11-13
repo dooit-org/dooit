@@ -135,6 +135,48 @@ def test_toggle_complete_parent(create_workspace, create_todo):
     assert not t.is_completed
 
 
+def test_deleting_last_open_subtask_completes_parent(session, create_workspace):
+    w = create_workspace()
+    p = w.add_todo()
+    done, open_ = p.add_todo(), p.add_todo()
+    done.toggle_complete()
+    assert p.pending
+
+    open_.drop()
+    session.expire_all()
+    assert p.is_completed
+
+
+def test_deleting_subtask_keeps_other_parents_open(session, create_workspace):
+    w = create_workspace()
+
+    # the remaining subtask is still open
+    p = w.add_todo()
+    a, _ = p.add_todo(), p.add_todo()
+    a.drop()
+    assert p.pending
+
+    # the deleted subtask was already done
+    q = w.add_todo()
+    _, done = q.add_todo(), q.add_todo()
+    done.toggle_complete()
+    done.drop()
+    session.expire_all()
+    assert q.pending
+
+    # a recurring parent does not roll over on deletion
+    r = w.add_todo()
+    r.due = datetime(2030, 1, 1)
+    r.recurrence = timedelta(days=7)
+    r.save()
+    e, f = r.add_todo(), r.add_todo()
+    e.toggle_complete()
+    f.drop()
+    session.expire_all()
+    assert r.pending
+    assert r.due == datetime(2030, 1, 1)
+
+
 def test_due_date_util(create_workspace, create_todo):
     w = create_workspace()
     t = w.add_todo()
