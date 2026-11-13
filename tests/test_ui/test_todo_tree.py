@@ -69,11 +69,42 @@ async def test_todo_tree_layout():
         await pilot.press("escape")
 
         table = tree.current.make_renderable()
-        assert table.columns[0].header == "status"
+        assert table.columns[0].header == "expand_indicator"
+        assert table.columns[1].header == "status"
 
         app.api.layouts.todo_layout = [TodoWidget.description]
         table = tree.current.make_renderable()
-        assert table.columns[0].header == "description"
+        assert table.columns[1].header == "description"
+
+
+async def test_expand_indicator():
+    async with run_pilot() as pilot:
+        app = pilot.app
+        assert isinstance(app, Dooit)
+
+        tree = await create_and_move_to_todo(pilot)
+
+        tree.add_sibling()
+        await pilot.press(*list("parent"))
+        await pilot.press("escape")
+        parent = tree.current_model
+
+        def indicator() -> str:
+            table = tree._renderers[parent.uuid].make_renderable()
+            return list(table.columns[0].cells)[0]
+
+        assert indicator() == ""
+
+        tree.add_child_node()
+        await pilot.press(*list("child"))
+        await pilot.press("escape")
+        assert indicator() == ""
+
+        tree.toggle_expand_parent()
+        assert indicator() == "+"
+
+        tree.toggle_expand()
+        assert indicator() == ""
 
 
 async def test_incorrect_edit():

@@ -133,6 +133,19 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
     def is_node_expaned(self, _id: str) -> bool:
         return self.expanded_nodes[_id]
 
+    @property
+    def children_attr(self) -> str:
+        return self.__class__.__name__.replace("Tree", "").lower()
+
+    def has_children(self, model: ModelType) -> bool:
+        return bool(getattr(model, self.children_attr))
+
+    def is_collapsed_parent(self, model: ModelType) -> bool:
+        if self.is_node_expaned(model.uuid) or self.filter_refresh:
+            return False
+
+        return self.has_children(model)
+
     def _force_refresh(self) -> None:
         highlighted = self.highlighted
         self.clear_options()
@@ -140,10 +153,7 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         options = []
 
         def add_children_recurse(model: ModelType):
-            for child in getattr(
-                model,
-                self.__class__.__name__.replace("Tree", "").lower(),
-            ):
+            for child in getattr(model, self.children_attr):
                 render = self._renderers[child.uuid]
                 options.append(Option("", id=render.id))
 

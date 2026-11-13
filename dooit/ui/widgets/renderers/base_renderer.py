@@ -65,6 +65,9 @@ class BaseRenderer(Generic[ModelType]):
             table.add_column("padding", width=2 * nest)
             row.append("")
 
+        table.add_column("expand_indicator", width=1)
+        row.append("+" if self.tree.is_collapsed_parent(self.model) else "")
+
         for item in layout:
             attr = item.value
             component = self._get_component(attr)
