@@ -318,6 +318,33 @@ def test_finishing_subtasks_rolls_recurring_parent_over(session, create_workspac
     assert [t.is_completion_log for t in p.todos] == [True, False]
 
 
+def test_recurring_subtasks_reopen_each_cycle(session, create_workspace):
+    w = create_workspace()
+    p = w.add_todo()
+    p.due = datetime(2030, 1, 1)
+    p.recurrence = timedelta(days=7)
+    p.save()
+    a, b = p.add_todo(), p.add_todo()
+    nested = b.add_todo()
+
+    a.toggle_complete()
+    p.toggle_complete()
+    session.expire_all()
+
+    assert p.due == datetime(2030, 1, 8)
+    assert a.pending and b.pending and nested.pending
+    assert [t.is_completed for t in p.todos if t.is_completion_log] == [True]
+
+    # finishing every subtask rolls over again and reopens them
+    a.toggle_complete()
+    nested.toggle_complete()
+    session.expire_all()
+
+    assert p.due == datetime(2030, 1, 15)
+    assert a.pending and b.pending and nested.pending
+    assert len([t for t in p.todos if t.is_completion_log]) == 2
+
+
 def test_completing_history_entry_does_not_roll_over(session, create_workspace):
     w = create_workspace()
     p = w.add_todo()

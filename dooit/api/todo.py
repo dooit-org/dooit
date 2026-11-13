@@ -168,19 +168,35 @@ class Todo(DooitModel):
         self.save()
 
     def toggle_complete(self) -> None:
-        if self.pending and self.recurrence is not None:
+        rolls_over = self.pending and self.recurrence is not None
+        if rolls_over:
             self.log_completion()
 
         self.pending = not self.pending
         self.save()
 
-        # finishing the last subtask completes a recurring parent, which the
-        # update hooks leave to us so it rolls over to its next occurrence
+        # the next occurrence starts with its subtasks open again
+        if rolls_over:
+            for todo in self.todos:
+                if not todo.pending and not todo.is_completion_log:
+                    todo.pending = True
+                    todo.save()
+
+        # finishing the last subtask completes a recurring ancestor, which the
+        # update hooks leave to us so it rolls over to its next occurrence;
+        # the hooks complete the non-recurring todos in between
         parent = self.parent_todo
-        if parent is not None and parent.recurrence is not None and not self.pending:
-            subtasks = [todo for todo in parent.todos if not todo.is_completion_log]
-            if parent.pending and subtasks and all(not t.pending for t in subtasks):
-                parent.toggle_complete()
+        while parent is not None and not self.pending:
+            if parent.recurrence is not None:
+                subtasks = [t for t in parent.todos if not t.is_completion_log]
+                if parent.pending and subtasks and all(not t.pending for t in subtasks):
+                    parent.toggle_complete()
+                break
+
+            if parent.pending:
+                break
+
+            parent = parent.parent_todo
 
     def log_completion(self) -> None:
         """Record a completed occurrence of a recurring todo as its first child"""
