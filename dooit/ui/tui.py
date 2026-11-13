@@ -99,6 +99,9 @@ class Dooit(App):
     @on(ModeChanged)
     def change_status(self, event: ModeChanged):
         self.dooit_mode = event.mode
+        if not isinstance(self.screen, MainScreen):
+            return
+
         if event.mode == "NORMAL":
             self.workspace_tree.refresh_options()
             todos_tree = self.api.vars.todos_tree
