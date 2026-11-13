@@ -62,7 +62,10 @@ def update_due_for_recurrence(mapper, connection, todo: Todo):
         return
 
     if todo.due is None:
-        todo.due = datetime.now()
+        # the first occurrence is one period away, not already overdue
+        todo.due = datetime.now() + todo.recurrence
+        todo.pending = True
+        return
 
     if todo.pending:
         return

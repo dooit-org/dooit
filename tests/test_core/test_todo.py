@@ -202,6 +202,23 @@ def test_recurrence_change(create_workspace, create_todo):
     assert t.due == datetime.strptime("2021-01-02", "%Y-%m-%d")
 
 
+def test_recurrence_without_due_starts_one_period_away(create_workspace):
+    w = create_workspace()
+    t = w.add_todo()
+
+    before = datetime.now()
+    t.recurrence = timedelta(days=1)
+    t.save()
+
+    assert t.due >= before + timedelta(days=1)
+    assert not t.is_overdue
+
+    t.due = None
+    t.toggle_complete()  # completing an undated occurrence
+    assert t.pending
+    assert t.due >= before + timedelta(days=1)
+
+
 def test_recurrence_logs_completion(create_workspace):
     w = create_workspace()
     t = w.add_todo()
