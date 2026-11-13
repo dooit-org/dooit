@@ -269,3 +269,23 @@ async def test_recurrence_change():
         await pilot.press("escape")
 
         assert todo.recurrence == timedelta(days=1)
+
+
+async def test_recurrence_in_default_layout():
+    async with run_pilot() as pilot:
+        app = pilot.app
+        assert isinstance(app, Dooit)
+
+        tree = await create_and_move_to_todo(pilot)
+
+        tree.add_sibling()
+        await pilot.press(*list("nixos"))
+        await pilot.press("escape")
+
+        assert TodoWidget.recurrence in app.api.layouts.todo_layout
+
+        await pilot.press("r")
+        assert app.get_dooit_mode() == "INSERT"
+
+        await pilot.press("1", "w", "enter")
+        assert tree.current_model.recurrence == timedelta(weeks=1)
