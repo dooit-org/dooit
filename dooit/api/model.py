@@ -100,6 +100,12 @@ class DooitModel(BaseModel, BaseModelMixin):
     def sort_siblings(self, field: str):
         raise NotImplementedError  # pragma: no cover
 
+    @staticmethod
+    def _renumber(models: List["DooitModel"]) -> None:
+        # positions, not +/- 1, so gaps or ties in order_index are repaired
+        for index, model in enumerate(models):
+            model.order_index = index
+
     def reverse_siblings(self):
         for index, model in enumerate(reversed(self.siblings)):
             model.order_index = index
@@ -114,13 +120,11 @@ class DooitModel(BaseModel, BaseModelMixin):
         if self.is_first_sibling():
             return False
 
-        siblings = self.siblings
+        siblings = list(self.siblings)
         index = siblings.index(self)
-        siblings[index - 1].order_index += 1
-        siblings[index].order_index -= 1
+        siblings[index - 1], siblings[index] = siblings[index], siblings[index - 1]
 
-        self.session.add(siblings[index])
-        self.session.add(siblings[index - 1])
+        self._renumber(siblings)
         manager.commit()
 
         return True
@@ -139,19 +143,21 @@ class DooitModel(BaseModel, BaseModelMixin):
         if self.is_last_sibling():
             return False
 
-        siblings = self.siblings
+        siblings = list(self.siblings)
         index = siblings.index(self)
-        siblings[index + 1].order_index -= 1
-        siblings[index].order_index += 1
+        siblings[index + 1], siblings[index] = siblings[index], siblings[index + 1]
 
-        self.session.add(siblings[index])
-        self.session.add(siblings[index + 1])
+        self._renumber(siblings)
         manager.commit()
 
         return True
 
     def drop(self) -> None:
+        siblings = [sibling for sibling in self.siblings if sibling is not self]
         manager.delete(self)
+
+        self._renumber(siblings)
+        manager.commit()
 
     def save(self) -> None:
         manager.save(self)

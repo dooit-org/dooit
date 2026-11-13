@@ -170,3 +170,28 @@ def test_clone_into_own_subtree(create_workspace):
     assert [x.description for x in clone.workspaces] == ["sub"]
     assert clone.workspaces[0].workspaces == []
     assert [x.description for x in clone.todos] == ["t"]
+
+
+def test_workspace_order_is_per_parent(session, create_workspace):
+    w1, w2 = create_workspace("w1"), create_workspace("w2")
+    subs = []
+    for name in ["s1", "s2"]:
+        sub = w2.add_workspace()
+        sub.description = name
+        sub.save()
+        subs.append(sub)
+
+    sibling = w1.add_sibling()
+    sibling.description = "w1b"
+    sibling.save()
+    session.expire_all()
+
+    assert [(x.description, x.order_index) for x in w2.workspaces] == [
+        ("s1", 0),
+        ("s2", 1),
+    ]
+
+    w1.drop()
+    session.expire_all()
+    top = [(x.description, x.order_index) for x in w2.parent_workspace.workspaces]
+    assert top == [("w1b", 0), ("w2", 1)]

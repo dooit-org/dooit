@@ -263,6 +263,62 @@ def test_clone_defaults_to_original_parent(create_workspace):
     assert clone.parent_todo == p
 
 
+def _order(parent):
+    return [(t.description, t.order_index) for t in parent.todos]
+
+
+def _add(parent, *names):
+    for name in names:
+        t = parent.add_todo()
+        t.description = name
+        t.save()
+
+
+def test_insert_only_shifts_siblings(session, create_workspace):
+    w1, w2 = create_workspace("w1"), create_workspace("w2")
+    _add(w1, "a", "b")
+    _add(w2, "x", "y", "z")
+
+    sibling = w1.todos[0].add_sibling()
+    sibling.description = "a2"
+    sibling.save()
+    _add(w1.todos[0], "child")
+    session.expire_all()
+
+    assert _order(w1) == [("a", 0), ("a2", 1), ("b", 2)]
+    assert _order(w2) == [("x", 0), ("y", 1), ("z", 2)]
+    assert _order(w1.todos[0]) == [("child", 0)]
+
+
+def test_drop_renumbers_siblings(session, create_workspace):
+    w = create_workspace()
+    _add(w, "a", "b", "c")
+
+    w.todos[1].drop()
+    session.expire_all()
+    assert _order(w) == [("a", 0), ("c", 1)]
+
+    w.todos[1].shift_up()
+    session.expire_all()
+    assert _order(w) == [("c", 0), ("a", 1)]
+
+
+def test_shift_repairs_gaps(session, create_workspace):
+    w = create_workspace()
+    _add(w, "a", "b", "c")
+    for todo, index in zip(w.todos, [0, 4, 9]):
+        todo.order_index = index
+    session.commit()
+
+    w.todos[2].shift_up()
+    session.expire_all()
+    assert _order(w) == [("a", 0), ("c", 1), ("b", 2)]
+
+    w.todos[0].shift_down()
+    session.expire_all()
+    assert _order(w) == [("c", 0), ("a", 1), ("b", 2)]
+
+
 def test_sort_invalid(create_workspace, create_todo):
     w = create_workspace()
     t = w.add_todo()
