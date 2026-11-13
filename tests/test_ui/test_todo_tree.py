@@ -476,3 +476,60 @@ async def test_new_item_without_description_is_discarded():
         # clearing an existing item's description keeps the item
         await pilot.press("i", *["backspace"] * 4, "escape")
         assert len(tree.model.todos) == 1
+
+
+async def test_hide_completed_todos():
+    async with run_pilot() as pilot:
+        app = pilot.app
+        assert isinstance(app, Dooit)
+
+        tree = await create_and_move_to_todo(pilot)
+        for name in ["done", "open", "parent"]:
+            tree.add_sibling()
+            await pilot.press(*list(name), "escape")
+        tree.add_child_node()
+        await pilot.press(*list("finished step"), "escape", "c")
+        tree.add_sibling()
+        await pilot.press(*list("next step"), "escape")
+
+        tree.highlighted = 0
+        await pilot.press("c")  # complete "done"
+
+        def shown():
+            return [tree._renderers[o.id].model.description for o in tree._options]
+
+        assert shown() == ["done", "open", "parent", "finished step", "next step"]
+
+        await pilot.press("h")
+        assert shown() == ["open", "parent", "next step"]
+        assert tree.border_title == "Todos (completed hidden)"
+
+        # completing a todo while hidden removes it from view
+        await pilot.press("c")
+        assert shown() == ["parent", "next step"]
+        assert tree.current_model.description == "parent"
+
+        # finishing the last step completes the parent, hiding both
+        await pilot.press("j", "c")
+        assert shown() == []
+        assert tree.highlighted is None
+
+        await pilot.press("h")
+        assert tree.border_title == "Todos"
+        assert len(shown()) == 5
+        assert tree.highlighted is not None
+
+
+async def test_hidden_history_has_no_expand_indicator():
+    async with run_pilot() as pilot:
+        app = pilot.app
+        assert isinstance(app, Dooit)
+
+        tree = await create_and_move_to_todo(pilot)
+        tree.add_sibling()
+        await pilot.press(*list("rent"), "escape", "r", "1", "w", "enter", "c")
+        todo = tree.current_model
+        assert tree.is_collapsed_parent(todo)  # history entry
+
+        await pilot.press("h")
+        assert not tree.is_collapsed_parent(todo)

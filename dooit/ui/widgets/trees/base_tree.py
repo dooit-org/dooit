@@ -13,7 +13,6 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 class BaseTree(OptionList, can_focus=True, inherit_bindings=False):
-
     @property
     def api(self) -> "DooitAPI":
         return self.tui.api

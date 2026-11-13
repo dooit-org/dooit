@@ -155,6 +155,7 @@ def key_setup(api: DooitAPI, _):
     api.keys.set("p", api.paste_model_below)
     api.keys.set("P", api.paste_model_above)
     api.keys.set("c", api.toggle_complete)
+    api.keys.set("h", api.toggle_hide_completed)
     api.keys.set(["=", "+"], api.increase_urgency)
     api.keys.set(["-", "_"], api.decrease_urgency)
     api.keys.set("/", api.start_search)

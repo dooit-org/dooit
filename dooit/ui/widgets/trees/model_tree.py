@@ -138,8 +138,11 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
     def children_attr(self) -> str:
         return self.__class__.__name__.replace("Tree", "").lower()
 
+    def visible_children(self, model: ModelType) -> List[ModelType]:
+        return getattr(model, self.children_attr)
+
     def has_children(self, model: ModelType) -> bool:
-        return bool(getattr(model, self.children_attr))
+        return bool(self.visible_children(model))
 
     def subtree(self, model: ModelType) -> List[ModelType]:
         nodes = [model]
@@ -161,7 +164,7 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         options = []
 
         def add_children_recurse(model: ModelType):
-            for child in getattr(model, self.children_attr):
+            for child in self.visible_children(model):
                 render = self._renderers[child.uuid]
                 options.append(Option("", id=render.id))
 

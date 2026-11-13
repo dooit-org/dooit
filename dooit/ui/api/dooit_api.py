@@ -206,6 +206,18 @@ class DooitAPI:
 
         self.app.screen.post_message(StartFocus(todo))
 
+    def toggle_hide_completed(self):
+        """Hide or show completed todos"""
+
+        self.vars.hide_completed = not self.vars.hide_completed
+        for tree in self.app.get_screen("main").query(TodosTree):
+            tree.force_refresh()
+            if tree.highlighted is None and tree._options:
+                tree.highlighted = 0
+
+        state = "hidden" if self.vars.hide_completed else "shown"
+        self.notify(f"Completed todos {state}")
+
     def toggle_complete(self):
         """Toggle the completion of the todo"""
         if isinstance(self.focused, TodosTree):
