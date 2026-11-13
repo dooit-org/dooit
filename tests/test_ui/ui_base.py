@@ -18,7 +18,7 @@ async def create_and_move_to_todo(pilot: Pilot) -> TodosTree:
     wtree.add_sibling()
     await pilot.pause()
 
-    await pilot.press("escape")
+    await pilot.press("w", "escape")
     await pilot.pause()
 
     app.api.switch_focus()

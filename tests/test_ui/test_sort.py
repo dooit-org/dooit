@@ -43,7 +43,7 @@ async def test_search_on_todo():
             api.start_sort()
 
         tree.add_sibling()
-        await pilot.press("escape")
+        await pilot.press("x", "escape")
 
         api.start_sort()
         await pilot.pause()
@@ -64,7 +64,7 @@ async def test_options_highlight():
         tree = await create_and_move_to_todo(pilot)
 
         tree.add_sibling()
-        await pilot.press("escape")
+        await pilot.press("x", "escape")
 
         api.start_sort()
         await pilot.pause()

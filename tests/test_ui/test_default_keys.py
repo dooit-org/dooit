@@ -67,7 +67,7 @@ async def test_s_starts_sort():
 
         tree = await create_and_move_to_todo(pilot)
         tree.add_sibling()
-        await pilot.press("escape")
+        await pilot.press("x", "escape")
 
         await pilot.press("s")
         await pilot.pause()

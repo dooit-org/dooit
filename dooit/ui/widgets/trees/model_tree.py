@@ -51,6 +51,7 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         self._renderers: RenderDictType = render_dict
         self._filter_refresh = False
         self._model_clipboard = None
+        self._new_node_id: Optional[str] = None
 
     @cache
     def get_column_width(self, attr: str) -> int:
@@ -214,6 +215,11 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         self.get_column_width.cache_clear()
         self.update_current_prompt()
 
+        # an item added and left without a description is discarded
+        new_node_id, self._new_node_id = self._new_node_id, None
+        if new_node_id == self.node.id and not self.current_model.description:
+            self._drop_node(self.current_model)
+
     def reset_state(self):
         """
         Reset tree of any modified status for e.g. search
@@ -298,6 +304,7 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
 
         self.expand_node()
         self.highlight_id(node.uuid)
+        self._new_node_id = node.uuid
         self.start_edit("description")
 
     def _create_sibling_node(self) -> ModelType:
@@ -330,12 +337,15 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
             node = self._add_sibling_node()
 
         self.highlight_id(node.uuid)
+        self._new_node_id = node.uuid
         self.start_edit("description")
 
     @require_confirmation
-    @refresh_tree
     def _remove_node(self):
-        model = self.current_model
+        self._drop_node(self.current_model)
+
+    @refresh_tree
+    def _drop_node(self, model: ModelType):
         self.before_remove(model)
 
         # ids of deleted rows get reused, so drop cached state for all of them

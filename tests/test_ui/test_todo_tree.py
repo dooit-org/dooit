@@ -455,3 +455,24 @@ async def test_non_number_effort():
         bar = app.bar_switcher.visible_content
         assert getattr(bar, "message", None) == "Effort must be a whole number"
         assert todo.effort == 0
+
+
+async def test_new_item_without_description_is_discarded():
+    async with run_pilot() as pilot:
+        app = pilot.app
+        assert isinstance(app, Dooit)
+
+        tree = await create_and_move_to_todo(pilot)
+        tree.add_sibling()
+        await pilot.press(*list("keep"), "escape")
+
+        await pilot.press("a", "escape")  # new sibling, nothing typed
+        assert [t.description for t in tree.model.todos] == ["keep"]
+        assert tree.current_model.description == "keep"
+
+        await pilot.press("A", "enter")  # new child, nothing typed
+        assert tree.model.todos[0].todos == []
+
+        # clearing an existing item's description keeps the item
+        await pilot.press("i", *["backspace"] * 4, "escape")
+        assert len(tree.model.todos) == 1

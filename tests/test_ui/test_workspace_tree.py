@@ -64,7 +64,7 @@ async def test_base_addition():
 
         wtree.add_sibling()
         assert wtree.highlighted == 0
-        await pilot.press("escape")
+        await pilot.press("x", "escape")
         await pilot.pause()
 
         wtree.add_sibling()
@@ -78,9 +78,9 @@ async def test_workspace_remove_cancelled():
         wtree = app.workspace_tree
 
         wtree.add_sibling()
-        await pilot.press("escape")
+        await pilot.press("x", "escape")
         wtree.add_sibling()
-        await pilot.press("escape")
+        await pilot.press("x", "escape")
 
         w1 = wtree.current_model
 
@@ -112,9 +112,9 @@ async def test_workspace_remove():
         wtree = app.workspace_tree
 
         wtree.add_sibling()
-        await pilot.press("escape")
+        await pilot.press("x", "escape")
         wtree.add_sibling()
-        await pilot.press("escape")
+        await pilot.press("x", "escape")
 
         w1 = wtree.current_model
 
@@ -156,7 +156,7 @@ async def test_shifts_single_item():
         wtree = app.workspace_tree
 
         wtree.add_sibling()
-        await pilot.press("escape")
+        await pilot.press("x", "escape")
 
         wtree.shift_up()
         await pilot.pause()
@@ -176,9 +176,9 @@ async def test_shifts():
         wtree = app.workspace_tree
 
         wtree.add_sibling()
-        await pilot.press("escape")
+        await pilot.press("x", "escape")
         wtree.add_sibling()
-        await pilot.press("escape")
+        await pilot.press("x", "escape")
         wtree.highlighted = 0
 
         # shift up with first index
@@ -213,10 +213,10 @@ async def test_cursor_movements():
         wtree = app.workspace_tree
 
         wtree.add_sibling()
-        await pilot.press("escape")
+        await pilot.press("x", "escape")
 
         wtree.add_sibling()
-        await pilot.press("escape")
+        await pilot.press("x", "escape")
 
         assert wtree.highlighted == 1
 
@@ -246,10 +246,10 @@ async def test_add_sibling_while_editing():
         wtree = app.workspace_tree
 
         wtree.add_sibling()
-        # await pilot.press("escape") # Dont stop editing
+        await pilot.press("x")  # Dont stop editing
 
         wtree.add_sibling()
-        await pilot.press("escape")
+        await pilot.press("x", "escape")
         assert wtree.highlighted == 0
 
         assert len(wtree._options) == 1
