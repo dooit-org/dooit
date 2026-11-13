@@ -12,6 +12,7 @@ from dooit.ui.api.events import (
     ShowConfirm,
     StartSearch,
     StartSort,
+    StartFocus,
     TodoDescriptionChanged,
     TodoDueChanged,
     TodoEffortChanged,
@@ -27,6 +28,7 @@ from dooit.ui.api.events import (
 from dooit.ui.widgets.trees import WorkspacesTree, TodosTree
 from dooit.ui.widgets import BarSwitcher, Dashboard
 from .base import BaseScreen
+from .focus import FocusScreen
 
 
 class DualSplit(Container):
@@ -115,6 +117,14 @@ class MainScreen(BaseScreen):
     def start_sort(self, event: StartSort):
         self.app.bar_switcher.switch_to_sort(event.model, event.callback)
         self.post_message(ModeChanged("SORT"))
+
+    @on(StartFocus)
+    def start_focus(self, _: StartFocus):
+        self.app.bar_switcher.switch_to_focus(self.start_focus_session)
+        self.post_message(ModeChanged("FOCUS"))
+
+    def start_focus_session(self, minutes: int):
+        self.app.push_screen(FocusScreen(minutes * 60))
 
     @on(ShowConfirm)
     def show_confirm(self, event: ShowConfirm):

@@ -10,6 +10,7 @@ from .search_bar import SearchBar
 from .confirm_bar import ConfirmBar
 from .notification_bar import NotificationBar
 from .sort_bar import SortBar
+from .focus_bar import FocusBar
 
 
 class BarSwitcher(ContentSwitcher):
@@ -74,6 +75,14 @@ class BarSwitcher(ContentSwitcher):
         self.add_content(
             widget=sort_bar,
             id="sort_bar",
+            set_current=True,
+        )
+
+    def switch_to_focus(self, callback: Callable):
+        focus_bar = FocusBar(callback)
+        self.add_content(
+            widget=focus_bar,
+            id="focus_bar",
             set_current=True,
         )
 

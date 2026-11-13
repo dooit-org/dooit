@@ -5,7 +5,7 @@ from textual.message import Message
 from dooit.api.model import DooitModel
 from dooit.api import Workspace, Todo
 
-ModeType = Literal["NORMAL", "INSERT", "DATE", "SEARCH", "SORT", "CONFIRM"]
+ModeType = Literal["NORMAL", "INSERT", "DATE", "SEARCH", "SORT", "CONFIRM", "FOCUS"]
 EmptyWidgetType = Literal["todo", "workspace", "no_search_results"]
 PositionType = Literal["workspace", "todo"]
 NotificationType = Literal["info", "warning", "error"]
@@ -67,6 +67,12 @@ class SwitchTab(DooitEvent):
 class SpawnHelp(DooitEvent):
     """
     Emitted when user presses `?` in NORMAL mode
+    """
+
+
+class StartFocus(DooitEvent):
+    """
+    Emitted when user wants to start a focus session
     """
 
 

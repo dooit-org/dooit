@@ -19,6 +19,7 @@ def get_mode(api: DooitAPI, event: ModeChanged):
     MODES = {
         "NORMAL": theme.primary,
         "INSERT": theme.secondary,
+        "FOCUS": theme.green,
     }
 
     return Text(
@@ -151,6 +152,7 @@ def key_setup(api: DooitAPI, _):
     api.keys.set(["-", "_"], api.decrease_urgency)
     api.keys.set("/", api.start_search)
     api.keys.set(["s", "<ctrl+s>"], api.start_sort)
+    api.keys.set("f", api.start_focus)
     api.keys.set(["q", "<ctrl+q>"], api.quit)
     api.keys.set("?", api.show_help)
 

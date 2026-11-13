@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 from dooit.ui.api.events import BarNotification, NotificationType
 from dooit.ui.api.plug import PluginManager
-from .events import DooitEvent, SwitchTab, QuitApp
+from .events import DooitEvent, SwitchTab, QuitApp, StartFocus
 from dooit.ui.widgets import ModelTree
 from dooit.ui.widgets.trees import TodosTree
 from dooit.utils import CssManager
@@ -196,6 +196,10 @@ class DooitAPI:
     def start_sort(self):
         """Start sorting the siblings of the highlighted item"""
         self.focused.start_sort()
+
+    def start_focus(self):
+        """Start a focus (pomodoro) session"""
+        self.app.screen.post_message(StartFocus())
 
     def toggle_complete(self):
         """Toggle the completion of the todo"""
