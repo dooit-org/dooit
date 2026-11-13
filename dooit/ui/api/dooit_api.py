@@ -198,8 +198,13 @@ class DooitAPI:
         self.focused.start_sort()
 
     def start_focus(self):
-        """Start a focus (pomodoro) session"""
-        self.app.screen.post_message(StartFocus())
+        """Start a focus (pomodoro) session, on the highlighted todo if any"""
+        focused = self.app.focused
+        todo = None
+        if isinstance(focused, TodosTree) and focused.highlighted is not None:
+            todo = focused.current_model
+
+        self.app.screen.post_message(StartFocus(todo))
 
     def toggle_complete(self):
         """Toggle the completion of the todo"""

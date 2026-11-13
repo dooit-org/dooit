@@ -72,8 +72,12 @@ class SpawnHelp(DooitEvent):
 
 class StartFocus(DooitEvent):
     """
-    Emitted when user wants to start a focus session
+    Emitted when user wants to start a focus session, optionally on a todo
     """
+
+    def __init__(self, todo: Optional[Todo] = None) -> None:
+        super().__init__()
+        self.todo = todo
 
 
 class ModeChanged(DooitEvent):

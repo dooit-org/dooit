@@ -127,6 +127,10 @@ FocusBar {
   .hint {
     color: $foreground3 50%;
   }
+
+  .todo {
+    text-style: bold;
+  }
 }
 
 FocusScreen {
@@ -134,7 +138,18 @@ FocusScreen {
     color: $foreground3;
   }
 
+  #focus_todo {
+    color: $foreground3;
+    text-style: bold;
+    margin-bottom: 1;
+  }
+
   #focus_clock {
+    color: $foreground3 50%;
+    margin-top: 1;
+  }
+
+  #focus_hint {
     color: $foreground3 50%;
     margin-top: 1;
   }

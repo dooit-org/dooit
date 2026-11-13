@@ -1,6 +1,8 @@
-from typing import Callable
+from typing import Callable, Optional
 from rich.console import RenderableType
 from rich.text import Text
+
+from dooit.api import Todo
 
 from .._base import BarBase
 
@@ -13,6 +15,7 @@ class FocusBar(BarBase):
     COMPONENT_CLASSES = {
         "minutes",
         "hint",
+        "todo",
     }
 
     BIG_STEP = 5
@@ -20,8 +23,13 @@ class FocusBar(BarBase):
     MIN_MINUTES = 1
     MAX_MINUTES = 999
 
-    def __init__(self, callback: Callable, *args, **kwargs):
+    MAX_TODO_WIDTH = 40
+
+    def __init__(
+        self, callback: Callable, todo: Optional[Todo] = None, *args, **kwargs
+    ):
         super().__init__(callback, *args, **kwargs)
+        self.todo = todo
         self.minutes = self.DEFAULT_MINUTES
         self._typing = False
 
@@ -75,8 +83,21 @@ class FocusBar(BarBase):
         minutes_style = self.get_component_rich_style("minutes")
         hint_style = self.get_component_rich_style("hint")
 
+        if self.todo is None:
+            subject = Text(" Focus for ")
+        else:
+            description = self.todo.description
+            if len(description) > self.MAX_TODO_WIDTH:
+                description = description[: self.MAX_TODO_WIDTH - 1] + "…"
+
+            subject = Text.assemble(
+                " Focus on ",
+                (description, self.get_component_rich_style("todo")),
+                " for ",
+            )
+
         return Text.assemble(
-            " Focus for ",
+            subject,
             ("◀", hint_style),
             (f" {self.minutes} ", minutes_style),
             ("▶", hint_style),

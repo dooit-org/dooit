@@ -119,12 +119,14 @@ class MainScreen(BaseScreen):
         self.post_message(ModeChanged("SORT"))
 
     @on(StartFocus)
-    def start_focus(self, _: StartFocus):
-        self.app.bar_switcher.switch_to_focus(self.start_focus_session)
-        self.post_message(ModeChanged("FOCUS"))
+    def start_focus(self, event: StartFocus):
+        todo = event.todo
 
-    def start_focus_session(self, minutes: int):
-        self.app.push_screen(FocusScreen(minutes * 60))
+        def start_session(minutes: int):
+            self.app.push_screen(FocusScreen(minutes * 60, todo))
+
+        self.app.bar_switcher.switch_to_focus(start_session, todo)
+        self.post_message(ModeChanged("FOCUS"))
 
     @on(ShowConfirm)
     def show_confirm(self, event: ShowConfirm):

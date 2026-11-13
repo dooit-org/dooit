@@ -134,3 +134,78 @@ def test_remaining_text():
     assert FocusScreen(90).remaining_text == "2"  # rounded up
     assert FocusScreen(30).remaining_text == "1"
     assert FocusScreen(125 * 60).remaining_text == "125"
+
+
+async def test_focus_on_highlighted_todo():
+    from textual.widgets import Label
+    from tests.test_ui.ui_base import create_and_move_to_todo
+
+    async with run_pilot() as pilot:
+        app = pilot.app
+        assert isinstance(app, Dooit)
+
+        tree = await create_and_move_to_todo(pilot)
+        tree.add_sibling()
+        await pilot.press(*list("write report"), "escape")
+        todo = tree.current_model
+
+        bar = await open_focus_bar(pilot)
+        assert bar.todo is todo
+        assert "Focus on write report for" in bar.render().plain
+
+        await pilot.press("enter")
+        await pilot.pause()
+        screen = app.screen
+        assert isinstance(screen, FocusScreen)
+        assert screen.query_one("#focus_todo", Label).content == "write report"
+
+        await pilot.press("c")
+        await pilot.pause()
+
+        assert isinstance(app.screen, MainScreen)
+        assert todo.is_completed
+
+
+async def test_focus_from_workspaces_is_a_plain_timer():
+    async with run_pilot() as pilot:
+        app = pilot.app
+        assert isinstance(app, Dooit)
+
+        app.workspace_tree.add_sibling()
+        await pilot.press("w", "escape")
+
+        bar = await open_focus_bar(pilot)
+        assert bar.todo is None
+        assert bar.render().plain.startswith(" Focus for ")
+
+        await pilot.press("enter")
+        await pilot.pause()
+        screen = app.screen
+        assert isinstance(screen, FocusScreen)
+        assert not screen.query("#focus_todo")
+
+        await pilot.press("c")  # nothing to complete
+        await pilot.pause()
+        assert app.screen is screen
+
+
+async def test_finished_session_offers_to_complete_todo():
+    from textual.widgets import Label
+    from tests.test_ui.ui_base import create_and_move_to_todo
+
+    async with run_pilot() as pilot:
+        app = pilot.app
+        assert isinstance(app, Dooit)
+
+        tree = await create_and_move_to_todo(pilot)
+        tree.add_sibling()
+        await pilot.press("t", "escape")
+
+        screen = FocusScreen(1, tree.current_model)
+        await app.push_screen(screen)
+        hint = screen.query_one("#focus_hint", Label)
+        assert not hint.display
+
+        await sleep(1.5)
+        await pilot.pause()
+        assert hint.display
