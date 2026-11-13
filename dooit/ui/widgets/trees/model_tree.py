@@ -350,9 +350,12 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
 
     @require_highlighted_node
     def copy_model_to_clipboard(self):
-        node_type = self.current_model.__class__.__name__
+        model = self.current_model
+        node_type = model.__class__.__name__
         self.api.notify(f"{node_type} was copied to clipboard")
-        self._model_clipboard = self.current_model.id
+
+        # keep the contents, not the id, so it can be pasted after deletion
+        self._model_clipboard = (type(model), model._snapshot())
 
     def paste_model_from_clipboard(
         self, position: str = "below"
@@ -378,19 +381,13 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
                 if position == "below":
                     order_index += 1
 
-            if isinstance(self.current_model, Todo):
-                new_model = Todo.clone_from_id(
-                    self._model_clipboard, order_index, parent
-                )
-            else:
-                new_model = Workspace.clone_from_id(
-                    self._model_clipboard, order_index, parent
-                )
-
-            return new_model
+            model_class, snapshot = self._model_clipboard
+            return model_class._from_snapshot(snapshot, parent, order_index)
 
         model = add_node(self)
-        self.highlight_id(model.uuid)
+        if model is not None:
+            self.highlight_id(model.uuid)
+
         return model
 
     @require_highlighted_node

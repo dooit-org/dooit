@@ -380,3 +380,60 @@ async def test_paste_goes_next_to_highlighted_item():
         assert [t.description for t in tree.model.todos[0].todos] == ["child"]
         assert tree.current_model.description == "child"
         assert tree.current_model.parent_workspace == tree.model
+
+
+async def test_paste_after_original_was_deleted():
+    async with run_pilot() as pilot:
+        app = pilot.app
+        assert isinstance(app, Dooit)
+        app.api.vars.show_confirm = False
+
+        tree = await create_and_move_to_todo(pilot)
+        for name in "ab":
+            tree.add_sibling()
+            await pilot.press(name, "escape")
+
+        tree.add_child_node()
+        await pilot.press(*list("sub"), "escape")
+        tree.highlighted = 1  # b
+
+        await pilot.press("Y", "x", "x")  # cut b (with its child)
+        await pilot.press("p")
+
+        assert [t.description for t in tree.model.todos] == ["a", "b"]
+        assert [t.description for t in tree.model.todos[1].todos] == ["sub"]
+
+
+async def test_paste_into_empty_list():
+    async with run_pilot() as pilot:
+        app = pilot.app
+        assert isinstance(app, Dooit)
+        app.api.vars.show_confirm = False
+
+        tree = await create_and_move_to_todo(pilot)
+        tree.add_sibling()
+        await pilot.press(*list("only"), "escape")
+
+        await pilot.press("Y", "x", "x")
+        assert len(tree._options) == 0
+
+        await pilot.press("p")
+        assert [t.description for t in tree.model.todos] == ["only"]
+        assert tree.current_model.description == "only"
+
+
+async def test_paste_with_empty_clipboard():
+    async with run_pilot() as pilot:
+        app = pilot.app
+        assert isinstance(app, Dooit)
+
+        tree = await create_and_move_to_todo(pilot)
+        tree.add_sibling()
+        await pilot.press("a", "escape")
+
+        assert tree.paste_model_from_clipboard() is None
+        await pilot.pause()
+
+        bar = app.bar_switcher.visible_content
+        assert getattr(bar, "message", None) == "No model in clipboard"
+        assert len(tree._options) == 1
