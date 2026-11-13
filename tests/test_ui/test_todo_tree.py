@@ -232,12 +232,11 @@ async def test_effort_change():
         assert isinstance(todo, Todo)
 
         assert todo.effort == 0
-        assert not tree.start_edit("effort")
+        assert TodoWidget.effort in app.api.layouts.todo_layout
 
-        app.api.layouts.todo_layout = [
-            TodoWidget.effort
-        ]  # make sure the column is there
-        tree.start_edit("effort")
+        await pilot.press("e")
+        assert app.get_dooit_mode() == "INSERT"
+
         await pilot.press("2")
         await pilot.press("escape")
 

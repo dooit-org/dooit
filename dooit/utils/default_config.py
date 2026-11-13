@@ -113,6 +113,13 @@ def todo_urgency_formatter(urgency, _, api: DooitAPI):
     )
 
 
+def todo_effort_formatter(effort: int, _):
+    if not effort:
+        return ""
+
+    return str(effort)
+
+
 def todo_recurrence_formatter(recurrence: Optional[timedelta], _):
     if recurrence is None:
         return ""
@@ -163,6 +170,7 @@ def layout_setup(api: DooitAPI, _):
     api.layouts.todo_layout = [
         TodoWidget.status,
         TodoWidget.description,
+        TodoWidget.effort,
         TodoWidget.recurrence,
         TodoWidget.due,
         TodoWidget.urgency,
@@ -174,6 +182,7 @@ def formatter_setup(api: DooitAPI, _):
     api.formatter.todos.status.add(todo_status_formatter)
     api.formatter.todos.due.add(todo_due_formatter)
     api.formatter.todos.urgency.add(todo_urgency_formatter)
+    api.formatter.todos.effort.add(todo_effort_formatter)
     api.formatter.todos.recurrence.add(todo_recurrence_formatter)
 
 
