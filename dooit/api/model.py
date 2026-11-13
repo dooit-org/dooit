@@ -48,6 +48,10 @@ class DooitModel(BaseModel, BaseModelMixin):
 
         return comparable_fields
 
+    @classmethod
+    def sort_options(cls):
+        return ["reverse"] + cls.comparable_fields()
+
     @property
     def uuid(self) -> str:
         return f"{self.__class__.__name__}_{self.id}"

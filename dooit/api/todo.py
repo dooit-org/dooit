@@ -56,6 +56,10 @@ class Todo(DooitModel):
         return value
 
     @classmethod
+    def sort_options(cls):
+        return ["natural"] + super().sort_options()
+
+    @classmethod
     def from_id(cls, _id: str) -> "Todo":
         _id = _id.lstrip("Todo_")
         query = select(Todo).where(Todo.id == _id)
@@ -103,7 +107,17 @@ class Todo(DooitModel):
         return []
 
     def sort_siblings(self, field: str):
-        if field != "pending":
+        if field == "natural":
+            items = sorted(
+                self.siblings,
+                key=lambda x: (
+                    not x.pending,
+                    -x.urgency,
+                    x.due or datetime.max,
+                    x.order_index,
+                ),
+            )
+        elif field != "pending":
             items = (
                 self.session.query(Todo)
                 .filter_by(

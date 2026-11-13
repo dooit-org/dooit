@@ -52,7 +52,8 @@ async def test_search_on_todo():
         sort_bar = app.bar_switcher.visible_content
         assert isinstance(sort_bar, SortBar)
 
-        assert len(sort_bar.options) == 7  # reverse and description
+        assert len(sort_bar.options) == 8  # natural, reverse and todo fields
+        assert sort_bar.options[0] == "natural"
 
 
 async def test_options_highlight():
@@ -106,6 +107,7 @@ async def test_reverse_sort():
         assert isinstance(sort_bar, SortBar)
         assert tree.highlighted == 1  # sorted in reverse
 
+        sort_bar.selected = sort_bar.options.index("reverse")
         await pilot.press("enter")
         await pilot.pause()
         current_bar = app.bar_switcher.visible_content
@@ -176,7 +178,7 @@ async def test_description_sort():
         assert tree.highlighted == 1  # sorted in reverse
         current_options = [node.id for node in tree._options]
 
-        sort_bar.selected = 1
+        sort_bar.selected = sort_bar.options.index("description")
         await pilot.press("enter")
         await pilot.pause()
         current_bar = app.bar_switcher.visible_content

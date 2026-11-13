@@ -209,9 +209,53 @@ def test_sort_invalid(create_workspace, create_todo):
         t.sort_siblings("???????")
 
 
+def test_sort_natural(create_workspace):
+    w = create_workspace()
+
+    def add(desc, urgency=1, due=None, pending=True):
+        t = w.add_todo()
+        t.description = desc
+        t.urgency = urgency
+        t.due = datetime.strptime(due, "%Y-%m-%d") if due else None
+        t.pending = pending
+        t.save()
+        return t
+
+    add("done urgent", urgency=4, pending=False)
+    add("low no due")
+    add("high late", urgency=3, due="2030-02-01")
+    add("done low", pending=False)
+    add("high soon", urgency=3, due="2030-01-01")
+    add("low soon", due="2030-01-01")
+    add("high no due", urgency=3)
+
+    w.todos[0].sort_siblings("natural")
+
+    assert [t.description for t in w.todos] == [
+        "high soon",
+        "high late",
+        "high no due",
+        "low soon",
+        "low no due",
+        "done urgent",
+        "done low",
+    ]
+
+
 @mark.parametrize(
     "field,sort_key,filter_func,compare_ids",
     [
+        (
+            "natural",
+            lambda x: (
+                not x.pending,
+                -x.urgency,
+                x.due or datetime.max,
+                x.order_index,
+            ),
+            None,
+            True,
+        ),
         (
             "pending",
             lambda x: (not x.pending, x.due or datetime.max, x.order_index),
