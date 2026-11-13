@@ -1,11 +1,10 @@
 from asyncio import sleep
 from pytest import raises
 from dooit.api.exceptions import NoNodeError
-from dooit.ui.widgets.bars import SortBar
-
-from dooit.ui.widgets.bars.status_bar.bar import StatusBar
 from tests.test_ui.ui_base import run_pilot, create_and_move_to_todo
 from dooit.ui.tui import Dooit
+from dooit.ui.widgets.bars import SortBar
+from dooit.ui.widgets.bars.status_bar.bar import StatusBar
 
 
 async def test_search_on_workspace():

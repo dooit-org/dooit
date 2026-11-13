@@ -1,6 +1,6 @@
-from dooit.ui.widgets.trees.todos_tree import TodosTree
 from tests.test_ui.ui_base import run_pilot, create_and_move_to_todo
 from dooit.ui.tui import Dooit
+from dooit.ui.widgets.trees.todos_tree import TodosTree
 
 
 async def test_search():
