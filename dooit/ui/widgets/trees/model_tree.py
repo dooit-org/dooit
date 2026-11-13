@@ -336,6 +336,7 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
     @refresh_tree
     def _remove_node(self):
         model = self.current_model
+        self.before_remove(model)
 
         # ids of deleted rows get reused, so drop cached state for all of them
         for node in self.subtree(model):
@@ -343,6 +344,9 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
             self.expanded_nodes.pop(node.uuid, None)
 
         model.drop()
+
+    def before_remove(self, model: ModelType) -> None:
+        """Called once the removal of `model` is confirmed, before it is deleted"""
 
     @require_highlighted_node
     def copy_model_to_clipboard(self):

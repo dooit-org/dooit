@@ -1,6 +1,7 @@
 from pytest import raises
 from textual.widgets import ContentSwitcher
 from dooit.api.exceptions import NoNodeError
+from dooit.ui.api.events import WorkspaceRemoved
 from dooit.ui.widgets.trees.todos_tree import TodosTree
 from tests.test_ui.ui_base import run_pilot
 from dooit.ui.tui import Dooit
@@ -318,3 +319,92 @@ async def test_yank_and_paste_workspace():
         assert isinstance(tree, TodosTree)
 
         assert tree.option_count == 1
+
+
+async def test_remove_last_workspace_clears_todos_pane():
+    async with run_pilot() as pilot:
+        app = pilot.app
+        assert isinstance(app, Dooit)
+        app.api.vars.show_confirm = False
+
+        app.workspace_tree.add_sibling()
+        await pilot.press(*list("old"), "escape", "right")
+        todos = app.screen.query_one("#todo_switcher", ContentSwitcher)
+        todos_tree = todos.visible_content
+        assert isinstance(todos_tree, TodosTree)
+        todos_tree.add_sibling()
+        await pilot.press(*list("old todo"), "escape", "left")
+
+        await pilot.press("x", "x")
+        await pilot.pause()
+
+        assert todos.current == "dooit-dashboard"
+        assert not todos.query(TodosTree)
+
+        # a new workspace may reuse the deleted id; it must get a fresh list
+        app.workspace_tree.add_sibling()
+        await pilot.press(*list("new"), "escape")
+        await pilot.pause()
+
+        todos_tree = todos.visible_content
+        assert isinstance(todos_tree, TodosTree)
+        assert todos_tree.model.description == "new"
+        assert len(todos_tree._options) == 0
+
+        await pilot.press("right")
+        todos_tree.add_sibling()
+        await pilot.press(*list("fresh"), "escape")
+        assert [t.description for t in todos_tree.model.todos] == ["fresh"]
+
+
+async def test_remove_workspace_shows_neighbours_todos():
+    async with run_pilot() as pilot:
+        app = pilot.app
+        assert isinstance(app, Dooit)
+        app.api.vars.show_confirm = False
+
+        for name in ["a", "b"]:
+            app.workspace_tree.add_sibling()
+            await pilot.press(*list(name), "escape")
+
+        await pilot.press("x", "x")
+        await pilot.pause()
+
+        todos_tree = app.screen.query_one(
+            "#todo_switcher", ContentSwitcher
+        ).visible_content
+        assert isinstance(todos_tree, TodosTree)
+        assert todos_tree.model.description == "a"
+
+
+async def test_remove_event_waits_for_confirmation():
+    async with run_pilot() as pilot:
+        app = pilot.app
+        assert isinstance(app, Dooit)
+
+        removed = []
+        tree = app.workspace_tree
+        post_message = tree.post_message
+
+        def record(message):
+            if isinstance(message, WorkspaceRemoved):
+                removed.append(message)
+            return post_message(message)
+
+        tree.post_message = record
+
+        app.workspace_tree.add_sibling()
+        await pilot.press(*list("keep"), "escape")
+
+        await pilot.press("x", "x")  # asks for confirmation
+        await pilot.pause()
+        assert removed == []
+
+        await pilot.press("n")
+        await pilot.pause()
+        assert removed == []
+        assert len(app.workspace_tree._options) == 1
+
+        await pilot.press("x", "x", "y")
+        await pilot.pause()
+        assert len(removed) == 1

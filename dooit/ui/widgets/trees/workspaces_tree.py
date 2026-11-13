@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Optional
 from textual import on
+from textual.widgets import ContentSwitcher
 from textual.widgets.option_list import Option
 
 from dooit.api import Workspace
@@ -50,9 +51,18 @@ class WorkspacesTree(ModelTree[Workspace, WorkspaceRenderDict]):
     def _add_first_item(self) -> Workspace:
         return self.model.add_workspace()
 
-    def _remove_node(self) -> None:
-        self.post_message(WorkspaceRemoved(self.current_model))
-        return super()._remove_node()
+    def before_remove(self, model: Workspace) -> None:
+        self.post_message(WorkspaceRemoved(model))
+
+        # todo lists of removed workspaces must not be reused for new ones
+        switcher = self.screen.query_one("#todo_switcher", ContentSwitcher)
+        for workspace in self.subtree(model):
+            tree_id = f"TodosTree_{workspace.uuid}"
+            if switcher.current == tree_id:
+                switcher.current = "dooit-dashboard"
+
+            for tree in switcher.query(f"#{tree_id}"):
+                tree.remove()
 
     @on(ModelTree.OptionHighlighted)
     def workspace_highlighted(self, event: ModelTree.OptionHighlighted):
