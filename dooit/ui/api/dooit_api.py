@@ -193,6 +193,14 @@ class DooitAPI:
         """Start a search within the list"""
         self.focused.start_search()
 
+    def next_search_hit(self):
+        """Go to the next match of the last search"""
+        self.focused.goto_search_hit(1)
+
+    def previous_search_hit(self):
+        """Go to the previous match of the last search"""
+        self.focused.goto_search_hit(-1)
+
     def start_sort(self):
         """Start sorting the siblings of the highlighted item"""
         self.focused.start_sort()

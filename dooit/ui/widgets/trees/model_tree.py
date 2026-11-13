@@ -52,6 +52,7 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         self._filter_refresh = False
         self._model_clipboard = None
         self._new_node_id: Optional[str] = None
+        self._search_term = ""
 
     @cache
     def get_column_width(self, attr: str) -> int:
@@ -106,13 +107,83 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
     def set_filter(self, filter: str) -> None:
         self.filter_refresh = bool(filter)
 
-        for option in self._options:
+        first_match = None
+        for index, option in enumerate(self._options):
             assert option.id
             matches = self._renderers[option.id].matches_filter(filter)
             if matches:
                 self.enable_option(option.id)
+                if first_match is None:
+                    first_match = index
             else:
                 self.disable_option(option.id)
+
+        if filter and first_match is not None:
+            self.highlighted = first_match
+
+    def confirm_search(self, term: str) -> None:
+        """Leave the filtered view on the current match, remembering the term"""
+
+        match = self.current_model if self.highlighted is not None else None
+        self._search_term = term
+        self.set_filter("")
+
+        if match is not None and term:
+            self.reveal(match)
+
+    def all_nodes(self) -> List[ModelType]:
+        """Every listed node in display order, including collapsed ones"""
+
+        nodes = []
+
+        def add(model: ModelType):
+            for child in self.visible_children(model):
+                nodes.append(child)
+                add(child)
+
+        add(self.model)
+        return nodes
+
+    def reveal(self, model: ModelType) -> None:
+        """Expand the ancestors of `model` and move the cursor to it"""
+
+        parent = model.parent
+        while parent is not None and parent != self.model:
+            self.expanded_nodes[parent.uuid] = True
+            parent = parent.parent
+
+        self.force_refresh()
+        self.highlight_id(model.uuid)
+
+    def goto_search_hit(self, step: int = 1) -> None:
+        if not self._search_term:
+            self.post_message(BarNotification("No previous search", "error"))
+            return
+
+        nodes = self.all_nodes()
+        hits = [
+            index
+            for index, node in enumerate(nodes)
+            if self._renderers[node.uuid].matches_filter(self._search_term)
+        ]
+        if not hits:
+            self.post_message(
+                BarNotification(f"No match for [b]{self._search_term}[/b]", "error")
+            )
+            return
+
+        current = -1
+        if self.highlighted is not None:
+            current = nodes.index(self.current_model)
+
+        if step > 0:
+            after = [index for index in hits if index > current]
+            target = after[0] if after else hits[0]
+        else:
+            before = [index for index in hits if index < current]
+            target = before[-1] if before else hits[-1]
+
+        self.reveal(nodes[target])
 
     @property
     def is_editing(self) -> bool:
@@ -191,7 +262,7 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
 
     @require_highlighted_node
     def start_search(self):
-        self.post_message(StartSearch(self.set_filter))
+        self.post_message(StartSearch(self.set_filter, self.confirm_search))
 
     def start_edit(self, property: str) -> bool:
         columns = [i.value for i in self.render_layout]

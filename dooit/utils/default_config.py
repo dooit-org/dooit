@@ -159,6 +159,8 @@ def key_setup(api: DooitAPI, _):
     api.keys.set(["=", "+"], api.increase_urgency)
     api.keys.set(["-", "_"], api.decrease_urgency)
     api.keys.set("/", api.start_search)
+    api.keys.set("n", api.next_search_hit)
+    api.keys.set("N", api.previous_search_hit)
     api.keys.set(["s", "<ctrl+s>"], api.start_sort)
     api.keys.set("f", api.start_focus)
     api.keys.set(["q", "<ctrl+q>"], api.quit)

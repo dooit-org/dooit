@@ -95,9 +95,10 @@ class StartSearch(DooitEvent):
     Emitted when user wants to search
     """
 
-    def __init__(self, callback: Callable) -> None:
+    def __init__(self, callback: Callable, confirm: Optional[Callable] = None) -> None:
         super().__init__()
         self.callback = callback
+        self.confirm = confirm
 
 
 class StartSort(DooitEvent):

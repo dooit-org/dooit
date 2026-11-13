@@ -110,7 +110,7 @@ class MainScreen(BaseScreen):
 
     @on(StartSearch)
     def start_search(self, event: StartSearch):
-        self.app.bar_switcher.switch_to_search(event.callback)
+        self.app.bar_switcher.switch_to_search(event.callback, event.confirm)
         self.post_message(ModeChanged("SEARCH"))
 
     @on(StartSort)

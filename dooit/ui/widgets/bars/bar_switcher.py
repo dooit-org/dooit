@@ -55,8 +55,8 @@ class BarSwitcher(ContentSwitcher):
             set_current=True,
         )
 
-    def switch_to_search(self, callback: Callable):
-        search_bar = SearchBar(callback)
+    def switch_to_search(self, callback: Callable, confirm: Optional[Callable] = None):
+        search_bar = SearchBar(callback, confirm)
         self.add_content(
             widget=search_bar,
             id="search_bar",
