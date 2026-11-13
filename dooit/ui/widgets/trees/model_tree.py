@@ -47,7 +47,7 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         tree = self.__class__.__name__
         super().__init__(id=f"{tree}_{model.uuid}")
         self._model = model
-        self.expaned = defaultdict(bool)
+        self.expanded_nodes = defaultdict(bool)
         self._renderers: RenderDictType = render_dict
         self._filter_refresh = False
         self._model_clipboard = None
