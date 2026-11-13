@@ -35,6 +35,31 @@ async def test_right_without_todos_tree():
         assert isinstance(app.focused, WorkspacesTree)
 
 
+async def test_shift_arrows_move_item():
+    async with run_pilot() as pilot:
+        app = pilot.app
+        assert isinstance(app, Dooit)
+
+        tree = await create_and_move_to_todo(pilot)
+        for name in "ab":
+            tree.add_sibling()
+            await pilot.press(name, "escape")
+
+        def descriptions():
+            return [t.description for t in tree.model.todos]
+
+        assert descriptions() == ["a", "b"]
+        assert tree.current_model.description == "b"
+
+        await pilot.press("shift+up")
+        assert descriptions() == ["b", "a"]
+        assert tree.current_model.description == "b"
+
+        await pilot.press("shift+down")
+        assert descriptions() == ["a", "b"]
+        assert tree.current_model.description == "b"
+
+
 async def test_s_starts_sort():
     async with run_pilot() as pilot:
         app = pilot.app
