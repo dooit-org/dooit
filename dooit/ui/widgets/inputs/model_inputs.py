@@ -64,6 +64,9 @@ class Effort(SimpleInput[Todo, int]):
         if not value or value == "0":
             return 0
 
+        if not value.isdigit():
+            raise ValueError("Effort must be a whole number")
+
         return int(value)
 
 

@@ -437,3 +437,21 @@ async def test_paste_with_empty_clipboard():
         bar = app.bar_switcher.visible_content
         assert getattr(bar, "message", None) == "No model in clipboard"
         assert len(tree._options) == 1
+
+
+async def test_non_number_effort():
+    async with run_pilot() as pilot:
+        app = pilot.app
+        assert isinstance(app, Dooit)
+
+        tree = await create_and_move_to_todo(pilot)
+        tree.add_sibling()
+        await pilot.press("a", "escape")
+        todo = tree.current_model
+
+        await pilot.press("e", "backspace", "x", "-", "1", "enter")
+        await pilot.pause()
+
+        bar = app.bar_switcher.visible_content
+        assert getattr(bar, "message", None) == "Effort must be a whole number"
+        assert todo.effort == 0
