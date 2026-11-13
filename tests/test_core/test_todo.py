@@ -229,6 +229,42 @@ def test_recurrence_logs_completion(create_workspace):
     assert all(child.is_completed for child in t.todos)
 
 
+def test_finishing_subtasks_rolls_recurring_parent_over(session, create_workspace):
+    w = create_workspace()
+    p = w.add_todo()
+    p.due = datetime(2030, 1, 1)
+    p.recurrence = timedelta(days=7)
+    p.save()
+    step = p.add_todo()
+    step.description = "step"
+    step.save()
+
+    step.toggle_complete()
+    session.expire_all()
+
+    assert p.pending
+    assert p.due == datetime(2030, 1, 8)
+    assert [t.is_completion_log for t in p.todos] == [True, False]
+
+
+def test_completing_history_entry_does_not_roll_over(session, create_workspace):
+    w = create_workspace()
+    p = w.add_todo()
+    p.due = datetime(2030, 1, 1)
+    p.recurrence = timedelta(days=7)
+    p.save()
+    p.toggle_complete()
+
+    log = p.todos[0]
+    log.toggle_complete()  # reopen
+    log.toggle_complete()  # and complete again
+    session.expire_all()
+
+    assert p.pending
+    assert p.due == datetime(2030, 1, 8)
+    assert len(p.todos) == 1
+
+
 def test_non_recurring_completion_adds_no_child(create_workspace):
     w = create_workspace()
     t = w.add_todo()

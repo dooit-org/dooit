@@ -43,6 +43,11 @@ def update_parent_to_completed(mapper, connection, target: Todo):
         return
 
     parent = target.parent_todo
+
+    # a recurring parent rolls over instead, see Todo.toggle_complete
+    if parent.recurrence is not None:
+        return
+
     all_sibling_completed = all([not sibling.pending for sibling in parent.todos])
     if all_sibling_completed:
         query = (

@@ -1,3 +1,4 @@
+import re
 from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 from datetime import datetime, timedelta
 from typing import List
@@ -173,6 +174,14 @@ class Todo(DooitModel):
         self.pending = not self.pending
         self.save()
 
+        # finishing the last subtask completes a recurring parent, which the
+        # update hooks leave to us so it rolls over to its next occurrence
+        parent = self.parent_todo
+        if parent is not None and parent.recurrence is not None and not self.pending:
+            subtasks = [todo for todo in parent.todos if not todo.is_completion_log]
+            if parent.pending and subtasks and all(not t.pending for t in subtasks):
+                parent.toggle_complete()
+
     def log_completion(self) -> None:
         """Record a completed occurrence of a recurring todo as its first child"""
 
@@ -183,6 +192,19 @@ class Todo(DooitModel):
             order_index=0,
         )
         todo.save()
+
+    @property
+    def is_completion_log(self) -> bool:
+        """Whether this todo is a history entry added by `log_completion`"""
+
+        parent = self.parent_todo
+        if parent is None or parent.recurrence is None:
+            return False
+
+        return (
+            re.fullmatch(r"Completed on \d{4}-\d{2}-\d{2}", self.description)
+            is not None
+        )
 
     def is_due_today(self) -> bool:
         if not self.due:
