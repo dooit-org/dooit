@@ -81,6 +81,18 @@ class MainScreen(BaseScreen):
         await self.api.handle_key(key)
         return True
 
+    @on(events.Paste)
+    async def handle_paste(self, event: events.Paste) -> None:
+        if self.app.screen != self:
+            return
+        event.stop()
+        text = event.text.replace("\r\n", " ").replace("\n", " ").replace("\r", " ")
+        key = f"events.Paste:{text}"
+        if self.app.bar_switcher.is_focused:
+            await self.app.bar_switcher.handle_keypress(key)
+        else:
+            await self.api.handle_key(key)
+
     @on(BarNotification)
     def show_notification(self, event: BarNotification):
         self.app.bar_switcher.switch_to_notification(event)
