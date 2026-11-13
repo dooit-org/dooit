@@ -337,3 +337,21 @@ async def test_new_todo_reusing_deleted_child_id():
         assert [t.description for t in tree.model.todos] == ["one", "two"]
         shown = [tree._renderers[o.id].model.description for o in tree._options]
         assert shown == ["one", "two"]
+
+
+async def test_paste_above_first_item():
+    async with run_pilot() as pilot:
+        app = pilot.app
+        assert isinstance(app, Dooit)
+
+        tree = await create_and_move_to_todo(pilot)
+        for name in "abc":
+            tree.add_sibling()
+            await pilot.press(name, "escape")
+
+        await pilot.press("Y")  # copy c
+        tree.highlighted = 0
+        await pilot.press("P")  # paste above a
+
+        assert [t.description for t in tree.model.todos] == ["c", "a", "b", "c"]
+        assert tree.highlighted == 0

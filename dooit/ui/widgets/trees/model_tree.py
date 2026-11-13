@@ -369,7 +369,7 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
                 )
                 return None
 
-            if not self.highlighted:
+            if self.highlighted is None:
                 order_index = len(self._options)
             else:
                 order_index = self.current_model.order_index
