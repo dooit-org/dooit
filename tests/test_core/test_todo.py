@@ -202,6 +202,42 @@ def test_recurrence_change(create_workspace, create_todo):
     assert t.due == datetime.strptime("2021-01-02", "%Y-%m-%d")
 
 
+def test_recurrence_logs_completion(create_workspace):
+    w = create_workspace()
+    t = w.add_todo()
+    t.due = datetime.strptime("2021-01-01", "%Y-%m-%d")
+    t.recurrence = timedelta(days=1)
+    t.save()
+
+    t.toggle_complete()
+    assert t.pending
+    assert len(t.todos) == 1
+
+    log = t.todos[0]
+    assert log.is_completed
+    assert log.recurrence is None
+    assert log.description == f"Completed on {datetime.now():%Y-%m-%d}"
+
+    t.toggle_complete()
+    assert len(t.todos) == 2
+    assert t.todos[0].id != log.id  # newest first
+    assert t.todos[1].id == log.id
+
+    # saving the recurring todo again keeps its history completed
+    t.description = "renamed"
+    t.save()
+    assert all(child.is_completed for child in t.todos)
+
+
+def test_non_recurring_completion_adds_no_child(create_workspace):
+    w = create_workspace()
+    t = w.add_todo()
+
+    t.toggle_complete()
+    assert t.is_completed
+    assert t.todos == []
+
+
 def test_sort_invalid(create_workspace, create_todo):
     w = create_workspace()
     t = w.add_todo()

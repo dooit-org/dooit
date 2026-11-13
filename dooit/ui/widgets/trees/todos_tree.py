@@ -59,7 +59,7 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
         assert isinstance(self.current_model, Todo)
 
         self.current_model.toggle_complete()
-        self.refresh_options()
+        self.force_refresh()  # completing a recurring todo adds a child
 
     def increase_urgency(self):
         assert isinstance(self.current_model, Todo)

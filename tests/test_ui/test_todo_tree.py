@@ -270,6 +270,30 @@ async def test_recurrence_change():
         assert todo.recurrence == timedelta(days=1)
 
 
+async def test_recurring_completion_shows_new_child():
+    async with run_pilot() as pilot:
+        app = pilot.app
+        assert isinstance(app, Dooit)
+
+        tree = await create_and_move_to_todo(pilot)
+
+        tree.add_sibling()
+        await pilot.press(*list("rent"))
+        await pilot.press("escape")
+        parent_id = tree.current_model.uuid
+
+        await pilot.press("r", "1", "w", "enter")
+        await pilot.press("c")
+        assert len(tree._options) == 1  # collapsed
+
+        await pilot.press("z")
+        assert len(tree._options) == 2
+
+        await pilot.press("c")
+        assert len(tree._options) == 3
+        assert tree.node.id == parent_id
+
+
 async def test_recurrence_in_default_layout():
     async with run_pilot() as pilot:
         app = pilot.app

@@ -167,8 +167,22 @@ class Todo(DooitModel):
         self.save()
 
     def toggle_complete(self) -> None:
+        if self.pending and self.recurrence is not None:
+            self.log_completion()
+
         self.pending = not self.pending
         self.save()
+
+    def log_completion(self) -> None:
+        """Record a completed occurrence of a recurring todo as its first child"""
+
+        todo = Todo(
+            parent_todo=self,
+            description=f"Completed on {datetime.now():%Y-%m-%d}",
+            pending=False,
+            order_index=0,
+        )
+        todo.save()
 
     def is_due_today(self) -> bool:
         if not self.due:

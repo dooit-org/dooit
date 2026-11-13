@@ -8,6 +8,10 @@ def update_children_to_pending(_, connection, target: Todo):
     if not target.pending:
         return
 
+    # the completed children of a recurring todo are its completion history
+    if target.recurrence is not None:
+        return
+
     if any(todo.pending for todo in target.todos):
         return
 
