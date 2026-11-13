@@ -43,3 +43,36 @@ async def test_first_items_highlighted_on_startup(tmp_path):
         ).visible_content
         assert isinstance(todos_tree, TodosTree)
         assert todos_tree.highlighted == 0
+
+
+async def test_external_changes_seen_after_another_screen(tmp_path):
+    import os
+    import sqlite3
+    from dooit.ui.screens import FocusScreen
+
+    db_path = tmp_path / "dooit.db"
+
+    async with Dooit(db_path=str(db_path)).run_test() as pilot:
+        app = pilot.app
+        assert isinstance(app, Dooit)
+
+        app.workspace_tree.add_workspace()
+        await pilot.pause()
+        assert len(app.workspace_tree._options) == 1
+
+        await app.push_screen(FocusScreen(60))
+
+        # another dooit instance adds a workspace
+        with sqlite3.connect(db_path) as connection:
+            connection.execute(
+                "INSERT INTO workspace (order_index, description, is_root, "
+                "parent_workspace_id) VALUES (1, 'external', 0, 1)"
+            )
+        stat = os.stat(db_path)
+        os.utime(db_path, (stat.st_atime, stat.st_mtime + 10))
+
+        await app.poll_dooit_db()
+        app.pop_screen()
+        await pilot.pause()
+
+        assert len(app.workspace_tree._options) == 2

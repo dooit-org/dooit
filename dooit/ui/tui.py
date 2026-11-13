@@ -79,7 +79,8 @@ class Dooit(App):
 
     async def poll_dooit_db(self):  # pragma: no cover
         def refresh_all_trees():
-            trees = self.screen.query(ModelTree)
+            # the trees live on the main screen even when another one is shown
+            trees = self.get_screen("main").query(ModelTree)
             for tree in trees:
                 tree.force_refresh()
 
