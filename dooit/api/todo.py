@@ -210,7 +210,7 @@ class Todo(DooitModel):
         if not self.due:
             return False
 
-        return self.due and self.due.day == datetime.today().day
+        return self.due.date() == datetime.today().date()
 
     @property
     def is_completed(self) -> bool:

@@ -162,6 +162,18 @@ def test_due_date_util(create_workspace, create_todo):
     assert t.status == "completed"
 
 
+def test_due_today_ignores_other_months(create_workspace):
+    w = create_workspace()
+    t = w.add_todo()
+    now = datetime.now()
+
+    t.due = now.replace(year=now.year + 1)
+    assert not t.is_due_today()
+
+    t.due = now.replace(hour=0, minute=0)
+    assert t.is_due_today()
+
+
 def test_tags(create_workspace, create_todo):
     w = create_workspace()
     t = w.add_todo()
