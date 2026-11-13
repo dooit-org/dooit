@@ -125,6 +125,8 @@ def todo_recurrence_formatter(recurrence: Optional[timedelta], _):
 @subscribe(Startup)
 def key_setup(api: DooitAPI, _):
     api.keys.set("<tab>", api.switch_focus)
+    api.keys.set("<left>", api.focus_workspaces)
+    api.keys.set("<right>", api.focus_todos)
     api.keys.set(["j", "<down>"], api.move_down)
     api.keys.set(["k", "<up>"], api.move_up)
     api.keys.set("i", api.edit_description)
@@ -148,8 +150,8 @@ def key_setup(api: DooitAPI, _):
     api.keys.set(["=", "+"], api.increase_urgency)
     api.keys.set(["-", "_"], api.decrease_urgency)
     api.keys.set("/", api.start_search)
-    api.keys.set("<ctrl+s>", api.start_sort)
-    api.keys.set("<ctrl+q>", api.quit)
+    api.keys.set(["s", "<ctrl+s>"], api.start_sort)
+    api.keys.set(["q", "<ctrl+q>"], api.quit)
     api.keys.set("?", api.show_help)
 
 
