@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from pytest import raises
+from rich.console import Console
 from dooit.api.exceptions import NoNodeError
 from dooit.api import Todo
 from dooit.ui.api.widgets import TodoWidget
@@ -91,7 +92,13 @@ async def test_expand_indicator():
 
         def indicator() -> str:
             table = tree._renderers[parent.uuid].make_renderable()
-            return list(table.columns[0].cells)[0]
+            return list(table.columns[0].cells)[0].strip()
+
+        def rendered() -> str:
+            console = Console(width=60, color_system=None)
+            with console.capture() as capture:
+                console.print(tree._renderers[parent.uuid].make_renderable())
+            return capture.get()
 
         assert indicator() == ""
 
@@ -102,6 +109,7 @@ async def test_expand_indicator():
 
         tree.toggle_expand_parent()
         assert indicator() == "+"
+        assert rendered().startswith(" + ")  # not squeezed out by the layout
 
         tree.toggle_expand()
         assert indicator() == ""

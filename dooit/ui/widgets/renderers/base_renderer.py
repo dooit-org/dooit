@@ -58,15 +58,18 @@ class BaseRenderer(Generic[ModelType]):
     def make_renderable(self) -> Table:
         layout = self.table_layout
 
-        table = Table.grid(expand=True, padding=(0, 1), pad_edge=True)
-        row = []
+        # rich >= 15 shrinks the first column of a grid with collapsed padding
+        # by its edge padding, which hid the indicator; so pad each column on
+        # the right only and keep the edge and nesting indent in the first cell
+        table = Table.grid(
+            expand=True, padding=(0, 1, 0, 0), collapse_padding=False, pad_edge=True
+        )
 
-        if nest := self.model.nest_level:
-            table.add_column("padding", width=2 * nest)
-            row.append("")
-
-        table.add_column("expand_indicator", width=1)
-        row.append("+" if self.tree.is_collapsed_parent(self.model) else "")
+        nest = self.model.nest_level
+        indent = " " * (1 + 2 * nest + (1 if nest else 0))
+        indicator = "+" if self.tree.is_collapsed_parent(self.model) else " "
+        table.add_column("expand_indicator", width=len(indent) + 1)
+        row = [indent + indicator]
 
         for item in layout:
             attr = item.value
