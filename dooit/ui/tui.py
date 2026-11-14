@@ -79,7 +79,8 @@ class Dooit(App):
 
     async def poll_dooit_db(self):  # pragma: no cover
         def refresh_all_trees():
-            trees = self.screen.query(ModelTree)
+            # the trees live on the main screen even when another one is shown
+            trees = self.get_screen("main").query(ModelTree)
             for tree in trees:
                 tree.force_refresh()
 
@@ -99,6 +100,9 @@ class Dooit(App):
     @on(ModeChanged)
     def change_status(self, event: ModeChanged):
         self.dooit_mode = event.mode
+        if not isinstance(self.screen, MainScreen):
+            return
+
         if event.mode == "NORMAL":
             self.workspace_tree.refresh_options()
             todos_tree = self.api.vars.todos_tree

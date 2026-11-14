@@ -20,6 +20,15 @@ class VarManager(ApiComponent):
         self._show_confirm = True
         self._always_expand_workspaces = False
         self._always_expand_todos = False
+        self._hide_completed = False
+
+    @property
+    def hide_completed(self) -> bool:
+        return self._hide_completed
+
+    @hide_completed.setter
+    def hide_completed(self, value: bool):
+        self._hide_completed = value
 
     @property
     def always_expand_workspaces(self) -> bool:

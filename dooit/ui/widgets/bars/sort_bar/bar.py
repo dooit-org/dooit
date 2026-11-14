@@ -14,7 +14,7 @@ class SortBar(BarBase):
         super().__init__(*args, **kwargs)
         self.model = model
         self.callback = callback
-        self.options = ["reverse"] + self.model.comparable_fields()
+        self.options = self.model.sort_options()
         self._selected = 0
 
     @property

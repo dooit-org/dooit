@@ -135,6 +135,48 @@ def test_toggle_complete_parent(create_workspace, create_todo):
     assert not t.is_completed
 
 
+def test_deleting_last_open_subtask_completes_parent(session, create_workspace):
+    w = create_workspace()
+    p = w.add_todo()
+    done, open_ = p.add_todo(), p.add_todo()
+    done.toggle_complete()
+    assert p.pending
+
+    open_.drop()
+    session.expire_all()
+    assert p.is_completed
+
+
+def test_deleting_subtask_keeps_other_parents_open(session, create_workspace):
+    w = create_workspace()
+
+    # the remaining subtask is still open
+    p = w.add_todo()
+    a, _ = p.add_todo(), p.add_todo()
+    a.drop()
+    assert p.pending
+
+    # the deleted subtask was already done
+    q = w.add_todo()
+    _, done = q.add_todo(), q.add_todo()
+    done.toggle_complete()
+    done.drop()
+    session.expire_all()
+    assert q.pending
+
+    # a recurring parent does not roll over on deletion
+    r = w.add_todo()
+    r.due = datetime(2030, 1, 1)
+    r.recurrence = timedelta(days=7)
+    r.save()
+    e, f = r.add_todo(), r.add_todo()
+    e.toggle_complete()
+    f.drop()
+    session.expire_all()
+    assert r.pending
+    assert r.due == datetime(2030, 1, 1)
+
+
 def test_due_date_util(create_workspace, create_todo):
     w = create_workspace()
     t = w.add_todo()
@@ -160,6 +202,18 @@ def test_due_date_util(create_workspace, create_todo):
 
     t.toggle_complete()
     assert t.status == "completed"
+
+
+def test_due_today_ignores_other_months(create_workspace):
+    w = create_workspace()
+    t = w.add_todo()
+    now = datetime.now()
+
+    t.due = now.replace(year=now.year + 1)
+    assert not t.is_due_today()
+
+    t.due = now.replace(hour=0, minute=0)
+    assert t.is_due_today()
 
 
 def test_tags(create_workspace, create_todo):
@@ -202,6 +256,203 @@ def test_recurrence_change(create_workspace, create_todo):
     assert t.due == datetime.strptime("2021-01-02", "%Y-%m-%d")
 
 
+def test_recurrence_without_due_starts_one_period_away(create_workspace):
+    w = create_workspace()
+    t = w.add_todo()
+
+    before = datetime.now()
+    t.recurrence = timedelta(days=1)
+    t.save()
+
+    assert t.due >= before + timedelta(days=1)
+    assert not t.is_overdue
+
+    t.due = None
+    t.toggle_complete()  # completing an undated occurrence
+    assert t.pending
+    assert t.due >= before + timedelta(days=1)
+
+
+def test_recurrence_logs_completion(create_workspace):
+    w = create_workspace()
+    t = w.add_todo()
+    t.due = datetime.strptime("2021-01-01", "%Y-%m-%d")
+    t.recurrence = timedelta(days=1)
+    t.save()
+
+    t.toggle_complete()
+    assert t.pending
+    assert len(t.todos) == 1
+
+    log = t.todos[0]
+    assert log.is_completed
+    assert log.recurrence is None
+    assert log.description == f"Completed on {datetime.now():%Y-%m-%d}"
+
+    t.toggle_complete()
+    assert len(t.todos) == 2
+    assert t.todos[0].id != log.id  # newest first
+    assert t.todos[1].id == log.id
+
+    # saving the recurring todo again keeps its history completed
+    t.description = "renamed"
+    t.save()
+    assert all(child.is_completed for child in t.todos)
+
+
+def test_finishing_subtasks_rolls_recurring_parent_over(session, create_workspace):
+    w = create_workspace()
+    p = w.add_todo()
+    p.due = datetime(2030, 1, 1)
+    p.recurrence = timedelta(days=7)
+    p.save()
+    step = p.add_todo()
+    step.description = "step"
+    step.save()
+
+    step.toggle_complete()
+    session.expire_all()
+
+    assert p.pending
+    assert p.due == datetime(2030, 1, 8)
+    assert [t.is_completion_log for t in p.todos] == [True, False]
+
+
+def test_recurring_subtasks_reopen_each_cycle(session, create_workspace):
+    w = create_workspace()
+    p = w.add_todo()
+    p.due = datetime(2030, 1, 1)
+    p.recurrence = timedelta(days=7)
+    p.save()
+    a, b = p.add_todo(), p.add_todo()
+    nested = b.add_todo()
+
+    a.toggle_complete()
+    p.toggle_complete()
+    session.expire_all()
+
+    assert p.due == datetime(2030, 1, 8)
+    assert a.pending and b.pending and nested.pending
+    assert [t.is_completed for t in p.todos if t.is_completion_log] == [True]
+
+    # finishing every subtask rolls over again and reopens them
+    a.toggle_complete()
+    nested.toggle_complete()
+    session.expire_all()
+
+    assert p.due == datetime(2030, 1, 15)
+    assert a.pending and b.pending and nested.pending
+    assert len([t for t in p.todos if t.is_completion_log]) == 2
+
+
+def test_completing_history_entry_does_not_roll_over(session, create_workspace):
+    w = create_workspace()
+    p = w.add_todo()
+    p.due = datetime(2030, 1, 1)
+    p.recurrence = timedelta(days=7)
+    p.save()
+    p.toggle_complete()
+
+    log = p.todos[0]
+    log.toggle_complete()  # reopen
+    log.toggle_complete()  # and complete again
+    session.expire_all()
+
+    assert p.pending
+    assert p.due == datetime(2030, 1, 8)
+    assert len(p.todos) == 1
+
+
+def test_non_recurring_completion_adds_no_child(create_workspace):
+    w = create_workspace()
+    t = w.add_todo()
+
+    t.toggle_complete()
+    assert t.is_completed
+    assert t.todos == []
+
+
+def test_clone_into_own_subtree(create_workspace):
+    w = create_workspace()
+    p = w.add_todo()
+    p.description = "p"
+    c = p.add_todo()
+    c.description = "c"
+    c.save()
+
+    clone = Todo.clone_from_id(p.id, 0, parent=c)
+
+    assert clone.parent_todo == c
+    assert [t.description for t in c.todos] == ["p"]
+    assert [t.description for t in clone.todos] == ["c"]
+    assert clone.todos[0].todos == []
+
+
+def test_clone_defaults_to_original_parent(create_workspace):
+    w = create_workspace()
+    p = w.add_todo()
+    c = p.add_todo()
+
+    clone = Todo.clone_from_id(c.id, 0)
+    assert clone.parent_todo == p
+
+
+def _order(parent):
+    return [(t.description, t.order_index) for t in parent.todos]
+
+
+def _add(parent, *names):
+    for name in names:
+        t = parent.add_todo()
+        t.description = name
+        t.save()
+
+
+def test_insert_only_shifts_siblings(session, create_workspace):
+    w1, w2 = create_workspace("w1"), create_workspace("w2")
+    _add(w1, "a", "b")
+    _add(w2, "x", "y", "z")
+
+    sibling = w1.todos[0].add_sibling()
+    sibling.description = "a2"
+    sibling.save()
+    _add(w1.todos[0], "child")
+    session.expire_all()
+
+    assert _order(w1) == [("a", 0), ("a2", 1), ("b", 2)]
+    assert _order(w2) == [("x", 0), ("y", 1), ("z", 2)]
+    assert _order(w1.todos[0]) == [("child", 0)]
+
+
+def test_drop_renumbers_siblings(session, create_workspace):
+    w = create_workspace()
+    _add(w, "a", "b", "c")
+
+    w.todos[1].drop()
+    session.expire_all()
+    assert _order(w) == [("a", 0), ("c", 1)]
+
+    w.todos[1].shift_up()
+    session.expire_all()
+    assert _order(w) == [("c", 0), ("a", 1)]
+
+
+def test_shift_repairs_gaps(session, create_workspace):
+    w = create_workspace()
+    _add(w, "a", "b", "c")
+    for todo, index in zip(w.todos, [0, 4, 9]):
+        todo.order_index = index
+    session.commit()
+
+    w.todos[2].shift_up()
+    session.expire_all()
+    assert _order(w) == [("a", 0), ("c", 1), ("b", 2)]
+
+    w.todos[0].shift_down()
+    session.expire_all()
+    assert _order(w) == [("c", 0), ("a", 1), ("b", 2)]
+
+
 def test_sort_invalid(create_workspace, create_todo):
     w = create_workspace()
     t = w.add_todo()
@@ -209,9 +460,53 @@ def test_sort_invalid(create_workspace, create_todo):
         t.sort_siblings("???????")
 
 
+def test_sort_natural(create_workspace):
+    w = create_workspace()
+
+    def add(desc, urgency=1, due=None, pending=True):
+        t = w.add_todo()
+        t.description = desc
+        t.urgency = urgency
+        t.due = datetime.strptime(due, "%Y-%m-%d") if due else None
+        t.pending = pending
+        t.save()
+        return t
+
+    add("done urgent", urgency=4, pending=False)
+    add("low no due")
+    add("high late", urgency=3, due="2030-02-01")
+    add("done low", pending=False)
+    add("high soon", urgency=3, due="2030-01-01")
+    add("low soon", due="2030-01-01")
+    add("high no due", urgency=3)
+
+    w.todos[0].sort_siblings("natural")
+
+    assert [t.description for t in w.todos] == [
+        "high soon",
+        "high late",
+        "high no due",
+        "low soon",
+        "low no due",
+        "done urgent",
+        "done low",
+    ]
+
+
 @mark.parametrize(
     "field,sort_key,filter_func,compare_ids",
     [
+        (
+            "natural",
+            lambda x: (
+                not x.pending,
+                -x.urgency,
+                x.due or datetime.max,
+                x.order_index,
+            ),
+            None,
+            True,
+        ),
         (
             "pending",
             lambda x: (not x.pending, x.due or datetime.max, x.order_index),
@@ -239,55 +534,56 @@ def test_sort(session, create_workspace, field, sort_key, filter_func, compare_i
     else:
         assert old == new
 
-    def test_clone_from_id(create_workspace, create_todo):
-        # Create source todo with nested structure
-        w = create_workspace("Test Workspace")
-        t = w.add_todo()
-        t.description = "Parent Todo"
-        t.due = datetime.now()
-        t.effort = 3
-        t.urgency = 2
-        t.save()
 
-        # Add child todos
-        child1 = t.add_todo()
-        child1.description = "Child Todo 1"
-        child1.save()
+def test_clone_from_id(create_workspace, create_todo):
+    # Create source todo with nested structure
+    w = create_workspace("Test Workspace")
+    t = w.add_todo()
+    t.description = "Parent Todo"
+    t.due = datetime.now()
+    t.effort = 3
+    t.urgency = 2
+    t.save()
 
-        child2 = t.add_todo()
-        child2.description = "Child Todo 2"
-        child2.save()
+    # Add child todos
+    child1 = t.add_todo()
+    child1.description = "Child Todo 1"
+    child1.save()
 
-        # Add grandchild todo
-        grandchild = child1.add_todo()
-        grandchild.description = "Grandchild Todo"
-        grandchild.save()
+    child2 = t.add_todo()
+    child2.description = "Child Todo 2"
+    child2.save()
 
-        # Clone the todo
-        cloned_todo = Todo.clone_from_id(t.id, 10)
+    # Add grandchild todo
+    grandchild = child1.add_todo()
+    grandchild.description = "Grandchild Todo"
+    grandchild.save()
 
-        # Check basic properties were copied
-        assert cloned_todo.id != t.id
-        assert cloned_todo.description == "Parent Todo"
-        assert cloned_todo.due == t.due
-        assert cloned_todo.effort == 3
-        assert cloned_todo.urgency == 2
-        assert cloned_todo.order_index == 10
-        assert cloned_todo.parent_workspace_id == w.id
+    # Clone the todo
+    cloned_todo = Todo.clone_from_id(t.id, 10)
 
-        # Check child todos were cloned
-        assert len(cloned_todo.todos) == 2
+    # Check basic properties were copied
+    assert cloned_todo.id != t.id
+    assert cloned_todo.description == "Parent Todo"
+    assert cloned_todo.due == t.due
+    assert cloned_todo.effort == 3
+    assert cloned_todo.urgency == 2
+    assert cloned_todo.order_index == 10
+    assert cloned_todo.parent_workspace_id == w.id
 
-        # Check grandchild todo was cloned
-        child_descriptions = [child.description for child in cloned_todo.todos]
-        assert "Child Todo 1" in child_descriptions
-        assert "Child Todo 2" in child_descriptions
+    # Check child todos were cloned
+    assert len(cloned_todo.todos) == 2
 
-        # Find the cloned Child Todo 1
-        cloned_child1 = next(
-            child for child in cloned_todo.todos if child.description == "Child Todo 1"
-        )
+    # Check grandchild todo was cloned
+    child_descriptions = [child.description for child in cloned_todo.todos]
+    assert "Child Todo 1" in child_descriptions
+    assert "Child Todo 2" in child_descriptions
 
-        # Check grandchild was cloned properly
-        assert len(cloned_child1.todos) == 1
-        assert cloned_child1.todos[0].description == "Grandchild Todo"
+    # Find the cloned Child Todo 1
+    cloned_child1 = next(
+        child for child in cloned_todo.todos if child.description == "Child Todo 1"
+    )
+
+    # Check grandchild was cloned properly
+    assert len(cloned_child1.todos) == 1
+    assert cloned_child1.todos[0].description == "Grandchild Todo"

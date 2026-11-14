@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, Optional, Union
+import re
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 from datetime import datetime, timedelta
 from typing import List
 from sqlalchemy import ForeignKey, select, nulls_last
@@ -56,6 +57,10 @@ class Todo(DooitModel):
         return value
 
     @classmethod
+    def sort_options(cls):
+        return ["natural"] + super().sort_options()
+
+    @classmethod
     def from_id(cls, _id: str) -> "Todo":
         _id = _id.lstrip("Todo_")
         query = select(Todo).where(Todo.id == _id)
@@ -103,7 +108,17 @@ class Todo(DooitModel):
         return []
 
     def sort_siblings(self, field: str):
-        if field != "pending":
+        if field == "natural":
+            items = sorted(
+                self.siblings,
+                key=lambda x: (
+                    not x.pending,
+                    -x.urgency,
+                    x.due or datetime.max,
+                    x.order_index,
+                ),
+            )
+        elif field != "pending":
             items = (
                 self.session.query(Todo)
                 .filter_by(
@@ -153,14 +168,65 @@ class Todo(DooitModel):
         self.save()
 
     def toggle_complete(self) -> None:
+        rolls_over = self.pending and self.recurrence is not None
+        if rolls_over:
+            self.log_completion()
+
         self.pending = not self.pending
         self.save()
+
+        # the next occurrence starts with its subtasks open again
+        if rolls_over:
+            for todo in self.todos:
+                if not todo.pending and not todo.is_completion_log:
+                    todo.pending = True
+                    todo.save()
+
+        # finishing the last subtask completes a recurring ancestor, which the
+        # update hooks leave to us so it rolls over to its next occurrence;
+        # the hooks complete the non-recurring todos in between
+        parent = self.parent_todo
+        while parent is not None and not self.pending:
+            if parent.recurrence is not None:
+                subtasks = [t for t in parent.todos if not t.is_completion_log]
+                if parent.pending and subtasks and all(not t.pending for t in subtasks):
+                    parent.toggle_complete()
+                break
+
+            if parent.pending:
+                break
+
+            parent = parent.parent_todo
+
+    def log_completion(self) -> None:
+        """Record a completed occurrence of a recurring todo as its first child"""
+
+        todo = Todo(
+            parent_todo=self,
+            description=f"Completed on {datetime.now():%Y-%m-%d}",
+            pending=False,
+            order_index=0,
+        )
+        todo.save()
+
+    @property
+    def is_completion_log(self) -> bool:
+        """Whether this todo is a history entry added by `log_completion`"""
+
+        parent = self.parent_todo
+        if parent is None or parent.recurrence is None:
+            return False
+
+        return (
+            re.fullmatch(r"Completed on \d{4}-\d{2}-\d{2}", self.description)
+            is not None
+        )
 
     def is_due_today(self) -> bool:
         if not self.due:
             return False
 
-        return self.due and self.due.day == datetime.today().day
+        return self.due.date() == datetime.today().date()
 
     @property
     def is_completed(self) -> bool:
@@ -183,48 +249,42 @@ class Todo(DooitModel):
         return list(manager.session.execute(query).scalars().all())
 
     @staticmethod
-    def clone_from_id(id: int, order_index: int) -> "Todo":
+    def clone_from_id(
+        id: int,
+        order_index: int,
+        parent: Optional[Union["Workspace", "Todo"]] = None,
+    ) -> "Todo":
+        """
+        Copy a todo and its subtodos under `parent` (defaults to the original's parent)
+        """
+
         todo = Todo.from_id(str(id))
+
+        # read the whole subtree first, the copy may be placed inside it
+        snapshot = todo._snapshot()
+        return Todo._from_snapshot(snapshot, parent or todo.parent, order_index)
+
+    def _snapshot(self) -> Dict[str, Any]:
         fields = ["description", "due", "effort", "recurrence", "urgency", "pending"]
-        attrs = {field: getattr(todo, field) for field in fields}
-        attrs.update(
-            {
-                "parent_workspace": todo.parent_workspace,
-                "parent_todo": todo.parent_todo,
-                "order_index": order_index,
-            }
-        )
-        new_todo = Todo(**attrs)
-        new_todo.save()
-
-        # Clone all child todos recursively
-        for i, child_todo in enumerate(todo.todos):
-            attrs = {field: getattr(child_todo, field) for field in fields}
-            attrs["parent_todo"] = new_todo
-            child_clone = Todo(**attrs)
-            child_clone.save()
-
-            # Recursively clone any nested todos
-            for grandchild in child_todo.todos:
-                Todo._clone_todo_recursively(grandchild, child_clone)
-
-        return new_todo
+        return {
+            "attrs": {field: getattr(self, field) for field in fields},
+            "todos": [todo._snapshot() for todo in self.todos],
+        }
 
     @staticmethod
-    def _clone_todo_recursively(source_todo: "Todo", parent_clone: "Todo") -> None:
-        fields = [
-            "description",
-            "due",
-            "effort",
-            "recurrence",
-            "urgency",
-            "pending",
-            "order_index",
-        ]
-        attrs = {field: getattr(source_todo, field) for field in fields}
-        attrs["parent_todo"] = parent_clone
-        todo_clone = Todo(**attrs)
-        todo_clone.save()
+    def _from_snapshot(
+        snapshot: Dict[str, Any],
+        parent: Union["Workspace", "Todo"],
+        order_index: int = -1,
+    ) -> "Todo":
+        todo = Todo(**snapshot["attrs"], order_index=order_index)
+        if isinstance(parent, Todo):
+            todo.parent_todo = parent
+        else:
+            todo.parent_workspace = parent
+        todo.save()
 
-        for child in source_todo.todos:
-            Todo._clone_todo_recursively(child, todo_clone)
+        for child in snapshot["todos"]:
+            Todo._from_snapshot(child, todo)
+
+        return todo

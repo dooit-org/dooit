@@ -11,7 +11,7 @@ async def test_bar_switcher():
         wtree = app.workspace_tree
         wtree.add_sibling()
 
-        await pilot.press("escape")
+        await pilot.press("x", "escape")
 
         bar_switcher.switch_to_sort(wtree.current_model, wtree.sort)
         await pilot.pause()

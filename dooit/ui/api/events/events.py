@@ -5,7 +5,7 @@ from textual.message import Message
 from dooit.api.model import DooitModel
 from dooit.api import Workspace, Todo
 
-ModeType = Literal["NORMAL", "INSERT", "DATE", "SEARCH", "SORT", "CONFIRM"]
+ModeType = Literal["NORMAL", "INSERT", "DATE", "SEARCH", "SORT", "CONFIRM", "FOCUS"]
 EmptyWidgetType = Literal["todo", "workspace", "no_search_results"]
 PositionType = Literal["workspace", "todo"]
 NotificationType = Literal["info", "warning", "error"]
@@ -70,6 +70,16 @@ class SpawnHelp(DooitEvent):
     """
 
 
+class StartFocus(DooitEvent):
+    """
+    Emitted when user wants to start a focus session, optionally on a todo
+    """
+
+    def __init__(self, todo: Optional[Todo] = None) -> None:
+        super().__init__()
+        self.todo = todo
+
+
 class ModeChanged(DooitEvent):
     """
     Emitted when there is a change in the `status`
@@ -85,9 +95,10 @@ class StartSearch(DooitEvent):
     Emitted when user wants to search
     """
 
-    def __init__(self, callback: Callable) -> None:
+    def __init__(self, callback: Callable, confirm: Optional[Callable] = None) -> None:
         super().__init__()
         self.callback = callback
+        self.confirm = confirm
 
 
 class StartSort(DooitEvent):

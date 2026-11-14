@@ -2,6 +2,7 @@ from typing import Callable, Optional
 from textual.await_complete import AwaitComplete
 from textual.widget import Widget
 from textual.widgets import ContentSwitcher
+from dooit.api import Todo
 from dooit.api.model import DooitModel
 from dooit.ui.api.events.events import BarNotification
 from dooit.ui.widgets.bars._base import BarBase
@@ -10,6 +11,7 @@ from .search_bar import SearchBar
 from .confirm_bar import ConfirmBar
 from .notification_bar import NotificationBar
 from .sort_bar import SortBar
+from .focus_bar import FocusBar
 
 
 class BarSwitcher(ContentSwitcher):
@@ -53,8 +55,8 @@ class BarSwitcher(ContentSwitcher):
             set_current=True,
         )
 
-    def switch_to_search(self, callback: Callable):
-        search_bar = SearchBar(callback)
+    def switch_to_search(self, callback: Callable, confirm: Optional[Callable] = None):
+        search_bar = SearchBar(callback, confirm)
         self.add_content(
             widget=search_bar,
             id="search_bar",
@@ -74,6 +76,14 @@ class BarSwitcher(ContentSwitcher):
         self.add_content(
             widget=sort_bar,
             id="sort_bar",
+            set_current=True,
+        )
+
+    def switch_to_focus(self, callback: Callable, todo: Optional[Todo] = None):
+        focus_bar = FocusBar(callback, todo)
+        self.add_content(
+            widget=focus_bar,
+            id="focus_bar",
             set_current=True,
         )
 

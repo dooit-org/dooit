@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, List, Optional, Union
 from textual import on
 from textual.widgets.option_list import Option
 
@@ -29,6 +29,21 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
     def is_node_expaned(self, _id: str) -> bool:
         return super().is_node_expaned(_id) or self.api.vars.always_expand_todos
 
+    def visible_children(self, model: Model) -> List[Model]:
+        children = super().visible_children(model)
+        if self.api.vars.hide_completed:
+            return [todo for todo in children if todo.pending]
+
+        return children
+
+    def _force_refresh(self) -> None:
+        super()._force_refresh()
+
+        title = self.BORDER_TITLE
+        if self.api.vars.hide_completed:
+            title += " (completed hidden)"
+        self.border_title = title
+
     @property
     def formatter(self) -> "TodoFormatter":
         return self.api.formatter.todos
@@ -49,17 +64,15 @@ class TodosTree(ModelTree[Model, TodoRenderDict]):
     def _create_child_node(self) -> Todo:
         return self.current_model.add_todo()
 
-    def _remove_node(self) -> None:
-        assert isinstance(self.current_model, Todo)
-        self.post_message(TodoRemoved(self.current_model))
-
-        return super()._remove_node()
+    def before_remove(self, model: Model) -> None:
+        assert isinstance(model, Todo)
+        self.post_message(TodoRemoved(model))
 
     def toggle_complete(self):
         assert isinstance(self.current_model, Todo)
 
         self.current_model.toggle_complete()
-        self.refresh_options()
+        self.force_refresh()  # completing a recurring todo adds a child
 
     def increase_urgency(self):
         assert isinstance(self.current_model, Todo)

@@ -1,6 +1,6 @@
 from collections import defaultdict
 from functools import cache
-from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Generic, List, Optional, TypeVar, Union
 from textual.app import ComposeResult
 from textual.widgets import Label
 from textual.widgets.option_list import Option
@@ -47,10 +47,12 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         tree = self.__class__.__name__
         super().__init__(id=f"{tree}_{model.uuid}")
         self._model = model
-        self.expaned = defaultdict(bool)
+        self.expanded_nodes = defaultdict(bool)
         self._renderers: RenderDictType = render_dict
         self._filter_refresh = False
         self._model_clipboard = None
+        self._new_node_id: Optional[str] = None
+        self._search_term = ""
 
     @cache
     def get_column_width(self, attr: str) -> int:
@@ -105,13 +107,83 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
     def set_filter(self, filter: str) -> None:
         self.filter_refresh = bool(filter)
 
-        for option in self._options:
+        first_match = None
+        for index, option in enumerate(self._options):
             assert option.id
             matches = self._renderers[option.id].matches_filter(filter)
             if matches:
                 self.enable_option(option.id)
+                if first_match is None:
+                    first_match = index
             else:
                 self.disable_option(option.id)
+
+        if filter and first_match is not None:
+            self.highlighted = first_match
+
+    def confirm_search(self, term: str) -> None:
+        """Leave the filtered view on the current match, remembering the term"""
+
+        match = self.current_model if self.highlighted is not None else None
+        self._search_term = term
+        self.set_filter("")
+
+        if match is not None and term:
+            self.reveal(match)
+
+    def all_nodes(self) -> List[ModelType]:
+        """Every listed node in display order, including collapsed ones"""
+
+        nodes = []
+
+        def add(model: ModelType):
+            for child in self.visible_children(model):
+                nodes.append(child)
+                add(child)
+
+        add(self.model)
+        return nodes
+
+    def reveal(self, model: ModelType) -> None:
+        """Expand the ancestors of `model` and move the cursor to it"""
+
+        parent = model.parent
+        while parent is not None and parent != self.model:
+            self.expanded_nodes[parent.uuid] = True
+            parent = parent.parent
+
+        self.force_refresh()
+        self.highlight_id(model.uuid)
+
+    def goto_search_hit(self, step: int = 1) -> None:
+        if not self._search_term:
+            self.post_message(BarNotification("No previous search", "error"))
+            return
+
+        nodes = self.all_nodes()
+        hits = [
+            index
+            for index, node in enumerate(nodes)
+            if self._renderers[node.uuid].matches_filter(self._search_term)
+        ]
+        if not hits:
+            self.post_message(
+                BarNotification(f"No match for [b]{self._search_term}[/b]", "error")
+            )
+            return
+
+        current = -1
+        if self.highlighted is not None:
+            current = nodes.index(self.current_model)
+
+        if step > 0:
+            after = [index for index in hits if index > current]
+            target = after[0] if after else hits[0]
+        else:
+            before = [index for index in hits if index < current]
+            target = before[-1] if before else hits[-1]
+
+        self.reveal(nodes[target])
 
     @property
     def is_editing(self) -> bool:
@@ -133,6 +205,29 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
     def is_node_expaned(self, _id: str) -> bool:
         return self.expanded_nodes[_id]
 
+    @property
+    def children_attr(self) -> str:
+        return self.__class__.__name__.replace("Tree", "").lower()
+
+    def visible_children(self, model: ModelType) -> List[ModelType]:
+        return getattr(model, self.children_attr)
+
+    def has_children(self, model: ModelType) -> bool:
+        return bool(self.visible_children(model))
+
+    def subtree(self, model: ModelType) -> List[ModelType]:
+        nodes = [model]
+        for child in getattr(model, self.children_attr):
+            nodes.extend(self.subtree(child))
+
+        return nodes
+
+    def is_collapsed_parent(self, model: ModelType) -> bool:
+        if self.is_node_expaned(model.uuid) or self.filter_refresh:
+            return False
+
+        return self.has_children(model)
+
     def _force_refresh(self) -> None:
         highlighted = self.highlighted
         self.clear_options()
@@ -140,10 +235,7 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         options = []
 
         def add_children_recurse(model: ModelType):
-            for child in getattr(
-                model,
-                self.__class__.__name__.replace("Tree", "").lower(),
-            ):
+            for child in self.visible_children(model):
                 render = self._renderers[child.uuid]
                 options.append(Option("", id=render.id))
 
@@ -161,13 +253,16 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
     def on_mount(self):
         self.force_refresh()
 
+        if self._options and self.highlighted is None:
+            self.highlighted = 0
+
     @require_highlighted_node
     def start_sort(self):
         self.post_message(StartSort(self.current_model, self.sort))
 
     @require_highlighted_node
     def start_search(self):
-        self.post_message(StartSearch(self.set_filter))
+        self.post_message(StartSearch(self.set_filter, self.confirm_search))
 
     def start_edit(self, property: str) -> bool:
         columns = [i.value for i in self.render_layout]
@@ -193,6 +288,11 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
         self.app.post_message(ModeChanged("NORMAL"))
         self.get_column_width.cache_clear()
         self.update_current_prompt()
+
+        # an item added and left without a description is discarded
+        new_node_id, self._new_node_id = self._new_node_id, None
+        if new_node_id == self.node.id and not self.current_model.description:
+            self._drop_node(self.current_model)
 
     def reset_state(self):
         """
@@ -278,6 +378,7 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
 
         self.expand_node()
         self.highlight_id(node.uuid)
+        self._new_node_id = node.uuid
         self.start_edit("description")
 
     def _create_sibling_node(self) -> ModelType:
@@ -310,22 +411,35 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
             node = self._add_sibling_node()
 
         self.highlight_id(node.uuid)
+        self._new_node_id = node.uuid
         self.start_edit("description")
 
     @require_confirmation
-    @refresh_tree
     def _remove_node(self):
-        model = self.current_model
+        self._drop_node(self.current_model)
 
-        self._renderers.pop(model.uuid)
-        self.expanded_nodes.pop(model.uuid)
+    @refresh_tree
+    def _drop_node(self, model: ModelType):
+        self.before_remove(model)
+
+        # ids of deleted rows get reused, so drop cached state for all of them
+        for node in self.subtree(model):
+            self._renderers.pop(node.uuid, None)
+            self.expanded_nodes.pop(node.uuid, None)
+
         model.drop()
+
+    def before_remove(self, model: ModelType) -> None:
+        """Called once the removal of `model` is confirmed, before it is deleted"""
 
     @require_highlighted_node
     def copy_model_to_clipboard(self):
-        node_type = self.current_model.__class__.__name__
+        model = self.current_model
+        node_type = model.__class__.__name__
         self.api.notify(f"{node_type} was copied to clipboard")
-        self._model_clipboard = self.current_model.id
+
+        # keep the contents, not the id, so it can be pasted after deletion
+        self._model_clipboard = (type(model), model._snapshot())
 
     def paste_model_from_clipboard(
         self, position: str = "below"
@@ -342,22 +456,22 @@ class ModelTree(BaseTree, Generic[ModelType, RenderDictType]):
                 )
                 return None
 
-            if not self.highlighted:
+            if self.highlighted is None:
                 order_index = len(self._options)
+                parent = self.model
             else:
                 order_index = self.current_model.order_index
+                parent = self.current_model.parent
                 if position == "below":
                     order_index += 1
 
-            if isinstance(self.current_model, Todo):
-                new_model = Todo.clone_from_id(self._model_clipboard, order_index)
-            else:
-                new_model = Workspace.clone_from_id(self._model_clipboard, order_index)
-
-            return new_model
+            model_class, snapshot = self._model_clipboard
+            return model_class._from_snapshot(snapshot, parent, order_index)
 
         model = add_node(self)
-        self.highlight_id(model.uuid)
+        if model is not None:
+            self.highlight_id(model.uuid)
+
         return model
 
     @require_highlighted_node

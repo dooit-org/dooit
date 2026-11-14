@@ -8,6 +8,10 @@ def update_children_to_pending(_, connection, target: Todo):
     if not target.pending:
         return
 
+    # the completed children of a recurring todo are its completion history
+    if target.recurrence is not None:
+        return
+
     if any(todo.pending for todo in target.todos):
         return
 
@@ -39,6 +43,11 @@ def update_parent_to_completed(mapper, connection, target: Todo):
         return
 
     parent = target.parent_todo
+
+    # a recurring parent rolls over instead, see Todo.toggle_complete
+    if parent.recurrence is not None:
+        return
+
     all_sibling_completed = all([not sibling.pending for sibling in parent.todos])
     if all_sibling_completed:
         query = (
@@ -53,7 +62,10 @@ def update_due_for_recurrence(mapper, connection, todo: Todo):
         return
 
     if todo.due is None:
-        todo.due = datetime.now()
+        # the first occurrence is one period away, not already overdue
+        todo.due = datetime.now() + todo.recurrence
+        todo.pending = True
+        return
 
     if todo.pending:
         return

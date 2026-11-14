@@ -12,6 +12,7 @@ from dooit.ui.api.events import (
     ShowConfirm,
     StartSearch,
     StartSort,
+    StartFocus,
     TodoDescriptionChanged,
     TodoDueChanged,
     TodoEffortChanged,
@@ -27,6 +28,7 @@ from dooit.ui.api.events import (
 from dooit.ui.widgets.trees import WorkspacesTree, TodosTree
 from dooit.ui.widgets import BarSwitcher, Dashboard
 from .base import BaseScreen
+from .focus import FocusScreen
 
 
 class DualSplit(Container):
@@ -81,6 +83,18 @@ class MainScreen(BaseScreen):
         await self.api.handle_key(key)
         return True
 
+    @on(events.Paste)
+    async def handle_paste(self, event: events.Paste) -> None:
+        if self.app.screen != self:
+            return
+        event.stop()
+        text = event.text.replace("\r\n", " ").replace("\n", " ").replace("\r", " ")
+        key = f"events.Paste:{text}"
+        if self.app.bar_switcher.is_focused:
+            await self.app.bar_switcher.handle_keypress(key)
+        else:
+            await self.api.handle_key(key)
+
     @on(BarNotification)
     def show_notification(self, event: BarNotification):
         self.app.bar_switcher.switch_to_notification(event)
@@ -96,13 +110,23 @@ class MainScreen(BaseScreen):
 
     @on(StartSearch)
     def start_search(self, event: StartSearch):
-        self.app.bar_switcher.switch_to_search(event.callback)
+        self.app.bar_switcher.switch_to_search(event.callback, event.confirm)
         self.post_message(ModeChanged("SEARCH"))
 
     @on(StartSort)
     def start_sort(self, event: StartSort):
         self.app.bar_switcher.switch_to_sort(event.model, event.callback)
         self.post_message(ModeChanged("SORT"))
+
+    @on(StartFocus)
+    def start_focus(self, event: StartFocus):
+        todo = event.todo
+
+        def start_session(minutes: int):
+            self.app.push_screen(FocusScreen(minutes * 60, todo))
+
+        self.app.bar_switcher.switch_to_focus(start_session, todo)
+        self.post_message(ModeChanged("FOCUS"))
 
     @on(ShowConfirm)
     def show_confirm(self, event: ShowConfirm):

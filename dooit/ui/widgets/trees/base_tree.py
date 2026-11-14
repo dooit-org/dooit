@@ -1,4 +1,3 @@
-from collections import defaultdict
 from typing import TYPE_CHECKING, Union
 from textual.widgets import OptionList
 from textual.widgets.option_list import Option
@@ -14,8 +13,6 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 class BaseTree(OptionList, can_focus=True, inherit_bindings=False):
-    expanded_nodes = defaultdict(bool)
-
     @property
     def api(self) -> "DooitAPI":
         return self.tui.api

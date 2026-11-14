@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 from dooit.ui.api.events import BarNotification, NotificationType
 from dooit.ui.api.plug import PluginManager
-from .events import DooitEvent, SwitchTab, QuitApp
+from .events import DooitEvent, SwitchTab, QuitApp, StartFocus
 from dooit.ui.widgets import ModelTree
 from dooit.ui.widgets.trees import TodosTree
 from dooit.utils import CssManager
@@ -105,6 +105,23 @@ class DooitAPI:
         if w := self.app.focused:
             w.post_message(SwitchTab())
 
+    def focus_workspaces(self):
+        """Move focus to the workspace list"""
+
+        if self.app.bar_switcher.is_focused:
+            return
+
+        self.vars.workspaces_tree.focus()
+
+    def focus_todos(self):
+        """Move focus to the todo list"""
+
+        if self.app.bar_switcher.is_focused:
+            return
+
+        if tree := self.vars.todos_tree:
+            tree.focus()
+
     def move_down(self):
         """Move the cursor down in the focused list"""
 
@@ -176,9 +193,38 @@ class DooitAPI:
         """Start a search within the list"""
         self.focused.start_search()
 
+    def next_search_hit(self):
+        """Go to the next match of the last search"""
+        self.focused.goto_search_hit(1)
+
+    def previous_search_hit(self):
+        """Go to the previous match of the last search"""
+        self.focused.goto_search_hit(-1)
+
     def start_sort(self):
         """Start sorting the siblings of the highlighted item"""
         self.focused.start_sort()
+
+    def start_focus(self):
+        """Start a focus (pomodoro) session, on the highlighted todo if any"""
+        focused = self.app.focused
+        todo = None
+        if isinstance(focused, TodosTree) and focused.highlighted is not None:
+            todo = focused.current_model
+
+        self.app.screen.post_message(StartFocus(todo))
+
+    def toggle_hide_completed(self):
+        """Hide or show completed todos"""
+
+        self.vars.hide_completed = not self.vars.hide_completed
+        for tree in self.app.get_screen("main").query(TodosTree):
+            tree.force_refresh()
+            if tree.highlighted is None and tree._options:
+                tree.highlighted = 0
+
+        state = "hidden" if self.vars.hide_completed else "shown"
+        self.notify(f"Completed todos {state}")
 
     def toggle_complete(self):
         """Toggle the completion of the todo"""

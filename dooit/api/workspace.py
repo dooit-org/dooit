@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 from sqlalchemy import ForeignKey, asc, select
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from ..api.todo import Todo
@@ -123,74 +123,47 @@ class Workspace(DooitModel):
         return list(manager.session.execute(query).scalars().all())
 
     @staticmethod
-    def clone_from_id(id: int, order_index: int) -> "Workspace":
+    def clone_from_id(
+        id: int,
+        order_index: int,
+        parent: Optional["Workspace"] = None,
+    ) -> "Workspace":
+        """
+        Copy a workspace with its contents under `parent` (defaults to the original's parent)
+        """
+
         workspace = Workspace.from_id(str(id))
-        fields = ["description"]
-        attrs = {field: getattr(workspace, field) for field in fields}
-        attrs["parent_workspace_id"] = workspace.parent_workspace_id
-        attrs["order_index"] = order_index
 
-        new_workspace = Workspace(**attrs)
-        new_workspace.save()
+        # read the whole subtree first, the copy may be placed inside it
+        snapshot = workspace._snapshot()
+        return Workspace._from_snapshot(
+            snapshot, parent or workspace.parent_workspace, order_index
+        )
 
-        # Clone all child workspaces recursively
-        for child_workspace in workspace.workspaces:
-            Workspace._clone_workspace_recursively(child_workspace, new_workspace)
-
-        # Clone all todos
-        for todo in workspace.todos:
-            fields = [
-                "description",
-                "due",
-                "effort",
-                "recurrence",
-                "urgency",
-                "pending",
-            ]
-            attrs = {field: getattr(todo, field) for field in fields}
-            attrs["parent_workspace"] = new_workspace
-
-            todo_clone = Todo(**attrs)
-            todo_clone.save()
-
-            # Clone all child todos
-            for child_todo in todo.todos:
-                Todo._clone_todo_recursively(child_todo, todo_clone)
-
-        return new_workspace
+    def _snapshot(self) -> Dict[str, Any]:
+        return {
+            "description": self.description,
+            "workspaces": [workspace._snapshot() for workspace in self.workspaces],
+            "todos": [todo._snapshot() for todo in self.todos],
+        }
 
     @staticmethod
-    def _clone_workspace_recursively(
-        source_workspace: "Workspace", parent_clone: "Workspace"
-    ) -> None:
-        fields = ["description", "order_index"]
-        attrs = {field: getattr(source_workspace, field) for field in fields}
-        attrs["parent_workspace"] = parent_clone
+    def _from_snapshot(
+        snapshot: Dict[str, Any],
+        parent: Optional["Workspace"],
+        order_index: int = -1,
+    ) -> "Workspace":
+        workspace = Workspace(
+            description=snapshot["description"],
+            parent_workspace=parent,
+            order_index=order_index,
+        )
+        workspace.save()
 
-        workspace_clone = Workspace(**attrs)
-        workspace_clone.save()
+        for child in snapshot["workspaces"]:
+            Workspace._from_snapshot(child, workspace)
 
-        # Clone child workspaces
-        for child_workspace in source_workspace.workspaces:
-            Workspace._clone_workspace_recursively(child_workspace, workspace_clone)
+        for todo in snapshot["todos"]:
+            Todo._from_snapshot(todo, workspace)
 
-        # Clone todos
-        for todo in source_workspace.todos:
-            fields = [
-                "description",
-                "due",
-                "effort",
-                "recurrence",
-                "urgency",
-                "pending",
-                "order_index",
-            ]
-            attrs = {field: getattr(todo, field) for field in fields}
-            attrs["parent_workspace"] = workspace_clone
-
-            todo_clone = Todo(**attrs)
-            todo_clone.save()
-
-            # Clone child todos
-            for child_todo in todo.todos:
-                Todo._clone_todo_recursively(child_todo, todo_clone)
+        return workspace

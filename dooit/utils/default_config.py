@@ -19,6 +19,7 @@ def get_mode(api: DooitAPI, event: ModeChanged):
     MODES = {
         "NORMAL": theme.primary,
         "INSERT": theme.secondary,
+        "FOCUS": theme.green,
     }
 
     return Text(
@@ -112,6 +113,13 @@ def todo_urgency_formatter(urgency, _, api: DooitAPI):
     )
 
 
+def todo_effort_formatter(effort: int, _):
+    if not effort:
+        return ""
+
+    return str(effort)
+
+
 def todo_recurrence_formatter(recurrence: Optional[timedelta], _):
     if recurrence is None:
         return ""
@@ -125,8 +133,10 @@ def todo_recurrence_formatter(recurrence: Optional[timedelta], _):
 @subscribe(Startup)
 def key_setup(api: DooitAPI, _):
     api.keys.set("<tab>", api.switch_focus)
-    api.keys.set("j", api.move_down)
-    api.keys.set("k", api.move_up)
+    api.keys.set("<left>", api.focus_workspaces)
+    api.keys.set("<right>", api.focus_todos)
+    api.keys.set(["j", "<down>"], api.move_down)
+    api.keys.set(["k", "<up>"], api.move_up)
     api.keys.set("i", api.edit_description)
     api.keys.set("d", api.edit_due)
     api.keys.set("r", api.edit_recurrence)
@@ -137,19 +147,23 @@ def key_setup(api: DooitAPI, _):
     api.keys.set("gg", api.go_to_top)
     api.keys.set("G", api.go_to_bottom)
     api.keys.set("A", api.add_child_node)
-    api.keys.set("J", api.shift_down)
-    api.keys.set("K", api.shift_up)
+    api.keys.set(["J", "<shift+down>"], api.shift_down)
+    api.keys.set(["K", "<shift+up>"], api.shift_up)
     api.keys.set("xx", api.remove_node)
     api.keys.set("y", api.copy_description_to_clipboard)
     api.keys.set("Y", api.copy_model)
     api.keys.set("p", api.paste_model_below)
     api.keys.set("P", api.paste_model_above)
     api.keys.set("c", api.toggle_complete)
+    api.keys.set("h", api.toggle_hide_completed)
     api.keys.set(["=", "+"], api.increase_urgency)
     api.keys.set(["-", "_"], api.decrease_urgency)
     api.keys.set("/", api.start_search)
-    api.keys.set("<ctrl+s>", api.start_sort)
-    api.keys.set("<ctrl+q>", api.quit)
+    api.keys.set("n", api.next_search_hit)
+    api.keys.set("N", api.previous_search_hit)
+    api.keys.set(["s", "<ctrl+s>"], api.start_sort)
+    api.keys.set("f", api.start_focus)
+    api.keys.set(["q", "<ctrl+q>"], api.quit)
     api.keys.set("?", api.show_help)
 
 
@@ -159,6 +173,8 @@ def layout_setup(api: DooitAPI, _):
     api.layouts.todo_layout = [
         TodoWidget.status,
         TodoWidget.description,
+        TodoWidget.effort,
+        TodoWidget.recurrence,
         TodoWidget.due,
         TodoWidget.urgency,
     ]
@@ -169,6 +185,7 @@ def formatter_setup(api: DooitAPI, _):
     api.formatter.todos.status.add(todo_status_formatter)
     api.formatter.todos.due.add(todo_due_formatter)
     api.formatter.todos.urgency.add(todo_urgency_formatter)
+    api.formatter.todos.effort.add(todo_effort_formatter)
     api.formatter.todos.recurrence.add(todo_recurrence_formatter)
 
 
